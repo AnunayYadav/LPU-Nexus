@@ -185,16 +185,27 @@ const AttendanceTracker: React.FC = () => {
 
   const calculateStats = (s: Subject) => {
     const goal = s.goal || 75;
+    // Handle total classes being zero to avoid division by zero
     const percentage = s.total === 0 ? 0 : (s.present / s.total) * 100;
     
     let needed = 0;
+    // Avoid division by zero when goal is 100 (1 - 100/100 = 0)
     if (percentage < goal && goal < 100) {
         needed = Math.ceil(( (goal/100) * s.total - s.present) / (1 - (goal/100)));
+    } else if (percentage < goal && goal === 100) {
+        // Technically infinity classes are needed to reach exactly 100% if even one class is missed,
+        // but in practical terms, we just can't reach 100% anymore.
+        needed = 999; 
     }
     
     let skippable = 0;
+    // Avoid division by zero when goal is 0
     if (percentage >= goal && goal > 0) {
         skippable = Math.floor((100 * s.present - goal * s.total) / goal);
+    } else if (percentage >= goal && goal === 0) {
+        // If goal is 0%, all remaining classes can be skipped.
+        // We can just represent this as a large number or current total classes.
+        skippable = 999;
     }
 
     return { percentage, needed, skippable, goal };
@@ -232,7 +243,7 @@ const AttendanceTracker: React.FC = () => {
         </div>
       </header>
 
-      {/* Bulk Actions Bar - Fixed colors to slate/black for neutral theme */}
+      {/* Bulk Actions Bar */}
       {selectedIds.size > 0 && !showArchived && (
         <div className="fixed bottom-6 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:max-w-md z-50 glass-panel p-4 rounded-3xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-950 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4 animate-fade-in">
           <div className="flex items-center justify-between w-full sm:w-auto sm:border-r sm:border-slate-200 dark:sm:border-white/10 sm:pr-4">
@@ -358,7 +369,7 @@ const AttendanceTracker: React.FC = () => {
                 </div>
                 <div className="flex flex-col items-end">
                   <div className={`px-4 py-2 rounded-2xl ${bgClass} ${colorClass} text-xl font-black tracking-tighter shadow-sm mb-1`}>
-                    {percentage.toFixed(0)}%
+                    {percentage.toFixed(2)}%
                   </div>
                   <div className="flex items-center space-x-1">
                     <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Goal:</span>
@@ -405,9 +416,9 @@ const AttendanceTracker: React.FC = () => {
 
               <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest pt-4 border-t border-slate-100 dark:border-white/5">
                 {isBelowGoal ? (
-                  <span className="text-red-500 animate-pulse">Need {needed} more to hit {goal}%</span>
+                  <span className="text-red-500 animate-pulse">Need {needed >= 999 ? '∞' : needed} more to hit {goal}%</span>
                 ) : (
-                  <span className="text-green-500">Safe to skip {skippable} more classes</span>
+                  <span className="text-green-500">Safe to skip {skippable >= 999 ? '∞' : skippable} more classes</span>
                 )}
                 
                 <div className="flex items-center space-x-3 opacity-0 group-hover:opacity-100 transition-opacity">
