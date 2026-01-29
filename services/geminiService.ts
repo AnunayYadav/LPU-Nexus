@@ -1,8 +1,7 @@
 
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { ResumeAnalysisResult, Flashcard } from "../types";
+import { ResumeAnalysisResult, Flashcard } from "../types.ts";
 
-// Using the provided Gemini API Key from environment variables as per guidelines
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 /**
@@ -10,7 +9,7 @@ const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
  * Analyzes resume against job description.
  */
 export const analyzeResume = async (resumeText: string, jdText: string, deepAnalysis: boolean = false): Promise<ResumeAnalysisResult> => {
-  const modelId = "gemini-2.5-flash"; 
+  const modelId = "gemini-3-flash-preview"; 
 
   const analysisType = deepAnalysis ? "DEEP ANALYSIS (STRICT)" : "STANDARD ANALYSIS";
   const depthInstruction = deepAnalysis 
@@ -76,7 +75,7 @@ export const askAcademicOracle = async (
   contextText: string, 
   chatHistory: { role: string; text: string }[]
 ): Promise<string> => {
-  const modelId = "gemini-2.5-flash";
+  const modelId = "gemini-3-flash-preview";
 
   const systemInstruction = `
     You are "The Academic Oracle", an intelligent assistant for university students.
@@ -115,7 +114,7 @@ export const askAcademicOracle = async (
 };
 
 export const generateFlashcards = async (contextText: string): Promise<Flashcard[]> => {
-  const modelId = "gemini-2.5-flash";
+  const modelId = "gemini-3-flash-preview";
   const prompt = `
     Create 5 high-quality flashcards based on the following text.
     Focus on key definitions, dates, or formulas.
@@ -156,7 +155,7 @@ export const generateFlashcards = async (contextText: string): Promise<Flashcard
 }
 
 export const generateFlowchart = async (contextText: string): Promise<string> => {
-  const modelId = "gemini-2.5-flash";
+  const modelId = "gemini-3-flash-preview";
   const prompt = `
     Create a Mermaid.js flowchart syntax based on the key processes or concepts in the following text.
     Return ONLY the mermaid syntax string (start with 'graph TD'). Do not include markdown code fences.
@@ -180,7 +179,7 @@ export const generateFlowchart = async (contextText: string): Promise<string> =>
 }
 
 export const searchGlobalOpportunities = async (query: string) => {
-  const modelId = "gemini-2.5-flash"; 
+  const modelId = "gemini-3-flash-preview"; 
   const contextualQuery = `
     Context: I am a student at Lovely Professional University (LPU), India. 
     I am looking for study abroad opportunities, semester exchange programs, university tie-ups, or masters programs relevant to my background.

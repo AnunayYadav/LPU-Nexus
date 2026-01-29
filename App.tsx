@@ -1,15 +1,15 @@
 
 import React, { useState, useEffect } from 'react';
-import Sidebar from './components/Sidebar';
-import PlacementPrefect from './components/PlacementPrefect';
-import ContentLibrary from './components/ContentLibrary';
-import CampusNavigator from './components/CampusNavigator';
-import GlobalGateway from './components/GlobalGateway';
-import HelpSection from './components/HelpSection';
-import FreshersKit from './components/FreshersKit';
-import CGPACalculator from './components/CGPACalculator';
-import AttendanceTracker from './components/AttendanceTracker';
-import { ModuleType } from './types';
+import Sidebar from './components/Sidebar.tsx';
+import PlacementPrefect from './components/PlacementPrefect.tsx';
+import ContentLibrary from './components/ContentLibrary.tsx';
+import CampusNavigator from './components/CampusNavigator.tsx';
+import GlobalGateway from './components/GlobalGateway.tsx';
+import HelpSection from './components/HelpSection.tsx';
+import FreshersKit from './components/FreshersKit.tsx';
+import CGPACalculator from './components/CGPACalculator.tsx';
+import AttendanceTracker from './components/AttendanceTracker.tsx';
+import { ModuleType } from './types.ts';
 
 const IconPlacement = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-12 h-12">
