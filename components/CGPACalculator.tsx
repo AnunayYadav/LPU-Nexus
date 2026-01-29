@@ -194,7 +194,7 @@ const CGPACalculator: React.FC = () => {
         <div className="space-y-6">
           <div className="glass-panel p-8 rounded-3xl text-center shadow-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white border-none relative overflow-hidden">
             <div className="relative z-10">
-              <h3 className="text-xs font-black uppercase tracking-widest opacity-80 mb-2">Semester SGPA</h3>
+              <h3 className="text-xs font-black uppercase tracking-widest opacity-80 mb-2">Minimum Semester SGPA</h3>
               <p className="text-7xl font-black tracking-tighter mb-4">{sgpa}</p>
               <div className="h-1.5 bg-white/20 rounded-full overflow-hidden mb-4">
                 <div 
