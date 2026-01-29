@@ -1,0 +1,221 @@
+
+import React, { useState, useEffect } from 'react';
+import Sidebar from './components/Sidebar';
+import PlacementPrefect from './components/PlacementPrefect';
+import ContentLibrary from './components/ContentLibrary';
+import CampusNavigator from './components/CampusNavigator';
+import GlobalGateway from './components/GlobalGateway';
+import HelpSection from './components/HelpSection';
+import FreshersKit from './components/FreshersKit';
+import CGPACalculator from './components/CGPACalculator';
+import AttendanceTracker from './components/AttendanceTracker';
+import { ModuleType } from './types';
+
+const IconPlacement = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-12 h-12">
+    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+  </svg>
+);
+
+const IconLibrary = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-12 h-12">
+    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M8 8h10M8 12h10"/>
+  </svg>
+);
+
+const IconCampus = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-12 h-12">
+    <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/>
+  </svg>
+);
+
+const IconGlobal = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-12 h-12">
+    <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+  </svg>
+);
+
+const IconFreshers = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-12 h-12">
+    <path d="M4 20V10a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M9 6V4a3 3 0 0 1 6 0v2"/><path d="M8 21v-5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v5"/>
+  </svg>
+);
+
+const IconCGPA = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-12 h-12">
+    <rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="16" y1="14" x2="16" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/>
+  </svg>
+);
+
+const IconAttendance = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-12 h-12">
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+  </svg>
+);
+
+const Dashboard: React.FC<{ setModule: (m: ModuleType) => void }> = ({ setModule }) => (
+  <div className="max-w-6xl mx-auto animate-fade-in pb-20">
+    <div className="mb-10 text-center py-10">
+      <h2 className="text-4xl md:text-5xl font-extrabold text-slate-900 dark:text-white mb-4 tracking-tighter">
+        Welcome to <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600">LPU-Nexus</span>
+      </h2>
+      <p className="text-slate-600 dark:text-slate-400 text-lg md:text-xl font-medium">Your AI-Powered Campus Assistant</p>
+    </div>
+
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div 
+        onClick={() => setModule(ModuleType.CGPA)}
+        className="group relative p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/50 hover:border-blue-500/50 transition-all cursor-pointer hover:shadow-2xl hover:shadow-blue-500/5 overflow-hidden"
+      >
+        <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity text-slate-900 dark:text-white">
+          <IconCGPA />
+        </div>
+        <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">CGPA Calculator</h3>
+        <p className="text-slate-600 dark:text-slate-400 text-sm">Calculate your SGPA and CGPA based on LPU grading standards.</p>
+      </div>
+
+      <div 
+        onClick={() => setModule(ModuleType.ATTENDANCE)}
+        className="group relative p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/50 hover:border-green-500/50 transition-all cursor-pointer hover:shadow-2xl hover:shadow-green-500/5 overflow-hidden"
+      >
+        <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity text-slate-900 dark:text-white">
+          <IconAttendance />
+        </div>
+        <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Attendance Tracker</h3>
+        <p className="text-slate-600 dark:text-slate-400 text-sm">Monitor your attendance and hit that 75% threshold with ease.</p>
+      </div>
+
+      <div 
+        onClick={() => setModule(ModuleType.PLACEMENT)}
+        className="group relative p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/50 hover:border-orange-500/50 transition-all cursor-pointer hover:shadow-2xl hover:shadow-orange-500/5 overflow-hidden"
+      >
+        <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity text-slate-900 dark:text-white">
+          <IconPlacement />
+        </div>
+        <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Placement Prefect <span className="text-[10px] text-orange-500">(Beta)</span></h3>
+        <p className="text-slate-600 dark:text-slate-400 text-sm">Resume ATS matching & optimization tailored for campus drives.</p>
+      </div>
+
+      <div 
+        onClick={() => setModule(ModuleType.LIBRARY)}
+        className="group relative p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/50 hover:border-blue-500/50 transition-all cursor-pointer hover:shadow-2xl hover:shadow-blue-500/5 overflow-hidden"
+      >
+        <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity text-slate-900 dark:text-white">
+          <IconLibrary />
+        </div>
+        <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Content Library <span className="text-[10px] text-slate-500">(Locked)</span></h3>
+        <p className="text-slate-600 dark:text-slate-400 text-sm">Centralized hub for all your lectures, question banks and notes.</p>
+      </div>
+
+      <div 
+        onClick={() => setModule(ModuleType.CAMPUS)}
+        className="group relative p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/50 hover:border-indigo-500/50 transition-all cursor-pointer hover:shadow-2xl hover:shadow-indigo-500/5 overflow-hidden"
+      >
+        <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity text-slate-900 dark:text-white">
+          <IconCampus />
+        </div>
+        <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Campus Navigator</h3>
+        <p className="text-slate-600 dark:text-slate-400 text-sm">Mess menu checker and instant rulebook answers.</p>
+      </div>
+
+      <div 
+        onClick={() => setModule(ModuleType.GLOBAL)}
+        className="group relative p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/50 hover:border-emerald-500/50 transition-all cursor-pointer hover:shadow-2xl hover:shadow-emerald-500/5 overflow-hidden"
+      >
+        <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity text-slate-900 dark:text-white">
+          <IconGlobal />
+        </div>
+        <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Global Gateway <span className="text-[10px] text-emerald-500">(Beta)</span></h3>
+        <p className="text-slate-600 dark:text-slate-400 text-sm">Real-time study abroad info using Google Search Grounding.</p>
+      </div>
+    </div>
+  </div>
+);
+
+const App: React.FC = () => {
+  const [currentModule, setCurrentModule] = useState<ModuleType>(ModuleType.DASHBOARD);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark';
+    if (savedTheme) {
+      setTheme(savedTheme);
+      document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+    } else {
+      document.documentElement.classList.add('dark');
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    document.documentElement.classList.toggle('dark');
+  };
+
+  const renderModule = () => {
+    switch (currentModule) {
+      case ModuleType.PLACEMENT: return <PlacementPrefect />;
+      case ModuleType.LIBRARY: return <ContentLibrary />;
+      case ModuleType.CAMPUS: return <CampusNavigator />;
+      case ModuleType.GLOBAL: return <GlobalGateway />;
+      case ModuleType.HELP: return <HelpSection />;
+      case ModuleType.FRESHERS: return <FreshersKit />;
+      case ModuleType.CGPA: return <CGPACalculator />;
+      case ModuleType.ATTENDANCE: return <AttendanceTracker />;
+      default: return <Dashboard setModule={setCurrentModule} />;
+    }
+  };
+
+  return (
+    <div className="flex min-h-screen bg-slate-50 dark:bg-black text-slate-900 dark:text-slate-200 transition-colors duration-300">
+      <Sidebar 
+        currentModule={currentModule} 
+        setModule={setCurrentModule}
+        isMobileMenuOpen={isMobileMenuOpen}
+        toggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+      />
+
+      <main className="flex-1 flex flex-col h-screen overflow-hidden relative">
+        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-white/5 bg-white dark:bg-black z-10 transition-colors">
+          <div className="flex items-center">
+            <button 
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="md:hidden p-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:white mr-4"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <span className="md:hidden font-bold text-orange-500">LPU-Nexus</span>
+          </div>
+
+          <div className="flex items-center space-x-4 ml-auto">
+             <button 
+               onClick={toggleTheme}
+               className="p-2 rounded-full bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-all"
+               title="Toggle Theme"
+             >
+               {theme === 'dark' ? (
+                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+               ) : (
+                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+               )}
+             </button>
+             <div className="hidden md:block w-8 h-8 rounded-full bg-gradient-to-tr from-orange-400 to-red-500"></div>
+          </div>
+        </div>
+
+        <div id="main-content-area" className="flex-1 overflow-y-auto p-4 md:p-8 relative scroll-smooth">
+           <div className="fixed top-0 left-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl pointer-events-none"></div>
+           <div className="fixed bottom-0 right-1/4 w-96 h-96 bg-orange-500/5 rounded-full blur-3xl pointer-events-none"></div>
+
+           <div className="relative z-0 max-w-7xl mx-auto">
+             {renderModule()}
+           </div>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default App;

@@ -1,0 +1,169 @@
+
+import React, { useState } from 'react';
+import { ModuleType } from '../types';
+
+interface SidebarProps {
+  currentModule: ModuleType;
+  setModule: (m: ModuleType) => void;
+  isMobileMenuOpen: boolean;
+  toggleMobileMenu: () => void;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ currentModule, setModule, isMobileMenuOpen, toggleMobileMenu }) => {
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackText, setFeedbackText] = useState("");
+
+  const navItems = [
+    { 
+      id: ModuleType.DASHBOARD, 
+      label: 'Dashboard', 
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 
+    },
+    { 
+      id: ModuleType.ATTENDANCE, 
+      label: 'Attendance', 
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> 
+    },
+    { 
+      id: ModuleType.CGPA, 
+      label: 'CGPA Calc', 
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="16" y1="14" x2="16" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg> 
+    },
+    { 
+      id: ModuleType.PLACEMENT, 
+      label: 'Placement Prefect', 
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg> 
+    },
+    { 
+      id: ModuleType.LIBRARY, 
+      label: 'Content Library', 
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M8 8h10M8 12h10"/></svg> 
+    },
+    { 
+      id: ModuleType.CAMPUS, 
+      label: 'Campus Navigator', 
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg> 
+    },
+    { 
+      id: ModuleType.GLOBAL, 
+      label: 'Global Gateway', 
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> 
+    },
+    { 
+      id: ModuleType.FRESHERS, 
+      label: "Freshers' Kit", 
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M4 20V10a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M9 6V4a3 3 0 0 1 6 0v2"/><path d="M8 21v-5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v5"/></svg> 
+    },
+    { 
+      id: ModuleType.HELP, 
+      label: 'Help & FAQ', 
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> 
+    },
+  ];
+
+  const submitFeedback = () => {
+    if (feedbackText.trim()) {
+      alert("Thank you! Your feedback has been recorded.");
+      setFeedbackText("");
+      setShowFeedbackModal(false);
+    }
+  };
+
+  return (
+    <>
+      {/* Mobile Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 z-20 md:hidden backdrop-blur-md"
+          onClick={toggleMobileMenu}
+        />
+      )}
+
+      {/* Feedback Modal */}
+      {showFeedbackModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+          <div className="bg-white dark:bg-slate-950 rounded-3xl p-8 w-full max-w-md shadow-2xl animate-fade-in border border-white/5">
+            <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-2 tracking-tight">Feedback</h3>
+            <p className="text-sm text-slate-500 mb-6">Report a bug or request a feature.</p>
+            <textarea 
+              value={feedbackText}
+              onChange={(e) => setFeedbackText(e.target.value)}
+              className="w-full h-32 p-4 rounded-2xl bg-slate-100 dark:bg-black border border-transparent dark:border-white/5 focus:ring-2 focus:ring-orange-500 text-slate-800 dark:text-slate-200 resize-none transition-all outline-none"
+              placeholder="Type your feedback here..."
+            />
+            <div className="flex justify-end space-x-3 mt-6">
+              <button 
+                onClick={() => setShowFeedbackModal(false)}
+                className="px-4 py-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-bold text-sm"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={submitFeedback}
+                className="px-8 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-bold text-sm shadow-lg shadow-orange-600/20"
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sidebar Container */}
+      <aside className={`
+        fixed inset-y-0 left-0 z-30 w-64 transform transition-transform duration-300 ease-in-out
+        bg-white dark:bg-black border-r border-slate-200 dark:border-white/5
+        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+        md:translate-x-0 md:static flex flex-col shadow-2xl md:shadow-none
+      `}>
+        <div className="p-8 border-b border-slate-200 dark:border-white/5">
+          <h1 className="text-2xl font-black bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent tracking-tighter">
+            LPU-Nexus
+          </h1>
+          <p className="text-[10px] uppercase font-bold tracking-widest text-slate-400 dark:text-slate-600 mt-1">Intelligence Hub</p>
+        </div>
+
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto no-scrollbar">
+          {navItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => {
+                setModule(item.id);
+                if (window.innerWidth < 768) toggleMobileMenu();
+              }}
+              className={`w-full flex items-center space-x-3 px-4 py-3.5 rounded-2xl transition-all duration-200
+                ${currentModule === item.id 
+                  ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/20' 
+                  : 'text-slate-600 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-slate-200'
+                }
+              `}
+            >
+              <span className="flex-shrink-0">{item.icon}</span>
+              <span className="font-bold text-sm tracking-tight">{item.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        <div className="p-6 border-t border-slate-200 dark:border-white/5 space-y-4">
+          <button 
+            onClick={() => setShowFeedbackModal(true)}
+            className="w-full text-xs flex items-center justify-center space-x-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 py-2 transition-colors font-bold uppercase tracking-widest"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span>Feedback</span>
+          </button>
+
+          <div className="bg-gradient-to-br from-orange-600 to-red-700 rounded-2xl p-5 border border-white/10 shadow-xl shadow-orange-600/10">
+            <h3 className="text-xs font-black text-white uppercase tracking-widest mb-1">Nexus Pro</h3>
+            <p className="text-[10px] text-orange-100 mb-3 font-medium">Unlimited Scans & Deep AI Analysis</p>
+            <button className="w-full text-xs bg-white text-orange-600 py-2.5 rounded-xl font-black transition-transform hover:scale-105 shadow-lg active:scale-95">
+              UPGRADE
+            </button>
+          </div>
+        </div>
+      </aside>
+    </>
+  );
+};
+
+export default Sidebar;

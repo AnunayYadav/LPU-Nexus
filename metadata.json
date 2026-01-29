@@ -1,0 +1,7 @@
+{
+  "name": "LPU-Nexus",
+  "description": "A comprehensive AI-powered student utility app featuring resume analysis, academic assistance, campus navigation, and global university search.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
