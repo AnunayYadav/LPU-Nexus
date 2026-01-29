@@ -2,13 +2,12 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { ResumeAnalysisResult, Flashcard } from "../types.ts";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 /**
  * Module A: The Placement Prefect
  * Analyzes resume against job description.
  */
 export const analyzeResume = async (resumeText: string, jdText: string, deepAnalysis: boolean = false): Promise<ResumeAnalysisResult> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const modelId = "gemini-3-flash-preview"; 
 
   const analysisType = deepAnalysis ? "DEEP ANALYSIS (STRICT)" : "STANDARD ANALYSIS";
@@ -75,6 +74,7 @@ export const askAcademicOracle = async (
   contextText: string, 
   chatHistory: { role: string; text: string }[]
 ): Promise<string> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const modelId = "gemini-3-flash-preview";
 
   const systemInstruction = `
@@ -114,6 +114,7 @@ export const askAcademicOracle = async (
 };
 
 export const generateFlashcards = async (contextText: string): Promise<Flashcard[]> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const modelId = "gemini-3-flash-preview";
   const prompt = `
     Create 5 high-quality flashcards based on the following text.
@@ -155,6 +156,7 @@ export const generateFlashcards = async (contextText: string): Promise<Flashcard
 }
 
 export const generateFlowchart = async (contextText: string): Promise<string> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const modelId = "gemini-3-flash-preview";
   const prompt = `
     Create a Mermaid.js flowchart syntax based on the key processes or concepts in the following text.
@@ -179,6 +181,7 @@ export const generateFlowchart = async (contextText: string): Promise<string> =>
 }
 
 export const searchGlobalOpportunities = async (query: string) => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const modelId = "gemini-3-flash-preview"; 
   const contextualQuery = `
     Context: I am a student at Lovely Professional University (LPU), India. 

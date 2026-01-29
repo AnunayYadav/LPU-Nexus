@@ -59,7 +59,7 @@ const MESS_DATA: { week1: WeeklyMenu; week2: WeeklyMenu } = {
     { day: 'Wednesday', meals: { breakfast: { "North Indian": "Poori, Aloo Bhaji", "South Indian": "Vegetable Rawa Upma, Sambhar, Coconut Chutney", "Continental/Special": "Black Chana Masala, Pickle", "Essentials": "White Bread, Jam, Butter, Tea, Coffee, Plain Milk" }, lunch: { "South Indian": "Palakura Pappu, Aloo Palak Tomato, Pudina Rice", "North Indian": "Hari Moong Dal, Veg Kofta Curry", "Breads & Rice": "Roti, Plain Rice", "Accompaniments": "Boondi Raita, Green Salad" }, snacks: { "Snack": "Veg Coleslaw S/W, Green Chutney", "Beverage": "Tea, Coffee" }, dinner: { "South Indian": "Guntur Spiced Rasam, Brinjal Poriyal, Puliogare", "North Indian": "Rajma Rasila, Aloo Methi Masala", "Breads & Rice": "Roti, Jeera Rice, Plain Rice", "Dessert": "Boondi Laddu", "Accompaniments": "Green Salad" } } },
     { day: 'Thursday', meals: { breakfast: { "North Indian": "Stuffed Gobhi/Onion Prantha, Pickle", "South Indian": "Idli, Sambhar, Coconut Chutney", "Continental/Special": "Vegetable Macroni, Tomato Ketchup", "Essentials": "Brown Bread, Jam, Butter, Tea, Coffee, Plain Milk" }, lunch: { "South Indian": "Malabari Sambhar, Potato Wedges, Masala Sadam", "North Indian": "Punjabi Kadhi, Aloo Bengan", "Breads & Rice": "Roti, Plain Rice", "Accompaniments": "Majjiga Pulusu, Green Salad" }, snacks: { "Snack": "Pav (2 Pc), Bhaji", "Beverage": "Tea, Coffee" }, dinner: { "South Indian": "Meal Maker Curry, Mix Veg Poriyal", "North Indian": "White Chana, Aloo Gajar Matar", "Breads & Rice": "Roti, Veg Pulao, Plain Rice", "Dessert": "Gajar Ka Halwa", "Accompaniments": "Green Salad" } } },
     { day: 'Friday', meals: { breakfast: { "North Indian": "Missa Prantha, Packed Curd", "South Indian": "Vermicelli Upma, Tomato Ketchup", "Continental/Special": "Aloo Bonda, Coconut Chutney", "Healthy Option": "Broken Wheat Upma", "Essentials": "White Bread, Jam, Butter, Tea, Coffee" }, lunch: { "South Indian": "Tamarind Rasam, Avial, Karuveppilai Sadam(Curry leaf)", "North Indian": "Dal Palak, Aloo Gobhi Matar", "Breads & Rice": "Roti, Jeera Rice, Plain Rice", "Accompaniments": "Lauki Mint Raita, Fryums" }, snacks: { "Snack": "Samosa, Imly Chutney", "Beverage": "Tea, Coffee" }, dinner: { "South Indian": "Pasi Paruppu Sambar, Kerala Urulai Roast, Mint Rice", "North Indian": "Dal Makhni, Gobhi Manchurian", "Breads & Rice": "Roti, Fried Rice, Plain Rice", "Dessert": "Fruit Custard", "Accompaniments": "Green Salad" } } },
-    { day: 'Saturday', meals: { breakfast: { "North Indian": "Plain Prantha, Soya Paneer Bhurji", "South Indian": "Medu Vada, Sambhar, Tomato Ketchup", "Continental/Special": "Indori Poha, Tomato Ketchup", "Essentials": "Brown Bread, Jam, Butter, Tea, Coffee, Plain Milk" }, lunch: { "South Indian": "Black Channa Palya, Cabbage 65, Andhara Veg Biryani", "North Indian": "Rajma, Palak Paneer/Kadai Paneer", "Breads & Rice": "Roti, Plain Rice", "Accompaniments": "Dahi Bhalla, Green Salad, Imly Chutney" }, snacks: { "Snack": "Aloo Chana Chaat", "Beverage": "Tea, Coffee" }, dinner: { "South Indian": "Kandhi Pappu, Beans Kala Chana Poriyal", "North Indian": "Whole Masoor Dal, Aloo Beans", "Breads & Rice": "Roti, Corn Coriander Pulao, Plain Rice", "Accompaniments": "Fryums" } } }
+    { day: 'Saturday', meals: { breakfast: { "North Indian": "Plain Parantha, Soya Paneer Bhurji", "South Indian": "Medu Vada, Sambhar, Tomato Ketchup", "Continental/Special": "Indori Poha, Tomato Ketchup", "Essentials": "Brown Bread, Jam, Butter, Tea, Coffee, Plain Milk" }, lunch: { "South Indian": "Black Channa Palya, Cabbage 65, Andhara Veg Biryani", "North Indian": "Rajma, Palak Paneer/Kadai Paneer", "Breads & Rice": "Roti, Plain Rice", "Accompaniments": "Dahi Bhalla, Green Salad, Imly Chutney" }, snacks: { "Snack": "Aloo Chana Chaat", "Beverage": "Tea, Coffee" }, dinner: { "South Indian": "Kandhi Pappu, Beans Kala Chana Poriyal", "North Indian": "Whole Masoor Dal, Aloo Beans", "Breads & Rice": "Roti, Corn Coriander Pulao, Plain Rice", "Accompaniments": "Fryums" } } }
   ]
 };
 
@@ -106,20 +106,20 @@ const CampusNavigator: React.FC = () => {
     }
   }, [activeTab, actualToday]);
 
-  // Monitor scroll on the main app container
+  // Monitor scroll on the main app container with higher frequency and check
   useEffect(() => {
     const mainArea = document.getElementById('main-content-area');
     
     const handleScroll = () => {
       if (mainArea) {
-        // Show scroll to top button if we have scrolled more than 300px down
-        setShowScrollTop(mainArea.scrollTop > 300);
+        // More sensitive trigger for the button
+        setShowScrollTop(mainArea.scrollTop > 200);
       }
     };
     
     if (mainArea) {
       mainArea.addEventListener('scroll', handleScroll, { passive: true });
-      // Initial check
+      // Run once to initialize state
       handleScroll();
       return () => mainArea.removeEventListener('scroll', handleScroll);
     }
@@ -300,7 +300,7 @@ const CampusNavigator: React.FC = () => {
         </div>
       )}
 
-      {/* Floating Scroll To Top Button - Circular Arrow Icon */}
+      {/* Floating Scroll To Top Button - Ensure high z-index and fixed positioning */}
       {showScrollTop && (
         <button 
           onClick={scrollToTop}
@@ -313,7 +313,7 @@ const CampusNavigator: React.FC = () => {
 
       {/* Report Modal */}
       {isReportModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
           <div className="bg-white dark:bg-slate-950 rounded-[32px] p-8 w-full max-w-lg shadow-2xl border border-white/5 relative">
             <button 
               onClick={() => setIsReportModalOpen(false)}
