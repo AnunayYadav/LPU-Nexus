@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Sidebar from './components/Sidebar.tsx';
 import PlacementPrefect from './components/PlacementPrefect.tsx';
 import ContentLibrary from './components/ContentLibrary.tsx';
@@ -52,6 +52,34 @@ const IconAttendance = () => (
     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
   </svg>
 );
+
+const getModuleFromPath = (path: string): ModuleType => {
+  const p = path.toLowerCase();
+  if (p.endsWith('/attendance')) return ModuleType.ATTENDANCE;
+  if (p.endsWith('/cgpa')) return ModuleType.CGPA;
+  if (p.endsWith('/placement')) return ModuleType.PLACEMENT;
+  if (p.endsWith('/library')) return ModuleType.LIBRARY;
+  if (p.endsWith('/campus')) return ModuleType.CAMPUS;
+  if (p.endsWith('/global')) return ModuleType.GLOBAL;
+  if (p.endsWith('/freshers')) return ModuleType.FRESHERS;
+  if (p.endsWith('/help')) return ModuleType.HELP;
+  return ModuleType.DASHBOARD;
+};
+
+const getPathFromModule = (module: ModuleType): string => {
+  switch (module) {
+    case ModuleType.ATTENDANCE: return '/attendance';
+    case ModuleType.CGPA: return '/cgpa';
+    case ModuleType.PLACEMENT: return '/placement';
+    case ModuleType.LIBRARY: return '/library';
+    case ModuleType.CAMPUS: return '/campus';
+    case ModuleType.GLOBAL: return '/global';
+    case ModuleType.FRESHERS: return '/freshers';
+    case ModuleType.HELP: return '/help';
+    case ModuleType.DASHBOARD: return '/';
+    default: return '/';
+  }
+};
 
 const Dashboard: React.FC<{ setModule: (m: ModuleType) => void }> = ({ setModule }) => (
   <div className="max-w-6xl mx-auto animate-fade-in pb-20">
@@ -133,7 +161,7 @@ const Dashboard: React.FC<{ setModule: (m: ModuleType) => void }> = ({ setModule
 );
 
 const App: React.FC = () => {
-  const [currentModule, setCurrentModule] = useState<ModuleType>(ModuleType.DASHBOARD);
+  const [currentModule, setCurrentModule] = useState<ModuleType>(() => getModuleFromPath(window.location.pathname));
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
 
@@ -146,6 +174,22 @@ const App: React.FC = () => {
       document.documentElement.classList.add('dark');
     }
   }, []);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setCurrentModule(getModuleFromPath(window.location.pathname));
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const navigateToModule = (module: ModuleType) => {
+    setCurrentModule(module);
+    const newPath = getPathFromModule(module);
+    if (window.location.pathname !== newPath) {
+      window.history.pushState({ module }, '', newPath);
+    }
+  };
 
   const toggleTheme = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';
@@ -164,7 +208,7 @@ const App: React.FC = () => {
       case ModuleType.FRESHERS: return <FreshersKit />;
       case ModuleType.CGPA: return <CGPACalculator />;
       case ModuleType.ATTENDANCE: return <AttendanceTracker />;
-      default: return <Dashboard setModule={setCurrentModule} />;
+      default: return <Dashboard setModule={navigateToModule} />;
     }
   };
 
@@ -172,7 +216,7 @@ const App: React.FC = () => {
     <div className="flex min-h-screen bg-slate-50 dark:bg-black text-slate-900 dark:text-slate-200 transition-colors duration-300">
       <Sidebar 
         currentModule={currentModule} 
-        setModule={setCurrentModule}
+        setModule={navigateToModule}
         isMobileMenuOpen={isMobileMenuOpen}
         toggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
       />
