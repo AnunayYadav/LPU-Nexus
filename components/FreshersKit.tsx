@@ -1,55 +1,74 @@
+
 import React, { useState } from 'react';
 
 const FreshersKit: React.FC = () => {
   const [checklist, setChecklist] = useState([
+    // Documents
     { id: 1, item: "Original Marksheets (10th & 12th)", category: "Documents", checked: false },
     { id: 2, item: "Migration Certificate", category: "Documents", checked: false },
-    { id: 3, item: "Passport Size Photos (20 copies)", category: "Documents", checked: false },
-    { id: 4, item: "Bed Sheets & Pillow Covers", category: "Hostel", checked: false },
-    { id: 5, item: "Extension Cord (Surge Protector)", category: "Electronics", checked: false, link: "https://amazon.in" },
-    { id: 6, item: "Electric Kettle (if allowed)", category: "Electronics", checked: false, link: "https://amazon.in" },
-    { id: 7, item: "Padlock & Keys for Cupboard", category: "Hostel", checked: false },
-    { id: 8, item: "Basic Medicine Kit", category: "Essentials", checked: false },
+    { id: 3, item: "Passport Size Photos", category: "Documents", checked: false },
+    { id: 4, item: "Aadhaar Card", category: "Documents", checked: false },
+    
+    // Hostel
+    { id: 5, item: "Bed Sheets & Pillow Covers", category: "Hostel", checked: false },
+    { id: 6, item: "Padlock & Keys for Cupboard", category: "Hostel", checked: false },
+    
+    // Electronics
+    { id: 7, item: "Extension Cord (Surge Protector)", category: "Electronics", checked: false, link: "https://www.amazon.in/s?k=extension+cord" },
+    { id: 8, item: "Electric Kettle", category: "Electronics", checked: false, link: "https://www.amazon.in/s?k=electric+kettle" },
+    { id: 9, item: "Electric Iron", category: "Electronics", checked: false, link: "https://www.amazon.in/s?k=electric+iron" },
+    
+    // Essentials
+    { id: 10, item: "Basic Medicine Kit", category: "Essentials", checked: false },
   ]);
 
   const toggleItem = (id: number) => {
     setChecklist(checklist.map(i => i.id === id ? { ...i, checked: !i.checked } : i));
   };
 
-  const categories = Array.from(new Set(checklist.map(i => i.category)));
+  const categories = ["Documents", "Hostel", "Electronics", "Essentials"];
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
+    <div className="max-w-4xl mx-auto space-y-6 animate-fade-in pb-20">
       <header className="mb-8">
-        <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">Freshers' Survival Kit</h2>
-        <p className="text-slate-600 dark:text-slate-400">The ultimate checklist for your first day at LPU.</p>
+        <h2 className="text-3xl font-black text-slate-800 dark:text-white mb-2 tracking-tighter uppercase">Freshers' Survival Kit</h2>
+        <p className="text-slate-600 dark:text-slate-400 font-medium">The essential checklist for a seamless start at LPU.</p>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {categories.map(cat => (
-          <div key={cat} className="glass-panel p-6 rounded-2xl">
-            <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4 border-b border-slate-200 dark:border-slate-700 pb-2">{cat}</h3>
-            <ul className="space-y-3">
+          <div key={cat} className="glass-panel p-6 rounded-[32px] border dark:border-white/5 bg-white dark:bg-slate-950/50 shadow-sm">
+            <h3 className="text-xs font-black text-orange-600 dark:text-orange-500 uppercase tracking-[0.2em] mb-6 border-b border-slate-100 dark:border-white/5 pb-4">
+              {cat}
+            </h3>
+            <ul className="space-y-4">
               {checklist.filter(i => i.category === cat).map(item => (
                 <li key={item.id} className="flex items-center justify-between group">
-                  <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-4">
                     <button 
                       onClick={() => toggleItem(item.id)}
-                      className={`w-5 h-5 rounded border flex items-center justify-center transition-colors
+                      className={`w-6 h-6 rounded-xl border-2 flex items-center justify-center transition-all duration-300
                         ${item.checked 
-                          ? 'bg-green-500 border-green-500 text-white' 
-                          : 'border-slate-400 dark:border-slate-500 hover:border-green-500'
+                          ? 'bg-green-500 border-green-500 text-white shadow-lg shadow-green-500/20' 
+                          : 'border-slate-300 dark:border-white/10 hover:border-orange-500 bg-white dark:bg-black'
                         }`}
                     >
-                      {item.checked && '✓'}
+                      {item.checked && (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="w-3 h-3"><polyline points="20 6 9 17 4 12"/></svg>
+                      )}
                     </button>
-                    <span className={`text-sm ${item.checked ? 'text-slate-400 line-through' : 'text-slate-700 dark:text-slate-200'}`}>
+                    <span className={`text-sm font-bold transition-all duration-300 ${item.checked ? 'text-slate-400 dark:text-slate-600 line-through opacity-50' : 'text-slate-700 dark:text-slate-200'}`}>
                       {item.item}
                     </span>
                   </div>
                   {item.link && (
-                    <a href={item.link} target="_blank" rel="noreferrer" className="text-xs text-orange-500 hover:underline opacity-0 group-hover:opacity-100 transition-opacity">
-                      Buy on Amazon ↗
+                    <a 
+                      href={item.link} 
+                      target="_blank" 
+                      rel="noreferrer" 
+                      className="text-[10px] font-black uppercase tracking-widest text-orange-500 hover:text-orange-600 opacity-0 group-hover:opacity-100 transition-opacity bg-orange-500/10 px-3 py-1.5 rounded-lg"
+                    >
+                      Get ↗
                     </a>
                   )}
                 </li>
@@ -59,11 +78,19 @@ const FreshersKit: React.FC = () => {
         ))}
       </div>
 
-      <div className="p-6 bg-gradient-to-r from-orange-100 to-red-100 dark:from-orange-900/20 dark:to-red-900/20 rounded-2xl border border-orange-200 dark:border-orange-500/20 mt-8">
-        <h3 className="font-bold text-orange-800 dark:text-orange-300 mb-2">💡 Pro Tip</h3>
-        <p className="text-sm text-orange-700 dark:text-orange-200">
-          Don't buy heavy textbooks yet. Use the <strong>Academic Oracle</strong> to check which books are actually needed for your course plan.
-        </p>
+      <div className="p-8 bg-gradient-to-br from-orange-600 to-red-700 rounded-[40px] text-white shadow-2xl relative overflow-hidden group">
+        <div className="relative z-10 flex items-start space-x-6">
+          <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center flex-shrink-0 backdrop-blur-md">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-6 h-6"><path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z"/><path d="M12 16V12"/><path d="M12 8H12.01"/></svg>
+          </div>
+          <div>
+            <h3 className="font-black text-xs uppercase tracking-[0.2em] mb-2 opacity-80">Pro Student Tip</h3>
+            <p className="text-sm font-medium leading-relaxed">
+              Before buying heavy textbooks or high-end gadgets, use the <strong>Academic Oracle</strong> and <strong>Content Library</strong> to see what's actually required by your specific teachers. You might find digital versions for free!
+            </p>
+          </div>
+        </div>
+        <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 blur-3xl rounded-full -mr-24 -mt-24 group-hover:scale-110 transition-transform duration-700"></div>
       </div>
     </div>
   );
