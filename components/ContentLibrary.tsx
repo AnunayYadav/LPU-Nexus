@@ -41,6 +41,7 @@ const ContentLibrary: React.FC = () => {
       const msg = e.message || "Nexus Cloud connection failed.";
       addLog(`[ERROR] ${msg}`);
       setErrorState(msg);
+      console.error('Library Sync Failure:', e);
     } finally {
       setIsLoading(false);
     }
@@ -67,7 +68,7 @@ const ContentLibrary: React.FC = () => {
       fetchFromDatabase();
     } catch (e: any) {
       addLog(`[ERROR] ${e.message || "Upload failed."}`);
-      alert(e.message || "Upload failed. Check connection.");
+      alert(e.message || "Upload failed. Please ensure the 'nexus-documents' bucket exists and RLS policies are set.");
     } finally {
       setIsUploading(false);
     }
@@ -82,6 +83,7 @@ const ContentLibrary: React.FC = () => {
         fetchFromDatabase();
       } catch (e: any) {
         addLog(`[ERROR] ${e.message || "Delete failed."}`);
+        alert(`Delete failed: ${e.message}`);
       }
     }
   };
@@ -93,6 +95,7 @@ const ContentLibrary: React.FC = () => {
       window.open(url, '_blank');
     } catch (e: any) {
       addLog(`[ERROR] ${e.message || "File access denied."}`);
+      alert(`Access denied: ${e.message}`);
     }
   };
 
@@ -110,7 +113,7 @@ const ContentLibrary: React.FC = () => {
           <div>
             <h2 className="text-xl font-black text-slate-800 dark:text-white tracking-tighter uppercase">Nexus Cloud Registry</h2>
             <div className={`flex items-center space-x-3 text-[9px] font-black uppercase tracking-widest ${serverStatus.online ? 'text-blue-500' : 'text-red-500'}`}>
-              <span>Cloud: {serverStatus.online ? 'Supabase Synchronized' : 'Offline'}</span>
+              <span>Cloud: {serverStatus.online ? 'Supabase Synchronized' : 'Registry Connection Failed'}</span>
               <span>•</span>
               <span>Lat: {serverStatus.latency}</span>
               <span>•</span>
@@ -166,10 +169,21 @@ const ContentLibrary: React.FC = () => {
             <p className="text-[10px] font-black uppercase tracking-widest text-blue-500">Syncing Node Clusters...</p>
           </div>
         ) : errorState ? (
-          <div className="col-span-full py-20 text-center bg-red-500/5 dark:bg-red-500/[0.02] rounded-[40px] border border-dashed border-red-500/30">
+          <div className="col-span-full py-16 text-center bg-red-500/5 dark:bg-red-500/[0.02] rounded-[40px] border border-dashed border-red-500/30 px-10">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-16 h-16 mx-auto mb-4 text-red-500/40"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            <p className="text-red-500 font-black uppercase tracking-widest text-xs px-10">{errorState}</p>
-            <p className="text-slate-500 text-[10px] mt-4 uppercase tracking-widest font-bold">Please check your cloud configuration and restart the application.</p>
+            <p className="text-red-500 font-black uppercase tracking-widest text-sm mb-4">Node Connection Error</p>
+            <div className="max-w-md mx-auto p-4 bg-red-500/10 rounded-2xl border border-red-500/20 mb-6">
+              <p className="text-red-600 dark:text-red-400 text-xs font-bold leading-relaxed">{errorState}</p>
+            </div>
+            <p className="text-slate-500 text-[10px] uppercase tracking-widest font-bold max-w-sm mx-auto">
+              Please double check your SUPABASE_URL and SUPABASE_ANON_KEY. Also ensure the "documents" table and "nexus-documents" bucket exist.
+            </p>
+            <button 
+              onClick={fetchFromDatabase}
+              className="mt-6 px-6 py-2 bg-slate-800 text-white text-[10px] font-black uppercase tracking-widest rounded-full hover:bg-slate-700 transition-colors"
+            >
+              Retry Sync
+            </button>
           </div>
         ) : (
           files.map(file => (

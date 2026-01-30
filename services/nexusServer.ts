@@ -2,16 +2,25 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { LibraryFile } from '../types.ts';
 
-// Environment variables for Supabase
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || '';
+// Environment variables for Supabase - Trying common prefixes used in different environments
+const supabaseUrl = process.env.SUPABASE_URL || 
+                    (window as any).process?.env?.SUPABASE_URL || 
+                    '';
+
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || 
+                        (window as any).process?.env?.SUPABASE_ANON_KEY || 
+                        '';
 
 // Lazy initialization of Supabase client to prevent top-level crashes
 let supabaseInstance: SupabaseClient | null = null;
 
 const getSupabase = () => {
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn('NexusServer: Supabase configuration missing. Ensure SUPABASE_URL and SUPABASE_ANON_KEY are set in the environment.');
+    const errorMsg = 'NexusServer: Supabase configuration missing. Ensure SUPABASE_URL and SUPABASE_ANON_KEY are set in your environment variables.';
+    console.error(errorMsg, {
+      urlPresent: !!supabaseUrl,
+      keyPresent: !!supabaseAnonKey
+    });
     return null;
   }
   if (!supabaseInstance) {
@@ -25,6 +34,8 @@ const getSupabase = () => {
   return supabaseInstance;
 };
 
+// NOTE: Bucket IDs in Supabase are case-sensitive. 
+// If your bucket is named "NEXUS-DOCUMENTS", change this to match exactly.
 const BUCKET_NAME = 'nexus-documents';
 
 class NexusServer {
@@ -33,38 +44,47 @@ class NexusServer {
    */
   static async fetchFiles(query?: string, subject?: string): Promise<LibraryFile[]> {
     const client = getSupabase();
-    if (!client) throw new Error('Nexus distributed database is currently offline. Missing cloud configuration.');
+    if (!client) throw new Error('Nexus Distributed Registry is currently offline. Please check your Supabase Environment Variables (URL and ANON_KEY).');
 
-    let supabaseQuery = client
-      .from('documents')
-      .select('*')
-      .order('created_at', { ascending: false });
+    try {
+      let supabaseQuery = client
+        .from('documents')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (subject && subject !== 'All') {
-      supabaseQuery = supabaseQuery.eq('subject', subject);
+      if (subject && subject !== 'All') {
+        supabaseQuery = supabaseQuery.eq('subject', subject);
+      }
+
+      if (query) {
+        supabaseQuery = supabaseQuery.ilike('name', `%${query}%`);
+      }
+
+      const { data, error } = await supabaseQuery;
+
+      if (error) {
+        // Handle "Table not found" error specifically (Postgres code 42P01)
+        if (error.code === '42P01') {
+          throw new Error('Database table "documents" not found. Please run the SQL setup script from the README in your Supabase SQL Editor.');
+        }
+        console.error('Supabase Fetch Error:', error);
+        throw new Error(`Registry Sync Error: ${error.message}`);
+      }
+
+      return (data || []).map(item => ({
+        id: item.id,
+        name: item.name,
+        subject: item.subject,
+        type: item.type,
+        uploadDate: new Date(item.created_at).getTime(),
+        size: item.size,
+        storage_path: item.storage_path,
+        isUserUploaded: true
+      }));
+    } catch (e: any) {
+      console.error('NexusServer.fetchFiles failed:', e);
+      throw e;
     }
-
-    if (query) {
-      supabaseQuery = supabaseQuery.ilike('name', `%${query}%`);
-    }
-
-    const { data, error } = await supabaseQuery;
-
-    if (error) {
-      console.error('Supabase Fetch Error:', error);
-      throw error;
-    }
-
-    return (data || []).map(item => ({
-      id: item.id,
-      name: item.name,
-      subject: item.subject,
-      type: item.type,
-      uploadDate: new Date(item.created_at).getTime(),
-      size: item.size,
-      storage_path: item.storage_path,
-      isUserUploaded: true
-    }));
   }
 
   /**
@@ -72,7 +92,7 @@ class NexusServer {
    */
   static async uploadFile(file: File, subject: string, type: LibraryFile['type']): Promise<LibraryFile> {
     const client = getSupabase();
-    if (!client) throw new Error('Cannot upload: Nexus distributed database is offline.');
+    if (!client) throw new Error('Cannot upload: Nexus configuration missing.');
 
     const fileExt = file.name.split('.').pop();
     const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
@@ -85,7 +105,10 @@ class NexusServer {
 
     if (storageError) {
       console.error('Supabase Storage Error:', storageError);
-      throw storageError;
+      if (storageError.message.includes('not found')) {
+        throw new Error(`Storage bucket "${BUCKET_NAME}" not found. Please create it in your Supabase Storage dashboard and set it to Public.`);
+      }
+      throw new Error(`Upload Failed: ${storageError.message}`);
     }
 
     const fileSize = `${(file.size / 1024 / 1024).toFixed(2)} MB`;
@@ -109,7 +132,7 @@ class NexusServer {
       // Cleanup storage if db insert fails
       await client.storage.from(BUCKET_NAME).remove([filePath]);
       console.error('Supabase DB Error:', dbError);
-      throw dbError;
+      throw new Error(`Database Record Creation Failed: ${dbError.message}`);
     }
 
     return {
@@ -128,7 +151,7 @@ class NexusServer {
    */
   static async getFileUrl(path: string): Promise<string> {
     const client = getSupabase();
-    if (!client) throw new Error('Database offline.');
+    if (!client) throw new Error('Registry offline.');
     const { data } = client.storage.from(BUCKET_NAME).getPublicUrl(path);
     return data.publicUrl;
   }
@@ -138,7 +161,7 @@ class NexusServer {
    */
   static async deleteFile(id: string, storagePath: string): Promise<void> {
     const client = getSupabase();
-    if (!client) throw new Error('Database offline.');
+    if (!client) throw new Error('Registry offline.');
 
     // 1. Delete from DB
     const { error: dbError } = await client
@@ -146,14 +169,16 @@ class NexusServer {
       .delete()
       .eq('id', id);
 
-    if (dbError) throw dbError;
+    if (dbError) throw new Error(`Failed to delete record: ${dbError.message}`);
 
     // 2. Delete from Storage
     const { error: storageError } = await client.storage
       .from(BUCKET_NAME)
       .remove([storagePath]);
 
-    if (storageError) console.warn('File record deleted but storage cleanup failed:', storageError);
+    if (storageError) {
+      console.warn('File record deleted but storage cleanup failed:', storageError);
+    }
   }
 }
 
