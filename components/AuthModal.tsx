@@ -24,7 +24,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
       } else {
         const { error: signUpErr } = await NexusServer.signUp(email, password);
         if (signUpErr) throw signUpErr;
-        alert("Check your email for confirmation!");
+        // removed email confirmation alert
       }
       onClose();
     } catch (err: any) {
@@ -36,7 +36,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-      <div className="bg-white dark:bg-slate-950 rounded-[40px] w-full max-w-sm shadow-2xl border border-white/10 relative overflow-hidden flex flex-col">
+      <div className="bg-white dark:bg-slate-950 rounded-[40px] w-full max-sm shadow-2xl border border-white/10 relative overflow-hidden flex flex-col">
         <div className="bg-gradient-to-r from-slate-900 to-black p-8 text-white text-center relative">
           <button onClick={onClose} className="absolute top-6 right-6 p-2 text-white/50 hover:text-white transition-colors">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><path d="M18 6L6 18M6 6l12 12"/></svg>
