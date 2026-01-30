@@ -4,12 +4,13 @@ import { LibraryFile } from '../types.ts';
 
 /**
  * Robust environment variable resolution for Supabase.
- * Checks for Vite-specific (import.meta.env) and standard (process.env) locations.
+ * Checks for Vite-specific (import.meta.env), standard (process.env), and window locations.
  */
 const getEnvVar = (name: string): string => {
+  const vitePrefix = `VITE_${name}`;
+  
   // 1. Try import.meta.env (Vite standard)
   try {
-    const vitePrefix = `VITE_${name}`;
     // @ts-ignore - Vite environment variable access
     const metaEnv = (import.meta as any).env;
     if (metaEnv) {
@@ -21,7 +22,7 @@ const getEnvVar = (name: string): string => {
   // 2. Try process.env (Node/Webpack standard)
   try {
     if (typeof process !== 'undefined' && process.env) {
-      if (process.env[`VITE_${name}`]) return process.env[`VITE_${name}`] as string;
+      if (process.env[vitePrefix]) return process.env[vitePrefix] as string;
       if (process.env[name]) return process.env[name] as string;
     }
   } catch (e) {}
@@ -29,8 +30,9 @@ const getEnvVar = (name: string): string => {
   // 3. Try window properties (Injected or global fallback)
   try {
     const win = window as any;
+    if (win.process?.env?.[vitePrefix]) return win.process.env[vitePrefix];
     if (win.process?.env?.[name]) return win.process.env[name];
-    if (win.process?.env?.[`VITE_${name}`]) return win.process.env[`VITE_${name}`];
+    if (win[`__${vitePrefix}__`]) return win[`__${vitePrefix}__`];
     if (win[`__${name}__`]) return win[`__${name}__`];
   } catch (e) {}
 
@@ -46,9 +48,9 @@ let supabaseInstance: SupabaseClient | null = null;
 const getSupabase = () => {
   if (!supabaseUrl || !supabaseAnonKey) {
     console.error('NexusServer: Configuration Missing or Inaccessible.', {
-      url: !!supabaseUrl,
-      key: !!supabaseAnonKey,
-      checked: ['VITE_SUPABASE_URL', 'SUPABASE_URL']
+      urlPresent: !!supabaseUrl,
+      keyPresent: !!supabaseAnonKey,
+      checked: ['VITE_SUPABASE_URL', 'SUPABASE_URL', 'VITE_SUPABASE_ANON_KEY', 'SUPABASE_ANON_KEY']
     });
     return null;
   }
@@ -65,6 +67,7 @@ const getSupabase = () => {
 };
 
 // NOTE: Bucket IDs in Supabase are case-sensitive. 
+// If your bucket is named "NEXUS-DOCUMENTS", change this to match exactly.
 const BUCKET_NAME = 'nexus-documents';
 
 class NexusServer {

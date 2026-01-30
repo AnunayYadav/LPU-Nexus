@@ -102,17 +102,17 @@ const ContentLibrary: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto space-y-6 animate-fade-in pb-20">
       {/* Server Status Header */}
-      <div className={`flex flex-col md:flex-row items-center justify-between p-6 glass-panel rounded-[32px] border shadow-2xl transition-colors duration-500 ${serverStatus.online ? 'border-blue-500/20 bg-blue-500/5' : 'border-red-500/20 bg-red-500/5'}`}>
+      <div className={`flex flex-col md:flex-row items-center justify-between p-6 glass-panel rounded-[32px] border shadow-2xl transition-colors duration-500 ${serverStatus.online ? 'border-orange-500/20 bg-orange-500/5' : 'border-red-500/20 bg-red-500/5'}`}>
         <div className="flex items-center space-x-4 mb-4 md:mb-0">
           <div className="relative">
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg transition-colors ${serverStatus.online ? 'bg-blue-600 shadow-blue-600/30' : 'bg-red-600 shadow-red-600/30'}`}>
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg transition-colors ${serverStatus.online ? 'bg-orange-600 shadow-orange-600/30' : 'bg-red-600 shadow-red-600/30'}`}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-6 h-6"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
             </div>
             <div className={`absolute -bottom-1 -right-1 w-4 h-4 border-4 border-white dark:border-slate-950 rounded-full animate-pulse transition-colors ${serverStatus.online ? 'bg-emerald-500' : 'bg-red-500'}`}></div>
           </div>
           <div>
             <h2 className="text-xl font-black text-slate-800 dark:text-white tracking-tighter uppercase">Nexus Cloud Registry</h2>
-            <div className={`flex items-center space-x-3 text-[9px] font-black uppercase tracking-widest ${serverStatus.online ? 'text-blue-500' : 'text-red-500'}`}>
+            <div className={`flex items-center space-x-3 text-[9px] font-black uppercase tracking-widest ${serverStatus.online ? 'text-orange-500' : 'text-red-500'}`}>
               <span>Cloud: {serverStatus.online ? 'Supabase Synchronized' : 'Registry Connection Failed'}</span>
               <span>•</span>
               <span>Lat: {serverStatus.latency}</span>
@@ -132,14 +132,14 @@ const ContentLibrary: React.FC = () => {
       {/* Directory Search & Filter */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="md:col-span-2 relative">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-orange-500"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
           <input 
             type="text" 
             placeholder="Search the global database..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && fetchFromDatabase()}
-            className="w-full pl-12 pr-4 py-4 bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500/50"
+            className="w-full pl-12 pr-4 py-4 bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-orange-500/50"
           />
         </div>
         <select 
@@ -152,7 +152,7 @@ const ContentLibrary: React.FC = () => {
         </select>
         <button 
           onClick={() => fileInputRef.current?.click()}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-blue-600/20 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-orange-600/20 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={!serverStatus.online}
         >
           Share New File
@@ -165,8 +165,8 @@ const ContentLibrary: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 min-h-[400px]">
         {isLoading ? (
           <div className="col-span-full flex flex-col items-center justify-center py-20 animate-pulse">
-            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-blue-500">Syncing Node Clusters...</p>
+            <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-orange-500">Syncing Node Clusters...</p>
           </div>
         ) : errorState ? (
           <div className="col-span-full py-16 text-center bg-red-500/5 dark:bg-red-500/[0.02] rounded-[40px] border border-dashed border-red-500/30 px-10">
@@ -189,7 +189,7 @@ const ContentLibrary: React.FC = () => {
           files.map(file => (
             <div key={file.id} className="group glass-panel p-6 rounded-[32px] border border-slate-200 dark:border-white/5 bg-white dark:bg-slate-950/50 hover:shadow-2xl transition-all relative overflow-hidden flex flex-col h-full">
                <div className="flex justify-between items-start mb-6">
-                  <div className="w-12 h-12 bg-blue-500/10 dark:bg-blue-500/20 rounded-2xl flex items-center justify-center text-blue-600">
+                  <div className="w-12 h-12 bg-orange-500/10 dark:bg-orange-500/20 rounded-2xl flex items-center justify-center text-orange-600">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-6 h-6"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                   </div>
                   <button onClick={() => deleteFile(file)} className="p-2 text-slate-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100">
@@ -200,7 +200,7 @@ const ContentLibrary: React.FC = () => {
                <h3 className="text-sm font-black text-slate-800 dark:text-white mb-2 line-clamp-2" title={file.name}>{file.name}</h3>
                
                <div className="flex flex-wrap gap-2 mb-8">
-                  <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-lg text-[9px] font-black uppercase tracking-widest">{file.subject}</span>
+                  <span className="px-3 py-1 bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400 rounded-lg text-[9px] font-black uppercase tracking-widest">{file.subject}</span>
                   <span className="px-3 py-1 bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 rounded-lg text-[9px] font-black uppercase tracking-widest">{file.type}</span>
                </div>
 
@@ -209,7 +209,7 @@ const ContentLibrary: React.FC = () => {
                     <span className="text-[8px] font-black uppercase text-slate-400">Cloud Size</span>
                     <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{file.size}</span>
                   </div>
-                  <button onClick={() => openFile(file)} className="flex items-center space-x-2 text-blue-600 hover:scale-105 transition-transform">
+                  <button onClick={() => openFile(file)} className="flex items-center space-x-2 text-orange-600 hover:scale-105 transition-transform">
                     <span className="text-[10px] font-black uppercase tracking-widest">Access Resource</span>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
                   </button>
@@ -229,21 +229,21 @@ const ContentLibrary: React.FC = () => {
       {/* Database Submission Modal */}
       {showUploadModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-           <div className="bg-white dark:bg-slate-950 rounded-[40px] p-8 w-full max-w-md shadow-2xl border border-blue-500/20 relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-blue-600"></div>
+           <div className="bg-white dark:bg-slate-950 rounded-[40px] p-8 w-full max-w-md shadow-2xl border border-orange-500/20 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-orange-600"></div>
               <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-2 tracking-tighter uppercase">Commit to Nexus DB</h3>
               <p className="text-sm text-slate-500 font-medium mb-8 italic">Staging: "{pendingFile?.name}"</p>
               
               <div className="space-y-6 mb-10">
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Subject Partition</label>
-                  <select value={uploadMeta.subject} onChange={(e) => setUploadMeta({...uploadMeta, subject: e.target.value})} className="w-full bg-slate-100 dark:bg-black p-4 rounded-2xl text-sm font-bold outline-none border border-transparent dark:border-white/5 focus:ring-2 focus:ring-blue-500 transition-all">
+                  <select value={uploadMeta.subject} onChange={(e) => setUploadMeta({...uploadMeta, subject: e.target.value})} className="w-full bg-slate-100 dark:bg-black p-4 rounded-2xl text-sm font-bold outline-none border border-transparent dark:border-white/5 focus:ring-2 focus:ring-orange-500 transition-all">
                     {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Resource Type</label>
-                  <select value={uploadMeta.type} onChange={(e) => setUploadMeta({...uploadMeta, type: e.target.value as LibraryFile['type']})} className="w-full bg-slate-100 dark:bg-black p-4 rounded-2xl text-sm font-bold outline-none border border-transparent dark:border-white/5 focus:ring-2 focus:ring-blue-500 transition-all">
+                  <select value={uploadMeta.type} onChange={(e) => setUploadMeta({...uploadMeta, type: e.target.value as LibraryFile['type']})} className="w-full bg-slate-100 dark:bg-black p-4 rounded-2xl text-sm font-bold outline-none border border-transparent dark:border-white/5 focus:ring-2 focus:ring-orange-500 transition-all">
                     {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
@@ -254,7 +254,7 @@ const ContentLibrary: React.FC = () => {
                 <button 
                   onClick={handleUpload} 
                   disabled={isUploading} 
-                  className="flex-[2] bg-blue-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-blue-600/20 active:scale-95 transition-all"
+                  className="flex-[2] bg-orange-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-orange-600/20 active:scale-95 transition-all"
                 >
                   {isUploading ? 'Pushing Data...' : 'Commit Upload'}
                 </button>

@@ -96,7 +96,7 @@ const Dashboard: React.FC<{ setModule: (m: ModuleType) => void }> = ({ setModule
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <div 
         onClick={() => setModule(ModuleType.CGPA)}
-        className="group relative p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/50 hover:border-blue-500/50 transition-all cursor-pointer hover:shadow-2xl hover:shadow-blue-500/5 overflow-hidden"
+        className="group relative p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/50 hover:border-orange-500/50 transition-all cursor-pointer hover:shadow-2xl hover:shadow-orange-500/5 overflow-hidden"
       >
         <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity text-slate-900 dark:text-white">
           <IconCGPA />
@@ -129,12 +129,12 @@ const Dashboard: React.FC<{ setModule: (m: ModuleType) => void }> = ({ setModule
 
       <div 
         onClick={() => setModule(ModuleType.LIBRARY)}
-        className="group relative p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/50 hover:border-blue-500/50 transition-all cursor-pointer hover:shadow-2xl hover:shadow-blue-500/5 overflow-hidden"
+        className="group relative p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/50 hover:border-orange-500/50 transition-all cursor-pointer hover:shadow-2xl hover:shadow-orange-500/5 overflow-hidden"
       >
         <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity text-slate-900 dark:text-white">
           <IconLibrary />
         </div>
-        <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Content Library <span className="text-[10px] text-slate-500">(Locked)</span></h3>
+        <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Content Library</h3>
         <p className="text-slate-600 dark:text-slate-400 text-sm">Centralized hub for all your lectures, question banks and notes.</p>
       </div>
 
@@ -254,8 +254,8 @@ const App: React.FC = () => {
         </div>
 
         <div id="main-content-area" className="flex-1 overflow-y-auto p-4 md:p-8 relative scroll-smooth">
-           <div className="fixed top-0 left-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl pointer-events-none"></div>
-           <div className="fixed bottom-0 right-1/4 w-96 h-96 bg-orange-500/5 rounded-full blur-3xl pointer-events-none"></div>
+           <div className="fixed top-0 left-1/4 w-96 h-96 bg-orange-500/5 rounded-full blur-3xl pointer-events-none"></div>
+           <div className="fixed bottom-0 right-1/4 w-96 h-96 bg-red-500/5 rounded-full blur-3xl pointer-events-none"></div>
 
            <div className="relative z-0 max-w-7xl mx-auto">
              {renderModule()}
