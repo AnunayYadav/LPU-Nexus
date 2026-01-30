@@ -2,32 +2,62 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { LibraryFile } from '../types.ts';
 
-// Environment variables for Supabase - Trying common prefixes used in different environments
-const supabaseUrl = process.env.SUPABASE_URL || 
-                    (window as any).process?.env?.SUPABASE_URL || 
-                    '';
+/**
+ * Robust environment variable resolution for Supabase.
+ * Checks for Vite-specific (import.meta.env) and standard (process.env) locations.
+ */
+const getEnvVar = (name: string): string => {
+  // 1. Try import.meta.env (Vite standard)
+  try {
+    const vitePrefix = `VITE_${name}`;
+    // @ts-ignore - Vite environment variable access
+    const metaEnv = (import.meta as any).env;
+    if (metaEnv) {
+      if (metaEnv[vitePrefix]) return metaEnv[vitePrefix];
+      if (metaEnv[name]) return metaEnv[name];
+    }
+  } catch (e) {}
 
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || 
-                        (window as any).process?.env?.SUPABASE_ANON_KEY || 
-                        '';
+  // 2. Try process.env (Node/Webpack standard)
+  try {
+    if (typeof process !== 'undefined' && process.env) {
+      if (process.env[`VITE_${name}`]) return process.env[`VITE_${name}`] as string;
+      if (process.env[name]) return process.env[name] as string;
+    }
+  } catch (e) {}
 
-// Lazy initialization of Supabase client to prevent top-level crashes
+  // 3. Try window properties (Injected or global fallback)
+  try {
+    const win = window as any;
+    if (win.process?.env?.[name]) return win.process.env[name];
+    if (win.process?.env?.[`VITE_${name}`]) return win.process.env[`VITE_${name}`];
+    if (win[`__${name}__`]) return win[`__${name}__`];
+  } catch (e) {}
+
+  return '';
+};
+
+const supabaseUrl = getEnvVar('SUPABASE_URL');
+const supabaseAnonKey = getEnvVar('SUPABASE_ANON_KEY');
+
+// Lazy initialization of Supabase client to prevent crashes if env vars are missing during early bundle execution
 let supabaseInstance: SupabaseClient | null = null;
 
 const getSupabase = () => {
   if (!supabaseUrl || !supabaseAnonKey) {
-    const errorMsg = 'NexusServer: Supabase configuration missing. Ensure SUPABASE_URL and SUPABASE_ANON_KEY are set in your environment variables.';
-    console.error(errorMsg, {
-      urlPresent: !!supabaseUrl,
-      keyPresent: !!supabaseAnonKey
+    console.error('NexusServer: Configuration Missing or Inaccessible.', {
+      url: !!supabaseUrl,
+      key: !!supabaseAnonKey,
+      checked: ['VITE_SUPABASE_URL', 'SUPABASE_URL']
     });
     return null;
   }
+  
   if (!supabaseInstance) {
     try {
       supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
     } catch (e) {
-      console.error('NexusServer: Failed to initialize Supabase client:', e);
+      console.error('NexusServer: Initialization Failed:', e);
       return null;
     }
   }
@@ -35,7 +65,6 @@ const getSupabase = () => {
 };
 
 // NOTE: Bucket IDs in Supabase are case-sensitive. 
-// If your bucket is named "NEXUS-DOCUMENTS", change this to match exactly.
 const BUCKET_NAME = 'nexus-documents';
 
 class NexusServer {
@@ -44,7 +73,9 @@ class NexusServer {
    */
   static async fetchFiles(query?: string, subject?: string): Promise<LibraryFile[]> {
     const client = getSupabase();
-    if (!client) throw new Error('Nexus Distributed Registry is currently offline. Please check your Supabase Environment Variables (URL and ANON_KEY).');
+    if (!client) {
+      throw new Error(`Nexus Registry Connectivity Error: Supabase URL or Anon Key is undefined. Ensure you have set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env file.`);
+    }
 
     try {
       let supabaseQuery = client
@@ -63,11 +94,9 @@ class NexusServer {
       const { data, error } = await supabaseQuery;
 
       if (error) {
-        // Handle "Table not found" error specifically (Postgres code 42P01)
         if (error.code === '42P01') {
-          throw new Error('Database table "documents" not found. Please run the SQL setup script from the README in your Supabase SQL Editor.');
+          throw new Error('Database table "documents" not found. Please run the SQL setup script from the README.');
         }
-        console.error('Supabase Fetch Error:', error);
         throw new Error(`Registry Sync Error: ${error.message}`);
       }
 
@@ -87,9 +116,6 @@ class NexusServer {
     }
   }
 
-  /**
-   * Uploads file to Storage and creates database record
-   */
   static async uploadFile(file: File, subject: string, type: LibraryFile['type']): Promise<LibraryFile> {
     const client = getSupabase();
     if (!client) throw new Error('Cannot upload: Nexus configuration missing.');
@@ -98,22 +124,19 @@ class NexusServer {
     const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
     const filePath = `community/${fileName}`;
 
-    // 1. Upload to Storage
     const { error: storageError } = await client.storage
       .from(BUCKET_NAME)
       .upload(filePath, file);
 
     if (storageError) {
-      console.error('Supabase Storage Error:', storageError);
       if (storageError.message.includes('not found')) {
-        throw new Error(`Storage bucket "${BUCKET_NAME}" not found. Please create it in your Supabase Storage dashboard and set it to Public.`);
+        throw new Error(`Storage bucket "${BUCKET_NAME}" not found. Ensure it is created and set to Public.`);
       }
       throw new Error(`Upload Failed: ${storageError.message}`);
     }
 
     const fileSize = `${(file.size / 1024 / 1024).toFixed(2)} MB`;
 
-    // 2. Insert into Database
     const { data, error: dbError } = await client
       .from('documents')
       .insert([
@@ -129,9 +152,7 @@ class NexusServer {
       .single();
 
     if (dbError) {
-      // Cleanup storage if db insert fails
       await client.storage.from(BUCKET_NAME).remove([filePath]);
-      console.error('Supabase DB Error:', dbError);
       throw new Error(`Database Record Creation Failed: ${dbError.message}`);
     }
 
@@ -146,9 +167,6 @@ class NexusServer {
     };
   }
 
-  /**
-   * Gets a public URL for a file
-   */
   static async getFileUrl(path: string): Promise<string> {
     const client = getSupabase();
     if (!client) throw new Error('Registry offline.');
@@ -156,14 +174,10 @@ class NexusServer {
     return data.publicUrl;
   }
 
-  /**
-   * Deletes file from both storage and database
-   */
   static async deleteFile(id: string, storagePath: string): Promise<void> {
     const client = getSupabase();
     if (!client) throw new Error('Registry offline.');
 
-    // 1. Delete from DB
     const { error: dbError } = await client
       .from('documents')
       .delete()
@@ -171,14 +185,9 @@ class NexusServer {
 
     if (dbError) throw new Error(`Failed to delete record: ${dbError.message}`);
 
-    // 2. Delete from Storage
     const { error: storageError } = await client.storage
       .from(BUCKET_NAME)
       .remove([storagePath]);
-
-    if (storageError) {
-      console.warn('File record deleted but storage cleanup failed:', storageError);
-    }
   }
 }
 
