@@ -9,6 +9,7 @@ import HelpSection from './components/HelpSection.tsx';
 import FreshersKit from './components/FreshersKit.tsx';
 import CGPACalculator from './components/CGPACalculator.tsx';
 import AttendanceTracker from './components/AttendanceTracker.tsx';
+import ShareReport from './components/ShareReport.tsx';
 import { ModuleType } from './types.ts';
 
 const IconPlacement = () => (
@@ -55,6 +56,7 @@ const IconAttendance = () => (
 
 const getModuleFromPath = (path: string): ModuleType => {
   const p = path.toLowerCase();
+  if (p.includes('/share-cgpa')) return ModuleType.SHARE_CGPA;
   if (p.endsWith('/attendance')) return ModuleType.ATTENDANCE;
   if (p.endsWith('/cgpa')) return ModuleType.CGPA;
   if (p.endsWith('/placement')) return ModuleType.PLACEMENT;
@@ -77,6 +79,7 @@ const getPathFromModule = (module: ModuleType): string => {
     case ModuleType.FRESHERS: return '/freshers';
     case ModuleType.HELP: return '/help';
     case ModuleType.DASHBOARD: return '/';
+    case ModuleType.SHARE_CGPA: return '/share-cgpa';
     default: return '/';
   }
 };
@@ -208,6 +211,7 @@ const App: React.FC = () => {
       case ModuleType.FRESHERS: return <FreshersKit />;
       case ModuleType.CGPA: return <CGPACalculator />;
       case ModuleType.ATTENDANCE: return <AttendanceTracker />;
+      case ModuleType.SHARE_CGPA: return <ShareReport />;
       default: return <Dashboard setModule={navigateToModule} />;
     }
   };
@@ -230,7 +234,7 @@ const App: React.FC = () => {
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
             </button>
-            <span className="md:hidden font-bold text-orange-500">LPU-Nexus</span>
+            <span className="md:hidden font-bold text-orange-500" onClick={() => navigateToModule(ModuleType.DASHBOARD)}>LPU-Nexus</span>
           </div>
 
           <div className="flex items-center space-x-4 ml-auto">

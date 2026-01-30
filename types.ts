@@ -8,7 +8,8 @@ export enum ModuleType {
   FRESHERS = 'FRESHERS',
   HELP = 'HELP',
   CGPA = 'CGPA',
-  ATTENDANCE = 'ATTENDANCE'
+  ATTENDANCE = 'ATTENDANCE',
+  SHARE_CGPA = 'SHARE_CGPA'
 }
 
 export interface ChatMessage {

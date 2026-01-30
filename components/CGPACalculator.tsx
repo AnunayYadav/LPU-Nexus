@@ -41,6 +41,8 @@ const CGPACalculator: React.FC = () => {
   // Dropdown States
   const [isSemDropdownOpen, setIsSemDropdownOpen] = useState(false);
   const [isModeDropdownOpen, setIsModeDropdownOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [shareUrl, setShareUrl] = useState('');
   
   const semDropdownRef = useRef<HTMLDivElement>(null);
   const modeDropdownRef = useRef<HTMLDivElement>(null);
@@ -95,14 +97,16 @@ const CGPACalculator: React.FC = () => {
   const currentStats = useMemo(() => {
     let totalPoints = 0;
     let totalCredits = 0;
+    const gradeCounts: Record<string, number> = {};
     courses.forEach(c => {
       const point = GRADE_POINTS[c.grade] || 0;
       const credits = Number(c.credits) || 0;
       totalPoints += point * credits;
       totalCredits += credits;
+      gradeCounts[c.grade] = (gradeCounts[c.grade] || 0) + 1;
     });
     const sgpa = totalCredits === 0 ? 0 : totalPoints / totalCredits;
-    return { sgpa, totalPoints, totalCredits };
+    return { sgpa, totalPoints, totalCredits, gradeCounts };
   }, [courses]);
 
   const overallCGPA = useMemo(() => {
@@ -119,12 +123,37 @@ const CGPACalculator: React.FC = () => {
 
   const sgpaDisplay = currentStats.sgpa.toFixed(2);
 
+  const handleShare = () => {
+    const data = {
+      sgpa: sgpaDisplay,
+      cgpa: overallCGPA,
+      sem: currentSemester,
+      credits: currentStats.totalCredits,
+      grades: currentStats.gradeCounts,
+      ts: Date.now()
+    };
+    const encoded = btoa(JSON.stringify(data));
+    const url = `${window.location.origin}/share-cgpa?d=${encoded}`;
+    setShareUrl(url);
+    setIsShareModalOpen(true);
+    navigator.clipboard.writeText(url);
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in pb-10">
       <header className="mb-8 space-y-6">
-        <div>
-          <h2 className="text-3xl font-black text-slate-800 dark:text-white mb-2 tracking-tighter">Academic Progress</h2>
-          <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Detailed SGPA/CGPA breakdown.</p>
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <h2 className="text-3xl font-black text-slate-800 dark:text-white mb-2 tracking-tighter">Academic Progress</h2>
+            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Detailed SGPA/CGPA breakdown.</p>
+          </div>
+          <button 
+            onClick={handleShare}
+            className="flex items-center justify-center space-x-2 px-6 py-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-white/10 transition-all shadow-sm"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4 text-orange-600"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+            <span>Share Report</span>
+          </button>
         </div>
         
         <div className="flex flex-wrap items-center gap-4">
@@ -399,6 +428,38 @@ const CGPACalculator: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Share Success Modal */}
+      {isShareModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
+          <div className="bg-white dark:bg-slate-950 rounded-[40px] p-10 w-full max-w-lg shadow-2xl border border-white/10 relative text-center">
+            <button 
+              onClick={() => setIsShareModalOpen(false)}
+              className="absolute top-8 right-8 text-slate-400 hover:text-slate-900 dark:hover:text-white"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+            
+            <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-10 h-10 text-green-500"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            
+            <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-2 tracking-tighter uppercase">Report Link Copied!</h3>
+            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-8">Your academic insights have been encoded. Share this link with your peers.</p>
+            
+            <div className="bg-slate-100 dark:bg-black p-4 rounded-2xl border border-slate-200 dark:border-white/10 mb-8 truncate text-[10px] font-mono text-slate-400">
+              {shareUrl}
+            </div>
+            
+            <button 
+              onClick={() => setIsShareModalOpen(false)}
+              className="w-full bg-slate-900 dark:bg-white text-white dark:text-black py-4 rounded-2xl font-black text-xs uppercase tracking-widest"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Advisory Note */}
       <div className="glass-panel p-6 rounded-[32px] border-l-4 border-l-orange-600 bg-orange-600/[0.03] flex items-start space-x-5 mt-10">
