@@ -12,6 +12,12 @@ export enum ModuleType {
   SHARE_CGPA = 'SHARE_CGPA'
 }
 
+export interface UserProfile {
+  id: string;
+  email: string;
+  is_admin: boolean;
+}
+
 export interface ChatMessage {
   role: 'user' | 'model' | 'system';
   text: string;

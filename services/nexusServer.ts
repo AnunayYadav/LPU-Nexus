@@ -1,6 +1,6 @@
 
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { LibraryFile } from '../types.ts';
+import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
+import { LibraryFile, UserProfile } from '../types.ts';
 
 const getEnvVar = (name: string): string => {
   const vitePrefix = `VITE_${name}`;
@@ -40,6 +40,47 @@ const getSupabase = () => {
 const BUCKET_NAME = 'nexus-documents';
 
 class NexusServer {
+  // --- AUTH METHODS ---
+  static async signUp(email: string, pass: string) {
+    const client = getSupabase();
+    if (!client) throw new Error("Supabase not configured");
+    return await client.auth.signUp({ email, password: pass });
+  }
+
+  static async signIn(email: string, pass: string) {
+    const client = getSupabase();
+    if (!client) throw new Error("Supabase not configured");
+    return await client.auth.signInWithPassword({ email, password: pass });
+  }
+
+  static async signOut() {
+    const client = getSupabase();
+    if (!client) return;
+    await client.auth.signOut();
+  }
+
+  static onAuthStateChange(callback: (user: User | null) => void) {
+    const client = getSupabase();
+    if (!client) return () => {};
+    const { data: { subscription } } = client.auth.onAuthStateChange((_event, session) => {
+      callback(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }
+
+  static async getProfile(userId: string): Promise<UserProfile | null> {
+    const client = getSupabase();
+    if (!client) return null;
+    const { data, error } = await client
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    if (error) return null;
+    return data;
+  }
+
+  // --- LIBRARY METHODS ---
   static async fetchFiles(query?: string, subject?: string): Promise<LibraryFile[]> {
     const client = getSupabase();
     if (!client) throw new Error("Connection Failed");
