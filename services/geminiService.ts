@@ -1,5 +1,5 @@
 
-import { GoogleGenAI, Type, Schema } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 import { ResumeAnalysisResult, Flashcard } from "../types.ts";
 
 /**
@@ -34,7 +34,8 @@ export const analyzeResume = async (resumeText: string, jdText: string, deepAnal
     5. summary (string, overall verdict)
   `;
 
-  const schema: Schema = {
+  // Use plain object for schema as per @google/genai best practices
+  const schema = {
     type: Type.OBJECT,
     properties: {
       matchScore: { type: Type.INTEGER },
@@ -126,7 +127,8 @@ export const generateFlashcards = async (contextText: string): Promise<Flashcard
     Output strictly in JSON format as an array of objects with "front" and "back" keys.
   `;
 
-  const schema: Schema = {
+  // Use plain object for schema
+  const schema = {
     type: Type.ARRAY,
     items: {
       type: Type.OBJECT,
@@ -172,6 +174,7 @@ export const generateFlowchart = async (contextText: string): Promise<string> =>
       contents: prompt,
     });
     let text = response.text || "";
+    // Clean up mermaid syntax from potential AI markdown output
     text = text.replace(/```mermaid/g, '').replace(/```/g, '').trim();
     return text;
   } catch (e) {

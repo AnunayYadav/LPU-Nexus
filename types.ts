@@ -34,19 +34,6 @@ export interface GroundingChunk {
   };
 }
 
-export interface MessMenuItem {
-  day: string;
-  breakfast: string;
-  lunch: string;
-  snacks: string;
-  dinner: string;
-}
-
-export interface Flashcard {
-  front: string;
-  back: string;
-}
-
 export interface LibraryFile {
   id: string;
   name: string;
@@ -54,7 +41,14 @@ export interface LibraryFile {
   type: 'Lecture' | 'Question Bank' | 'Lab Manual' | 'Assignment';
   uploadDate: number;
   size: string;
+  content?: string; // Base64 content for persistence
   isUserUploaded?: boolean;
+}
+
+// Added Flashcard interface
+export interface Flashcard {
+  front: string;
+  back: string;
 }
 
 // Global declaration for PDF.js loaded via CDN
