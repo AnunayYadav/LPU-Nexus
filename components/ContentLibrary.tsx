@@ -9,7 +9,7 @@ const CATEGORIES: string[] = ['Lecture', 'Question Bank', 'Lab Manual', 'Assignm
 const ContentLibrary: React.FC = () => {
   const [files, setFiles] = useState<LibraryFile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [errorState, setErrorState] = useState<string | null>(null);
+  const [errorState, setErrorState] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('All');
   
@@ -30,14 +30,13 @@ const ContentLibrary: React.FC = () => {
 
   const fetchFromDatabase = async () => {
     setIsLoading(true);
-    setErrorState(null);
+    setErrorState(false);
     try {
       const data = await NexusServer.fetchFiles(searchQuery, selectedSubject);
       setFiles(data);
     } catch (e: any) {
-      const msg = e.message || "Nexus Cloud connection failed.";
-      setErrorState(msg);
-      console.error('Library Sync Failure:', e);
+      setErrorState(true);
+      console.error('Library Sync Failure (Technical details hidden from UI)');
     } finally {
       setIsLoading(false);
     }
@@ -79,19 +78,19 @@ const ContentLibrary: React.FC = () => {
       setPendingFile(null);
       fetchFromDatabase();
     } catch (e: any) {
-      alert(e.message || "Upload failed. Please ensure the storage bucket exists.");
+      alert("Upload failed. The library service is currently unavailable.");
     } finally {
       setIsUploading(false);
     }
   };
 
   const deleteFile = async (file: LibraryFile) => {
-    if (window.confirm("Are you sure you want to remove this resource from the library?")) {
+    if (window.confirm("Remove this resource from the library?")) {
       try {
         await NexusServer.deleteFile(file.id, (file as any).storage_path);
         fetchFromDatabase();
       } catch (e: any) {
-        alert(`Delete failed: ${e.message}`);
+        alert(`Delete failed. Please try again.`);
       }
     }
   };
@@ -101,27 +100,27 @@ const ContentLibrary: React.FC = () => {
       const url = await NexusServer.getFileUrl((file as any).storage_path);
       window.open(url, '_blank');
     } catch (e: any) {
-      alert(`Access denied: ${e.message}`);
+      alert(`Unable to access file.`);
     }
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-fade-in pb-20">
+    <div className="max-w-6xl mx-auto space-y-8 animate-fade-in pb-20 px-4 md:px-0">
       {/* Simplified Header */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h2 className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter uppercase flex items-center gap-3">
             Content Library
             <span className="text-[10px] font-black bg-orange-100 dark:bg-orange-950 text-orange-600 dark:text-orange-400 px-3 py-1 rounded-full uppercase tracking-widest border border-orange-200 dark:border-orange-800/50">Shared</span>
           </h2>
-          <p className="text-slate-600 dark:text-slate-400 font-medium">Access and share academic resources with the LPU community.</p>
+          <p className="text-slate-600 dark:text-slate-400 font-medium mt-1">Access verified academic resources shared by the LPU community.</p>
         </div>
         <button 
           onClick={() => fileInputRef.current?.click()}
-          className="bg-gradient-to-r from-orange-600 to-red-700 hover:shadow-orange-600/30 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
+          className="bg-gradient-to-r from-orange-600 to-red-700 hover:shadow-orange-600/30 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2 group"
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          Upload Resource
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4 group-hover:-translate-y-0.5 transition-transform"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Upload New Resource
         </button>
       </header>
 
@@ -168,14 +167,14 @@ const ContentLibrary: React.FC = () => {
         {isLoading ? (
           <div className="col-span-full flex flex-col items-center justify-center py-32 animate-pulse">
             <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-orange-500">Syncing Cloud Database...</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-orange-500">Syncing Library Data...</p>
           </div>
         ) : errorState ? (
-          <div className="col-span-full py-20 text-center glass-panel rounded-[40px] border-dashed border-red-500/30 px-10">
+          <div className="col-span-full py-20 text-center glass-panel rounded-[40px] border-dashed border-red-500/30 px-10 bg-red-500/[0.02]">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-16 h-16 mx-auto mb-4 text-red-500/40"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            <p className="text-red-500 font-black uppercase tracking-widest text-sm mb-4">Connection Failed</p>
-            <p className="text-slate-500 text-xs font-bold max-w-sm mx-auto mb-8">{errorState}</p>
-            <button onClick={fetchFromDatabase} className="px-8 py-3 bg-slate-800 text-white text-[10px] font-black uppercase tracking-widest rounded-full hover:bg-slate-700 transition-colors">Retry Connection</button>
+            <p className="text-red-500 font-black uppercase tracking-widest text-sm mb-4">Library Connection Failed</p>
+            <p className="text-slate-500 text-xs font-bold max-w-sm mx-auto mb-8 leading-relaxed">We're having trouble connecting to the document library. Please check your internet or try again later.</p>
+            <button onClick={fetchFromDatabase} className="px-8 py-3 bg-slate-800 text-white text-[10px] font-black uppercase tracking-widest rounded-full hover:bg-slate-700 transition-colors shadow-lg">Retry Connection</button>
           </div>
         ) : (
           files.map(file => (
@@ -201,11 +200,11 @@ const ContentLibrary: React.FC = () => {
 
                <div className="mt-auto flex items-center justify-between pt-4 border-t border-slate-100 dark:border-white/5">
                   <div className="flex flex-col">
-                    <span className="text-[8px] font-black uppercase text-slate-400">Cloud Size</span>
+                    <span className="text-[8px] font-black uppercase text-slate-400">File Size</span>
                     <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{file.size}</span>
                   </div>
                   <button onClick={() => openFile(file)} className="flex items-center space-x-2 text-orange-600 group/btn">
-                    <span className="text-[10px] font-black uppercase tracking-widest group-hover/btn:mr-1 transition-all">Download</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest group-hover/btn:mr-1 transition-all">Access</span>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
                   </button>
                </div>
@@ -214,14 +213,14 @@ const ContentLibrary: React.FC = () => {
         )}
 
         {!isLoading && !errorState && files.length === 0 && (
-          <div className="col-span-full py-20 text-center glass-panel rounded-[40px] border-dashed border-slate-300 dark:border-white/10">
+          <div className="col-span-full py-20 text-center glass-panel rounded-[40px] border-dashed border-slate-300 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.01]">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="w-16 h-16 mx-auto mb-4 text-slate-300 dark:text-slate-700 opacity-20"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
-            <p className="text-slate-500 font-black uppercase tracking-widest text-[10px]">No matching documents found in the registry.</p>
+            <p className="text-slate-500 font-black uppercase tracking-widest text-[10px]">No resources found matching your search.</p>
           </div>
         )}
       </div>
 
-      {/*Redesigned Upload Modal */}
+      {/* Redesigned Upload Modal */}
       {showUploadModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in overflow-y-auto">
            <div className="bg-white dark:bg-slate-950 rounded-[40px] w-full max-w-md shadow-2xl border border-white/10 relative overflow-hidden flex flex-col my-8">
@@ -234,7 +233,7 @@ const ContentLibrary: React.FC = () => {
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-7 h-7"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                  </div>
                  <h3 className="text-2xl font-black tracking-tighter uppercase leading-none">Publish Resource</h3>
-                 <p className="text-white/70 text-[10px] font-bold mt-2 uppercase tracking-widest">Global Academic Node Cluster</p>
+                 <p className="text-white/70 text-[10px] font-black mt-2 uppercase tracking-widest">Share knowledge with Nexus Hub</p>
               </div>
               
               <div className="p-8 space-y-5">
@@ -313,7 +312,7 @@ const ContentLibrary: React.FC = () => {
                       value={uploadMeta.customType}
                       onChange={(e) => setUploadMeta({...uploadMeta, customType: e.target.value})}
                       className="w-full bg-slate-100 dark:bg-black/40 p-4 rounded-2xl text-sm font-bold outline-none border border-transparent dark:border-white/5 focus:ring-2 focus:ring-orange-500 transition-all shadow-inner"
-                      placeholder="e.g., Thesis, Poster"
+                      placeholder="e.g., Thesis, Project Paper"
                     />
                   </div>
                 )}
@@ -330,7 +329,7 @@ const ContentLibrary: React.FC = () => {
                     disabled={isUploading || !uploadMeta.name.trim()} 
                     className="flex-[2] bg-orange-600 hover:bg-orange-700 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-orange-600/20 active:scale-95 transition-all disabled:opacity-50"
                   >
-                    {isUploading ? 'Encrypting Data...' : 'Commit to Cloud'}
+                    {isUploading ? 'Uploading Data...' : 'Commit to Library'}
                   </button>
                 </div>
               </div>
