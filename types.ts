@@ -34,25 +34,26 @@ export interface GroundingChunk {
   };
 }
 
+export type FileStatus = 'pending' | 'approved' | 'rejected';
+
 export interface LibraryFile {
   id: string;
   name: string;
   description?: string;
   subject: string;
-  type: 'Lecture' | 'Question Bank' | 'Lab Manual' | 'Assignment' | 'Syllabus' | 'Other';
+  type: string;
   uploadDate: number;
   size: string;
-  content?: string; // Base64 content for persistence
+  status: FileStatus;
+  storage_path: string;
   isUserUploaded?: boolean;
 }
 
-// Added Flashcard interface
 export interface Flashcard {
   front: string;
   back: string;
 }
 
-// Global declaration for PDF.js loaded via CDN
 declare global {
   interface Window {
     pdfjsLib: any;
