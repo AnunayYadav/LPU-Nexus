@@ -106,6 +106,7 @@ class NexusServer {
       return (data || []).map(item => ({
         id: item.id,
         name: item.name,
+        description: item.description,
         subject: item.subject,
         type: item.type,
         uploadDate: new Date(item.created_at).getTime(),
@@ -119,7 +120,7 @@ class NexusServer {
     }
   }
 
-  static async uploadFile(file: File, subject: string, type: LibraryFile['type']): Promise<LibraryFile> {
+  static async uploadFile(file: File, name: string, description: string, subject: string, type: string): Promise<LibraryFile> {
     const client = getSupabase();
     if (!client) throw new Error('Cannot upload: Nexus configuration missing.');
 
@@ -144,7 +145,8 @@ class NexusServer {
       .from('documents')
       .insert([
         {
-          name: file.name,
+          name: name,
+          description: description,
           subject: subject,
           type: type,
           size: fileSize,
@@ -162,6 +164,7 @@ class NexusServer {
     return {
       id: data.id,
       name: data.name,
+      description: data.description,
       subject: data.subject,
       type: data.type,
       uploadDate: new Date(data.created_at).getTime(),

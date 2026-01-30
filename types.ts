@@ -37,8 +37,9 @@ export interface GroundingChunk {
 export interface LibraryFile {
   id: string;
   name: string;
+  description?: string;
   subject: string;
-  type: 'Lecture' | 'Question Bank' | 'Lab Manual' | 'Assignment';
+  type: 'Lecture' | 'Question Bank' | 'Lab Manual' | 'Assignment' | 'Syllabus' | 'Other';
   uploadDate: number;
   size: string;
   content?: string; // Base64 content for persistence
