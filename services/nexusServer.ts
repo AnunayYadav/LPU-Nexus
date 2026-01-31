@@ -113,7 +113,8 @@ class NexusServer {
         uploadDate: new Date(item.created_at).getTime(),
         size: item.size,
         storage_path: item.storage_path,
-        isUserUploaded: true
+        isUserUploaded: true,
+        pending_update: item.pending_update
       }));
     } catch (e: any) {
       throw e;
@@ -125,10 +126,11 @@ class NexusServer {
     if (!client) throw new Error("Connection Failed");
 
     try {
+      // Fetch new uploads OR existing files with pending metadata updates
       const { data, error } = await client
         .from('documents')
         .select('*')
-        .eq('status', 'pending')
+        .or('status.eq.pending,pending_update.not.is.null')
         .order('created_at', { ascending: true });
 
       if (error) throw new Error("Connection Failed");
@@ -143,16 +145,17 @@ class NexusServer {
         uploadDate: new Date(item.created_at).getTime(),
         size: item.size,
         storage_path: item.storage_path,
-        isUserUploaded: true
+        isUserUploaded: true,
+        pending_update: item.pending_update
       }));
     } catch (e: any) {
       throw e;
     }
   }
 
-  static async uploadFile(file: File, name: string, description: string, subject: string, type: string): Promise<void> {
+  static async uploadFile(file: File, name: string, description: string, subject: string, type: string, isAdmin: boolean = false): Promise<void> {
     const client = getSupabase();
-    if (!client) throw new Error('Supabase client not initialized. Check URL and Key.');
+    if (!client) throw new Error('Supabase client not initialized.');
 
     const fileExt = file.name.split('.').pop();
     const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
@@ -178,39 +181,88 @@ class NexusServer {
           type: type,
           size: fileSize,
           storage_path: filePath,
-          status: 'pending'
+          status: isAdmin ? 'approved' : 'pending'
         }
       ]);
 
     if (dbError) {
-      // Cleanup storage if DB fails
       await client.storage.from(BUCKET_NAME).remove([filePath]);
       throw new Error(`Database error: ${dbError.message}`);
     }
   }
 
-  static async updateFile(id: string, metadata: { name: string; description: string; subject: string; type: string }): Promise<void> {
+  static async requestUpdate(id: string, metadata: { name: string; description: string; subject: string; type: string }, isAdmin: boolean = false): Promise<void> {
     const client = getSupabase();
     if (!client) throw new Error('Connection Failed');
 
-    const { error } = await client
-      .from('documents')
-      .update(metadata)
-      .eq('id', id);
-
-    if (error) throw new Error(`Update Failed`);
+    if (isAdmin) {
+      // Admins update directly
+      const { error } = await client
+        .from('documents')
+        .update({
+          ...metadata,
+          pending_update: null // Clear any pending update
+        })
+        .eq('id', id);
+      if (error) throw new Error(`Update Failed`);
+    } else {
+      // Users request update (main values stay same, changes go to JSON column)
+      const { error } = await client
+        .from('documents')
+        .update({
+          pending_update: metadata
+        })
+        .eq('id', id);
+      if (error) throw new Error(`Update Request Failed`);
+    }
   }
 
   static async approveFile(id: string): Promise<void> {
     const client = getSupabase();
     if (!client) throw new Error('Connection Failed');
 
+    // Fetch the current record to see if it's a new upload or a metadata update
+    const { data: record, error: fetchError } = await client
+      .from('documents')
+      .select('status, pending_update')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !record) throw new Error("Record not found");
+
+    if (record.pending_update) {
+      // If it's a metadata update, apply the JSON data to the main columns
+      const { error } = await client
+        .from('documents')
+        .update({
+          name: record.pending_update.name,
+          description: record.pending_update.description,
+          subject: record.pending_update.subject,
+          type: record.pending_update.type,
+          pending_update: null
+        })
+        .eq('id', id);
+      if (error) throw new Error(`Update Approval Failed`);
+    } else {
+      // If it's just a new upload
+      const { error } = await client
+        .from('documents')
+        .update({ status: 'approved' })
+        .eq('id', id);
+      if (error) throw new Error(`Approval Failed`);
+    }
+  }
+
+  static async rejectUpdate(id: string): Promise<void> {
+    const client = getSupabase();
+    if (!client) throw new Error('Connection Failed');
+
     const { error } = await client
       .from('documents')
-      .update({ status: 'approved' })
+      .update({ pending_update: null })
       .eq('id', id);
 
-    if (error) throw new Error(`Approval Failed`);
+    if (error) throw new Error(`Rejection Failed`);
   }
 
   static async getFileUrl(path: string): Promise<string> {

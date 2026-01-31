@@ -159,11 +159,14 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile }) => {
   const [activeSubject, setActiveSubject] = useState<string | null>(null);
   
   const [isAdminView, setIsAdminView] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processSuccess, setProcessSuccess] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
-  const [uploadMeta, setUploadMeta] = useState({
+  const [editingFileId, setEditingFileId] = useState<string | null>(null);
+
+  const [metaForm, setMetaForm] = useState({
     name: '',
     description: '',
     subject: 'CSE326',
@@ -221,23 +224,50 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile }) => {
   }, [userProfile]);
 
   const handleUpload = async () => {
-    if (!pendingFile || !uploadMeta.name.trim()) return;
-    setIsUploading(true);
-    const finalSubject = uploadMeta.subject === 'Other' ? (uploadMeta.customSubject || 'Other') : uploadMeta.subject;
-    const finalType = uploadMeta.type === 'Other' ? (uploadMeta.customType || 'Other') : uploadMeta.type;
+    if (!pendingFile || !metaForm.name.trim()) return;
+    setIsProcessing(true);
+    const finalSubject = metaForm.subject === 'Other' ? (metaForm.customSubject || 'Other') : metaForm.subject;
+    const finalType = metaForm.type === 'Other' ? (metaForm.customType || 'Other') : metaForm.type;
     try {
-      await NexusServer.uploadFile(pendingFile, uploadMeta.name, uploadMeta.description, finalSubject, finalType);
-      setUploadSuccess(true);
+      await NexusServer.uploadFile(pendingFile, metaForm.name, metaForm.description, finalSubject, finalType, userProfile?.is_admin || false);
+      setProcessSuccess(true);
       setTimeout(() => {
         setShowUploadModal(false);
-        setUploadSuccess(false);
+        setProcessSuccess(false);
         fetchFromDatabase();
-        setUploadMeta({ name: '', description: '', subject: 'CSE326', customSubject: '', type: 'Lecture', customType: '' });
-      }, 2000);
+        setMetaForm({ name: '', description: '', subject: 'CSE326', customSubject: '', type: 'Lecture', customType: '' });
+      }, 1500);
     } catch (e: any) {
       alert(`Submission failed: ${e.message}`);
     } finally {
-      setIsUploading(false);
+      setIsProcessing(false);
+    }
+  };
+
+  const handleEditRequest = async () => {
+    if (!editingFileId || !metaForm.name.trim()) return;
+    setIsProcessing(true);
+    const finalSubject = metaForm.subject === 'Other' ? (metaForm.customSubject || 'Other') : metaForm.subject;
+    const finalType = metaForm.type === 'Other' ? (metaForm.customType || 'Other') : metaForm.type;
+    try {
+      await NexusServer.requestUpdate(editingFileId, {
+        name: metaForm.name,
+        description: metaForm.description,
+        subject: finalSubject,
+        type: finalType
+      }, userProfile?.is_admin || false);
+      setProcessSuccess(true);
+      setTimeout(() => {
+        setShowEditModal(false);
+        setProcessSuccess(false);
+        fetchFromDatabase();
+        setEditingFileId(null);
+        setMetaForm({ name: '', description: '', subject: 'CSE326', customSubject: '', type: 'Lecture', customType: '' });
+      }, 1500);
+    } catch (e: any) {
+      alert(`Update failed: ${e.message}`);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -247,6 +277,15 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile }) => {
       fetchFromDatabase();
     } catch (e: any) {
       alert("Approval failed.");
+    }
+  };
+
+  const handleRejectUpdate = async (file: LibraryFile) => {
+    try {
+      await NexusServer.rejectUpdate(file.id);
+      fetchFromDatabase();
+    } catch (e: any) {
+      alert("Rejection failed.");
     }
   };
 
@@ -270,7 +309,19 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile }) => {
     }
   };
 
-  // Grouping logic for folder view
+  const startEdit = (file: LibraryFile) => {
+    setEditingFileId(file.id);
+    setMetaForm({
+      name: file.name,
+      description: file.description || '',
+      subject: SUBJECTS.includes(file.subject) ? file.subject : 'Other',
+      customSubject: SUBJECTS.includes(file.subject) ? '' : file.subject,
+      type: CATEGORIES.includes(file.type) ? file.type : 'Other',
+      customType: CATEGORIES.includes(file.type) ? '' : file.type
+    });
+    setShowEditModal(true);
+  };
+
   const groupedBySubject = files.reduce((acc, file) => {
     if (!acc[file.subject]) acc[file.subject] = [];
     acc[file.subject].push(file);
@@ -278,8 +329,6 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile }) => {
   }, {} as Record<string, LibraryFile[]>);
 
   const subjectFolders = Object.keys(groupedBySubject).sort();
-
-  // If we are searching or filtering by type, show a flat results list
   const isSearchActive = searchQuery.trim() !== '' || selectedType !== 'All';
 
   return (
@@ -323,7 +372,10 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile }) => {
             
             {!isAdminView && (
               <button 
-                onClick={() => fileInputRef.current?.click()} 
+                onClick={() => {
+                  if (!userProfile) { alert("Please sign in to contribute."); return; }
+                  fileInputRef.current?.click();
+                }} 
                 className="flex items-center gap-2 px-5 py-2.5 bg-orange-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-orange-600/20 hover:scale-[1.02] active:scale-95 transition-all"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -372,7 +424,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile }) => {
             const file = e.target.files?.[0];
             if (file) {
               setPendingFile(file);
-              setUploadMeta(prev => ({
+              setMetaForm(prev => ({
                 ...prev,
                 name: file.name.replace(/\.[^/.]+$/, "") 
               }));
@@ -388,7 +440,6 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile }) => {
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Scanning archives...</p>
             </div>
           ) : files.length > 0 ? (
-            // Folder View Logic
             (!isAdminView && !isSearchActive && !activeSubject) ? (
               subjectFolders.map(subject => (
                 <div 
@@ -407,43 +458,73 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile }) => {
                 </div>
               ))
             ) : (
-              // File View Logic (Inside folder or Search Results or Admin)
               files
                 .filter(file => !activeSubject || file.subject === activeSubject || isAdminView || isSearchActive)
-                .map(file => (
-                  <div key={file.id} className="group p-5 rounded-[24px] border border-slate-200 dark:border-white/5 bg-white dark:bg-slate-950/40 hover:border-orange-500/50 hover:shadow-xl hover:shadow-orange-500/5 transition-all relative overflow-hidden flex flex-col min-h-[220px] animate-fade-in">
-                    <div className="flex justify-between items-start mb-3">
-                        <div className="w-9 h-9 bg-slate-100 dark:bg-white/5 rounded-xl flex items-center justify-center text-slate-400 group-hover:text-orange-500 transition-colors">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                        </div>
-                        <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {userProfile?.is_admin && (
-                            <button onClick={(e) => { e.stopPropagation(); deleteFile(file); }} className="p-2 text-slate-400 hover:text-red-500 transition-colors" title="Delete permanently">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3.5 h-3.5"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
-                            </button>
-                          )}
-                        </div>
-                    </div>
-                    <h3 className="text-[10px] font-black uppercase tracking-tight text-slate-800 dark:text-white mb-1.5 line-clamp-2 leading-tight">{file.name}</h3>
-                    {file.description && <p className="text-[9px] text-slate-500 mb-3 line-clamp-2 italic font-bold uppercase leading-tight">{file.description}</p>}
-                    
-                    <div className="flex flex-wrap gap-1 mb-4 mt-auto">
-                        <span className="px-1.5 py-0.5 bg-orange-500/5 text-orange-600 rounded-md text-[8px] font-black uppercase tracking-widest border border-orange-500/10">{file.subject}</span>
-                        <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-white/5 text-slate-500 rounded-md text-[8px] font-black uppercase tracking-widest">{file.type}</span>
-                    </div>
+                .map(file => {
+                  const isUpdateReq = isAdminView && file.pending_update;
+                  const displayFile = isUpdateReq ? { ...file, ...file.pending_update } : file;
 
-                    <div className="mt-auto flex items-center justify-between pt-3 border-t border-slate-100 dark:border-white/5">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{file.size}</span>
-                        <div className="flex items-center gap-1.5">
-                          <button onClick={() => openFile(file)} className="flex items-center space-x-1 text-orange-600 hover:text-orange-500 transition-colors">
-                            <span className="text-[9px] font-black uppercase tracking-widest">Access</span>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-2.5 h-2.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-                          </button>
-                          {isAdminView && <button onClick={() => handleApprove(file)} className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest shadow-md transition-all">Approve</button>}
-                        </div>
+                  return (
+                    <div key={file.id} className="group p-5 rounded-[24px] border border-slate-200 dark:border-white/5 bg-white dark:bg-slate-950/40 hover:border-orange-500/50 hover:shadow-xl hover:shadow-orange-500/5 transition-all relative overflow-hidden flex flex-col min-h-[220px] animate-fade-in">
+                      <div className="flex justify-between items-start mb-3">
+                          <div className={`w-9 h-9 ${isUpdateReq ? 'bg-indigo-500/10 text-indigo-500' : 'bg-slate-100 dark:bg-white/5 text-slate-400 group-hover:text-orange-500'} rounded-xl flex items-center justify-center transition-colors relative`}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                            {file.pending_update && !isAdminView && <div className="absolute -top-1 -right-1 w-3 h-3 bg-indigo-500 rounded-full border-2 border-white dark:border-slate-950" title="Update pending review"></div>}
+                          </div>
+                          <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {userProfile && !isAdminView && (
+                              <button onClick={(e) => { e.stopPropagation(); startEdit(file); }} className="p-2 text-slate-400 hover:text-orange-500 transition-colors" title="Edit details">
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3.5 h-3.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                              </button>
+                            )}
+                            {userProfile?.is_admin && (
+                              <button onClick={(e) => { e.stopPropagation(); deleteFile(file); }} className="p-2 text-slate-400 hover:text-red-500 transition-colors" title="Delete permanently">
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3.5 h-3.5"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+                              </button>
+                            )}
+                          </div>
+                      </div>
+
+                      {isUpdateReq && <span className="text-[7px] font-black uppercase text-indigo-500 mb-1 tracking-widest">Metadata Update Request</span>}
+                      
+                      <h3 className="text-[10px] font-black uppercase tracking-tight text-slate-800 dark:text-white mb-1.5 line-clamp-2 leading-tight">
+                        {displayFile.name}
+                        {isUpdateReq && file.name !== file.pending_update.name && <span className="text-slate-400 ml-1 line-through">({file.name})</span>}
+                      </h3>
+                      
+                      {displayFile.description && <p className="text-[9px] text-slate-500 mb-3 line-clamp-2 italic font-bold uppercase leading-tight">{displayFile.description}</p>}
+                      
+                      <div className="flex flex-wrap gap-1 mb-4 mt-auto">
+                          <span className={`px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border ${isUpdateReq && file.subject !== file.pending_update.subject ? 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20' : 'bg-orange-500/5 text-orange-600 border-orange-500/10'}`}>
+                            {displayFile.subject}
+                          </span>
+                          <span className={`px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest ${isUpdateReq && file.type !== file.pending_update.type ? 'bg-indigo-500/5 text-indigo-500' : 'bg-slate-100 dark:bg-white/5 text-slate-500'}`}>
+                            {displayFile.type}
+                          </span>
+                      </div>
+
+                      <div className="mt-auto flex items-center justify-between pt-3 border-t border-slate-100 dark:border-white/5">
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{file.size}</span>
+                          <div className="flex items-center gap-1.5">
+                            {!isAdminView && (
+                              <button onClick={() => openFile(file)} className="flex items-center space-x-1 text-orange-600 hover:text-orange-500 transition-colors">
+                                <span className="text-[9px] font-black uppercase tracking-widest">Access</span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-2.5 h-2.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                              </button>
+                            )}
+                            {isAdminView && (
+                              <div className="flex gap-1">
+                                {isUpdateReq && (
+                                  <button onClick={() => handleRejectUpdate(file)} className="bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-400 px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all">Reject</button>
+                                )}
+                                <button onClick={() => handleApprove(file)} className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest shadow-md transition-all">Approve</button>
+                              </div>
+                            )}
+                          </div>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
             )
           ) : (
             <div className="col-span-full py-20 text-center">
@@ -454,15 +535,15 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile }) => {
         </div>
       </div>
 
-      {showUploadModal && (
+      {(showUploadModal || showEditModal) && (
         <div className="fixed top-[73px] left-0 md:left-64 bottom-0 right-0 z-[100] flex items-center justify-center p-4 bg-slate-400/40 dark:bg-black/80 backdrop-blur-md animate-fade-in overflow-hidden">
            <div className="bg-white dark:bg-slate-950 rounded-[40px] w-full max-w-md shadow-2xl border border-slate-200 dark:border-white/10 relative flex flex-col max-h-[90vh] overflow-hidden">
-              {!uploadSuccess ? (
+              {!processSuccess ? (
                 <>
                   <div className="bg-gradient-to-r from-orange-600 to-red-700 p-8 text-white relative rounded-t-[40px] flex-shrink-0">
-                    <button onClick={() => setShowUploadModal(false)} className="absolute top-6 right-6 p-2 text-white/50 hover:text-white transition-colors"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-                    <h3 className="text-xl font-black tracking-tighter leading-none uppercase">Contribute</h3>
-                    <p className="text-white/60 text-[10px] font-black uppercase tracking-widest mt-1">Support the LPU knowledge base</p>
+                    <button onClick={() => { setShowUploadModal(false); setShowEditModal(false); }} className="absolute top-6 right-6 p-2 text-white/50 hover:text-white transition-colors"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+                    <h3 className="text-xl font-black tracking-tighter leading-none uppercase">{showEditModal ? 'Update Metadata' : 'Contribute'}</h3>
+                    <p className="text-white/60 text-[10px] font-black uppercase tracking-widest mt-1">{showEditModal ? 'Refine document information' : 'Support the LPU knowledge base'}</p>
                   </div>
                   
                   <div className="p-8 space-y-6 overflow-y-auto no-scrollbar flex-1 pb-10">
@@ -470,8 +551,8 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile }) => {
                       <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Document Title</label>
                       <input 
                         type="text" 
-                        value={uploadMeta.name} 
-                        onChange={(e) => setUploadMeta({...uploadMeta, name: e.target.value})} 
+                        value={metaForm.name} 
+                        onChange={(e) => setMetaForm({...metaForm, name: e.target.value})} 
                         className="w-full bg-slate-100 dark:bg-black/40 p-4 rounded-2xl text-sm font-bold outline-none border border-transparent focus:ring-2 focus:ring-orange-500 shadow-inner dark:text-white" 
                         placeholder="Enter document title" 
                       />
@@ -480,8 +561,8 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile }) => {
                     <div>
                       <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Context / Details</label>
                       <textarea 
-                        value={uploadMeta.description} 
-                        onChange={(e) => setUploadMeta({...uploadMeta, description: e.target.value})} 
+                        value={metaForm.description} 
+                        onChange={(e) => setMetaForm({...metaForm, description: e.target.value})} 
                         className="w-full bg-slate-100 dark:bg-black/40 p-4 rounded-2xl text-sm font-bold outline-none border border-transparent focus:ring-2 focus:ring-orange-500 transition-all resize-none h-24 shadow-inner dark:text-white" 
                         placeholder="Add some context or details..." 
                       />
@@ -492,42 +573,42 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile }) => {
                         <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Subject</label>
                         <CustomDropdown 
                           label="Select subject"
-                          value={uploadMeta.subject}
+                          value={metaForm.subject}
                           options={SUBJECTS.map(s => ({ label: s.toUpperCase(), value: s }))}
-                          onChange={(val) => setUploadMeta({...uploadMeta, subject: val})}
+                          onChange={(val) => setMetaForm({...metaForm, subject: val})}
                         />
                       </div>
                       <div>
                         <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Category</label>
                         <CustomDropdown 
                           label="Select category"
-                          value={uploadMeta.type}
+                          value={metaForm.type}
                           options={CATEGORIES.map(c => ({ label: c.toUpperCase(), value: c }))}
-                          onChange={(val) => setUploadMeta({...uploadMeta, type: val})}
+                          onChange={(val) => setMetaForm({...metaForm, type: val})}
                         />
                       </div>
                     </div>
 
-                    {uploadMeta.subject === 'Other' && (
+                    {metaForm.subject === 'Other' && (
                       <div className="animate-fade-in">
                         <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Specify Subject</label>
                         <input 
                           type="text" 
-                          value={uploadMeta.customSubject} 
-                          onChange={(e) => setUploadMeta({...uploadMeta, customSubject: e.target.value})} 
+                          value={metaForm.customSubject} 
+                          onChange={(e) => setMetaForm({...metaForm, customSubject: e.target.value})} 
                           className="w-full bg-slate-100 dark:bg-black/40 p-4 rounded-2xl text-sm font-bold outline-none border border-transparent focus:ring-2 focus:ring-orange-500 shadow-inner dark:text-white" 
                           placeholder="Enter subject name" 
                         />
                       </div>
                     )}
 
-                    {uploadMeta.type === 'Other' && (
+                    {metaForm.type === 'Other' && (
                       <div className="animate-fade-in">
                         <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Specify Category</label>
                         <input 
                           type="text" 
-                          value={uploadMeta.customType} 
-                          onChange={(e) => setUploadMeta({...uploadMeta, customType: e.target.value})} 
+                          value={metaForm.customType} 
+                          onChange={(e) => setMetaForm({...metaForm, customType: e.target.value})} 
                           className="w-full bg-slate-100 dark:bg-black/40 p-4 rounded-2xl text-sm font-bold outline-none border border-transparent focus:ring-2 focus:ring-orange-500 shadow-inner dark:text-white" 
                           placeholder="Enter category name" 
                         />
@@ -537,19 +618,19 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile }) => {
 
                   <div className="p-8 pt-0 flex-shrink-0 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-white/5">
                     <button 
-                      onClick={handleUpload} 
-                      disabled={isUploading || !uploadMeta.name.trim()} 
+                      onClick={showEditModal ? handleEditRequest : handleUpload} 
+                      disabled={isProcessing || !metaForm.name.trim()} 
                       className="w-full bg-orange-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 disabled:opacity-50 transition-all"
                     >
-                      {isUploading ? 'Uploading...' : 'Submit resource'}
+                      {isProcessing ? 'Processing...' : (showEditModal ? 'Submit for Review' : 'Submit resource')}
                     </button>
                   </div>
                 </>
               ) : (
                 <div className="p-12 text-center space-y-6">
                    <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-4 text-green-500"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="w-8 h-8"><polyline points="20 6 9 17 4 12"/></svg></div>
-                   <h3 className="text-xl font-black text-slate-800 dark:text-white tracking-tighter uppercase">Contribution Sent</h3>
-                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Moderators will review your upload shortly.</p>
+                   <h3 className="text-xl font-black text-slate-800 dark:text-white tracking-tighter uppercase">{showEditModal ? 'Update Request Sent' : 'Contribution Sent'}</h3>
+                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Moderators will review your {showEditModal ? 'edits' : 'upload'} shortly.</p>
                 </div>
               )}
            </div>

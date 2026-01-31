@@ -53,6 +53,12 @@ export interface LibraryFile {
   status: FileStatus;
   storage_path: string;
   isUserUploaded?: boolean;
+  pending_update?: {
+    name: string;
+    description: string;
+    subject: string;
+    type: string;
+  } | null;
 }
 
 export interface Flashcard {
