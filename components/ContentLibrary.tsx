@@ -144,8 +144,8 @@ const CustomDropdown: React.FC<{
   );
 };
 
-const FolderIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-10 h-10 text-orange-600 mb-4">
+const FolderIcon = ({ size = "w-8 h-8" }: { size?: string }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={`${size} text-orange-600 mb-3`}>
     <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
   </svg>
 );
@@ -284,8 +284,8 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile }) => {
 
   return (
     <>
-      <div className="max-w-6xl mx-auto space-y-8 animate-fade-in pb-20 px-4 md:px-0">
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="max-w-6xl mx-auto space-y-6 animate-fade-in pb-20 px-4 md:px-0">
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex-1">
             <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tighter flex items-center gap-3 uppercase">
               Library
@@ -300,7 +300,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile }) => {
             {activeSubject && !isAdminView && !isSearchActive && (
               <button 
                 onClick={() => setActiveSubject(null)}
-                className="mt-4 flex items-center gap-2 text-orange-600 hover:text-orange-500 transition-colors font-black text-[10px] uppercase tracking-widest"
+                className="mt-3 flex items-center gap-2 text-orange-600 hover:text-orange-500 transition-colors font-black text-[10px] uppercase tracking-widest"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
                 Back to Folders
@@ -381,10 +381,10 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile }) => {
           }} 
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 min-h-[300px]">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {isLoading ? (
             <div className="col-span-full flex flex-col items-center justify-center py-20 animate-pulse">
-              <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+              <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mb-4"></div>
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Scanning archives...</p>
             </div>
           ) : files.length > 0 ? (
@@ -394,15 +394,15 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile }) => {
                 <div 
                   key={subject} 
                   onClick={() => setActiveSubject(subject)}
-                  className="group p-8 rounded-[32px] border border-slate-200 dark:border-white/5 bg-white dark:bg-slate-950/40 hover:border-orange-500/50 hover:shadow-2xl hover:shadow-orange-500/5 transition-all cursor-pointer relative overflow-hidden"
+                  className="group p-6 rounded-[24px] border border-slate-200 dark:border-white/5 bg-white dark:bg-slate-950/40 hover:border-orange-500/50 hover:shadow-xl hover:shadow-orange-500/5 transition-all cursor-pointer relative overflow-hidden flex flex-col justify-center min-h-[140px]"
                 >
                   <FolderIcon />
-                  <h3 className="text-sm font-black uppercase tracking-tight text-slate-800 dark:text-white mb-2">{subject}</h3>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                  <h3 className="text-[11px] font-black uppercase tracking-tight text-slate-800 dark:text-white mb-1">{subject}</h3>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">
                     {groupedBySubject[subject].length} {groupedBySubject[subject].length === 1 ? 'Resource' : 'Resources'}
                   </p>
-                  <div className="absolute -right-4 -bottom-4 opacity-0 group-hover:opacity-5 group-hover:scale-150 transition-all duration-700">
-                    <FolderIcon />
+                  <div className="absolute -right-2 -bottom-2 opacity-0 group-hover:opacity-5 group-hover:scale-125 transition-all duration-700 pointer-events-none">
+                    <FolderIcon size="w-16 h-16" />
                   </div>
                 </div>
               ))
@@ -411,35 +411,35 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile }) => {
               files
                 .filter(file => !activeSubject || file.subject === activeSubject || isAdminView || isSearchActive)
                 .map(file => (
-                  <div key={file.id} className="group p-6 rounded-[32px] border border-slate-200 dark:border-white/5 bg-white dark:bg-slate-950/40 hover:border-orange-500/50 hover:shadow-2xl hover:shadow-orange-500/5 transition-all relative overflow-hidden flex flex-col h-full animate-fade-in">
-                    <div className="flex justify-between items-start mb-5">
-                        <div className="w-10 h-10 bg-slate-100 dark:bg-white/5 rounded-xl flex items-center justify-center text-slate-400 group-hover:text-orange-500 transition-colors">
+                  <div key={file.id} className="group p-5 rounded-[24px] border border-slate-200 dark:border-white/5 bg-white dark:bg-slate-950/40 hover:border-orange-500/50 hover:shadow-xl hover:shadow-orange-500/5 transition-all relative overflow-hidden flex flex-col min-h-[220px] animate-fade-in">
+                    <div className="flex justify-between items-start mb-3">
+                        <div className="w-9 h-9 bg-slate-100 dark:bg-white/5 rounded-xl flex items-center justify-center text-slate-400 group-hover:text-orange-500 transition-colors">
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                         </div>
                         <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           {userProfile?.is_admin && (
-                            <button onClick={() => deleteFile(file)} className="p-2 text-slate-400 hover:text-red-500 transition-colors" title="Delete permanently">
+                            <button onClick={(e) => { e.stopPropagation(); deleteFile(file); }} className="p-2 text-slate-400 hover:text-red-500 transition-colors" title="Delete permanently">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3.5 h-3.5"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
                             </button>
                           )}
                         </div>
                     </div>
-                    <h3 className="text-[10px] font-black uppercase tracking-tight text-slate-800 dark:text-white mb-2 line-clamp-2">{file.name}</h3>
-                    {file.description && <p className="text-[10px] text-slate-500 mb-4 line-clamp-2 italic font-bold uppercase">{file.description}</p>}
+                    <h3 className="text-[10px] font-black uppercase tracking-tight text-slate-800 dark:text-white mb-1.5 line-clamp-2 leading-tight">{file.name}</h3>
+                    {file.description && <p className="text-[9px] text-slate-500 mb-3 line-clamp-2 italic font-bold uppercase leading-tight">{file.description}</p>}
                     
-                    <div className="flex flex-wrap gap-1.5 mb-6 mt-auto">
-                        <span className="px-2 py-0.5 bg-orange-500/5 text-orange-600 rounded-md text-[10px] font-black uppercase tracking-widest border border-orange-500/10">{file.subject}</span>
-                        <span className="px-2 py-0.5 bg-slate-100 dark:bg-white/5 text-slate-500 rounded-md text-[10px] font-black uppercase tracking-widest">{file.type}</span>
+                    <div className="flex flex-wrap gap-1 mb-4 mt-auto">
+                        <span className="px-1.5 py-0.5 bg-orange-500/5 text-orange-600 rounded-md text-[8px] font-black uppercase tracking-widest border border-orange-500/10">{file.subject}</span>
+                        <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-white/5 text-slate-500 rounded-md text-[8px] font-black uppercase tracking-widest">{file.type}</span>
                     </div>
 
-                    <div className="mt-auto flex items-center justify-between pt-4 border-t border-slate-100 dark:border-white/5">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{file.size}</span>
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => openFile(file)} className="flex items-center space-x-1.5 text-orange-600 hover:text-orange-500 transition-colors">
-                            <span className="text-[10px] font-black uppercase tracking-widest">Access</span>
+                    <div className="mt-auto flex items-center justify-between pt-3 border-t border-slate-100 dark:border-white/5">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{file.size}</span>
+                        <div className="flex items-center gap-1.5">
+                          <button onClick={() => openFile(file)} className="flex items-center space-x-1 text-orange-600 hover:text-orange-500 transition-colors">
+                            <span className="text-[9px] font-black uppercase tracking-widest">Access</span>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-2.5 h-2.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
                           </button>
-                          {isAdminView && <button onClick={() => handleApprove(file)} className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-md transition-all">Approve</button>}
+                          {isAdminView && <button onClick={() => handleApprove(file)} className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest shadow-md transition-all">Approve</button>}
                         </div>
                     </div>
                   </div>
