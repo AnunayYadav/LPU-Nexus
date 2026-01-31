@@ -36,14 +36,16 @@
 To enable the **Content Library**, you must run the following SQL in your Supabase **SQL Editor**:
 
 ```sql
--- 1. Create metadata table
+-- 1. Create documents table with all required columns
 CREATE TABLE IF NOT EXISTS public.documents (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     created_at TIMESTAMPTZ DEFAULT now(),
     name TEXT NOT NULL,
+    description TEXT,
     subject TEXT NOT NULL,
     type TEXT NOT NULL,
     size TEXT NOT NULL,
+    status TEXT DEFAULT 'pending',
     storage_path TEXT NOT NULL
 );
 
@@ -54,8 +56,10 @@ ALTER TABLE public.documents ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow public read" ON public.documents FOR SELECT USING (true);
 CREATE POLICY "Allow public insert" ON public.documents FOR INSERT WITH CHECK (true);
 CREATE POLICY "Allow public delete" ON public.documents FOR DELETE USING (true);
+CREATE POLICY "Allow public update" ON public.documents FOR UPDATE USING (true);
 
 -- 4. Storage Policies (Bucket: 'nexus-documents')
+-- Make sure to create a bucket named 'nexus-documents' in Supabase Storage first.
 CREATE POLICY "Public Access" ON storage.objects FOR SELECT USING (bucket_id = 'nexus-documents');
 CREATE POLICY "Public Upload" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'nexus-documents');
 CREATE POLICY "Public Delete" ON storage.objects FOR DELETE USING (bucket_id = 'nexus-documents');

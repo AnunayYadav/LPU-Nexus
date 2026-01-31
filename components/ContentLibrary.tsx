@@ -244,7 +244,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile }) => {
         setUploadMeta({ name: '', description: '', subject: 'CSE326', customSubject: '', type: 'Lecture', customType: '' });
       }, 2000);
     } catch (e: any) {
-      alert("Submission failed.");
+      alert(`Submission failed: ${e.message}`);
     } finally {
       setIsUploading(false);
     }
@@ -352,7 +352,22 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile }) => {
           </div>
         )}
 
-        <input type="file" ref={fileInputRef} className="hidden" onChange={(e) => { setPendingFile(e.target.files?.[0] || null); setShowUploadModal(true); }} />
+        <input 
+          type="file" 
+          ref={fileInputRef} 
+          className="hidden" 
+          onChange={(e) => { 
+            const file = e.target.files?.[0];
+            if (file) {
+              setPendingFile(file);
+              setUploadMeta(prev => ({
+                ...prev,
+                name: file.name.replace(/\.[^/.]+$/, "") // Set initial name, remove extension
+              }));
+              setShowUploadModal(true); 
+            }
+          }} 
+        />
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 min-h-[300px]">
           {isLoading ? (

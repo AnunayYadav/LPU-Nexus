@@ -152,7 +152,7 @@ class NexusServer {
 
   static async uploadFile(file: File, name: string, description: string, subject: string, type: string): Promise<void> {
     const client = getSupabase();
-    if (!client) throw new Error('Connection Failed');
+    if (!client) throw new Error('Supabase client not initialized. Check URL and Key.');
 
     const fileExt = file.name.split('.').pop();
     const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
@@ -162,7 +162,9 @@ class NexusServer {
       .from(BUCKET_NAME)
       .upload(filePath, file);
 
-    if (storageError) throw new Error(`Upload Failed`);
+    if (storageError) {
+      throw new Error(`Storage error: ${storageError.message}`);
+    }
 
     const fileSize = `${(file.size / 1024 / 1024).toFixed(2)} MB`;
 
@@ -181,8 +183,9 @@ class NexusServer {
       ]);
 
     if (dbError) {
+      // Cleanup storage if DB fails
       await client.storage.from(BUCKET_NAME).remove([filePath]);
-      throw new Error(`Connection Failed`);
+      throw new Error(`Database error: ${dbError.message}`);
     }
   }
 
