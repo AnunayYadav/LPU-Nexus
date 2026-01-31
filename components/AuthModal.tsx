@@ -34,13 +34,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
   };
 
   return (
-    /* 
-       To cover only the content area (excluding sidebar and navbar):
-       - Sidebar width is 64 (16rem/256px)
-       - Navbar height is roughly 73px (p-4 + border)
-       We use fixed with offsets to ensure it covers the visible viewport of the content area.
-    */
-    <div className="fixed top-[73px] left-0 md:left-64 bottom-0 right-0 z-[100] flex items-center justify-center p-4 bg-slate-400/40 dark:bg-black/80 backdrop-blur-md animate-fade-in overflow-hidden">
+    <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-400/40 dark:bg-black/80 backdrop-blur-md animate-fade-in overflow-hidden">
       <div className="bg-white dark:bg-slate-950 rounded-[40px] w-full max-w-sm shadow-2xl border border-slate-200 dark:border-white/10 relative overflow-hidden flex flex-col">
         <div className="bg-gradient-to-r from-slate-900 to-black p-8 text-white text-center relative">
           <button onClick={onClose} className="absolute top-6 right-6 p-2 text-white/50 hover:text-white transition-colors">
