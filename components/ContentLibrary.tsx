@@ -27,6 +27,7 @@ const CustomDropdown: React.FC<{
 }> = ({ label, value, options, onChange, className = "", placeholder = "" }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const portalRef = useRef<HTMLDivElement>(null);
   const [coords, setCoords] = useState({ top: 0, left: 0, width: 0, direction: 'down' as 'up' | 'down' });
 
   const updateCoords = () => {
@@ -81,7 +82,12 @@ const CustomDropdown: React.FC<{
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      // Close only if click is outside both the button and the portal content
+      const isInsideTrigger = dropdownRef.current && dropdownRef.current.contains(target);
+      const isInsidePortal = portalRef.current && portalRef.current.contains(target);
+      
+      if (!isInsideTrigger && !isInsidePortal) {
         setIsOpen(false);
       }
     };
@@ -117,6 +123,7 @@ const CustomDropdown: React.FC<{
 
       {isOpen && coords.width > 0 && createPortal(
         <div 
+          ref={portalRef}
           className={`fixed z-[999] glass-panel rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-white/10 animate-fade-in bg-white dark:bg-black transition-all ${
             coords.direction === 'up' ? '-translate-y-full' : ''
           }`}
@@ -131,7 +138,8 @@ const CustomDropdown: React.FC<{
               <button
                 key={opt.value}
                 type="button"
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   onChange(opt.value);
                   setIsOpen(false);
                 }}
