@@ -27,15 +27,41 @@ const CustomDropdown: React.FC<{
 }> = ({ label, value, options, onChange, className = "", placeholder = "" }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 });
+  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0, direction: 'down' as 'up' | 'down' });
 
   const updateCoords = () => {
     if (dropdownRef.current) {
       const rect = dropdownRef.current.getBoundingClientRect();
+      const winW = window.innerWidth;
+      const winH = window.innerHeight;
+      const margin = 12;
+      const estimatedHeight = 200; // max-h-48 is 192px + some padding
+
+      let left = rect.left;
+      let width = rect.width;
+
+      // Prevent horizontal clipping
+      if (left + width > winW - margin) {
+        left = Math.max(margin, winW - width - margin);
+      }
+      
+      // Check if it should open upwards to prevent vertical clipping
+      let top = rect.bottom + 8;
+      let direction: 'up' | 'down' = 'down';
+
+      if (top + estimatedHeight > winH - margin) {
+        const spaceAbove = rect.top - margin;
+        if (spaceAbove > estimatedHeight) {
+          top = rect.top - 8;
+          direction = 'up';
+        }
+      }
+
       setCoords({
-        top: rect.bottom + 8,
-        left: rect.left,
-        width: rect.width
+        top,
+        left,
+        width,
+        direction
       });
     }
   };
@@ -43,6 +69,7 @@ const CustomDropdown: React.FC<{
   useLayoutEffect(() => {
     if (isOpen) {
       updateCoords();
+      // Use capture true to catch scrolls in nested containers
       window.addEventListener('scroll', updateCoords, true);
       window.addEventListener('resize', updateCoords);
     }
@@ -90,7 +117,9 @@ const CustomDropdown: React.FC<{
 
       {isOpen && coords.width > 0 && createPortal(
         <div 
-          className="fixed z-[999] glass-panel rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-white/10 animate-fade-in bg-white dark:bg-black"
+          className={`fixed z-[999] glass-panel rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-white/10 animate-fade-in bg-white dark:bg-black transition-all ${
+            coords.direction === 'up' ? '-translate-y-full' : ''
+          }`}
           style={{ 
             top: coords.top, 
             left: coords.left, 
@@ -368,10 +397,6 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile }) => {
       </div>
 
       {showUploadModal && (
-        /* 
-           Fixed backdrop with MD-aware offset for sidebar (256px) and TOP offset for navbar (73px).
-           This ensures the backdrop covers only the "main-content-area".
-        */
         <div className="fixed top-[73px] left-0 md:left-64 bottom-0 right-0 z-[100] flex items-center justify-center p-4 bg-slate-400/40 dark:bg-black/80 backdrop-blur-md animate-fade-in overflow-hidden">
            <div className="bg-white dark:bg-slate-950 rounded-[40px] w-full max-w-md shadow-2xl border border-slate-200 dark:border-white/10 relative flex flex-col max-h-[90vh] overflow-hidden">
               {!uploadSuccess ? (
