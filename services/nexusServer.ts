@@ -31,6 +31,7 @@ const getSupabase = () => {
     try {
       supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
     } catch (e) {
+      console.error("Supabase Initialization Error:", e);
       return null;
     }
   }
@@ -43,13 +44,13 @@ class NexusServer {
   // --- AUTH METHODS ---
   static async signUp(email: string, pass: string) {
     const client = getSupabase();
-    if (!client) throw new Error("Supabase not configured");
+    if (!client) throw new Error("Supabase connection not established.");
     return await client.auth.signUp({ email, password: pass });
   }
 
   static async signIn(email: string, pass: string) {
     const client = getSupabase();
-    if (!client) throw new Error("Supabase not configured");
+    if (!client) throw new Error("Supabase connection not established.");
     return await client.auth.signInWithPassword({ email, password: pass });
   }
 
@@ -83,7 +84,7 @@ class NexusServer {
   // --- LIBRARY METHODS ---
   static async fetchFiles(query?: string, subject?: string): Promise<LibraryFile[]> {
     const client = getSupabase();
-    if (!client) throw new Error("Connection Failed");
+    if (!client) throw new Error("Database connection unavailable.");
 
     try {
       let supabaseQuery = client
@@ -101,7 +102,7 @@ class NexusServer {
       }
 
       const { data, error } = await supabaseQuery;
-      if (error) throw new Error("Connection Failed");
+      if (error) throw new Error(`Fetch failed: ${error.message}`);
 
       return (data || []).map(item => ({
         id: item.id,
@@ -117,23 +118,23 @@ class NexusServer {
         pending_update: item.pending_update
       }));
     } catch (e: any) {
+      console.error("fetchFiles error:", e);
       throw e;
     }
   }
 
   static async fetchPendingFiles(): Promise<LibraryFile[]> {
     const client = getSupabase();
-    if (!client) throw new Error("Connection Failed");
+    if (!client) throw new Error("Database connection unavailable.");
 
     try {
-      // Fetch new uploads OR existing files with pending metadata updates
       const { data, error } = await client
         .from('documents')
         .select('*')
         .or('status.eq.pending,pending_update.not.is.null')
         .order('created_at', { ascending: true });
 
-      if (error) throw new Error("Connection Failed");
+      if (error) throw new Error(`Moderation fetch failed: ${error.message}`);
 
       return (data || []).map(item => ({
         id: item.id,
@@ -149,13 +150,14 @@ class NexusServer {
         pending_update: item.pending_update
       }));
     } catch (e: any) {
+      console.error("fetchPendingFiles error:", e);
       throw e;
     }
   }
 
   static async uploadFile(file: File, name: string, description: string, subject: string, type: string, isAdmin: boolean = false): Promise<void> {
     const client = getSupabase();
-    if (!client) throw new Error('Supabase client not initialized.');
+    if (!client) throw new Error('Database connection unavailable.');
 
     const fileExt = file.name.split('.').pop();
     const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
@@ -166,7 +168,7 @@ class NexusServer {
       .upload(filePath, file);
 
     if (storageError) {
-      throw new Error(`Storage error: ${storageError.message}`);
+      throw new Error(`Upload failed to reach storage: ${storageError.message}`);
     }
 
     const fileSize = `${(file.size / 1024 / 1024).toFixed(2)} MB`;
@@ -186,106 +188,119 @@ class NexusServer {
       ]);
 
     if (dbError) {
+      // Cleanup storage if DB entry fails
       await client.storage.from(BUCKET_NAME).remove([filePath]);
-      throw new Error(`Database error: ${dbError.message}`);
+      throw new Error(`Database record failed: ${dbError.message}`);
     }
   }
 
   static async requestUpdate(id: string, metadata: { name: string; description: string; subject: string; type: string }, isAdmin: boolean = false): Promise<void> {
     const client = getSupabase();
-    if (!client) throw new Error('Connection Failed');
+    if (!client) throw new Error('Database connection unavailable.');
 
-    if (isAdmin) {
-      // Admins update directly
-      const { error } = await client
-        .from('documents')
-        .update({
-          ...metadata,
-          pending_update: null // Clear any pending update
-        })
-        .eq('id', id);
-      if (error) throw new Error(`Update Failed`);
-    } else {
-      // Users request update (main values stay same, changes go to JSON column)
-      const { error } = await client
-        .from('documents')
-        .update({
-          pending_update: metadata
-        })
-        .eq('id', id);
-      if (error) throw new Error(`Update Request Failed`);
+    try {
+      if (isAdmin) {
+        const { error } = await client
+          .from('documents')
+          .update({
+            ...metadata,
+            pending_update: null
+          })
+          .eq('id', id);
+        if (error) throw error;
+      } else {
+        const { error } = await client
+          .from('documents')
+          .update({
+            pending_update: metadata
+          })
+          .eq('id', id);
+        if (error) throw error;
+      }
+    } catch (e: any) {
+      throw new Error(`Update request failed: ${e.message}`);
     }
   }
 
   static async approveFile(id: string): Promise<void> {
     const client = getSupabase();
-    if (!client) throw new Error('Connection Failed');
+    if (!client) throw new Error('Database connection unavailable.');
 
-    // Fetch the current record to see if it's a new upload or a metadata update
-    const { data: record, error: fetchError } = await client
-      .from('documents')
-      .select('status, pending_update')
-      .eq('id', id)
-      .single();
-
-    if (fetchError || !record) throw new Error("Record not found");
-
-    if (record.pending_update) {
-      // If it's a metadata update, apply the JSON data to the main columns
-      const { error } = await client
+    try {
+      const { data: record, error: fetchError } = await client
         .from('documents')
-        .update({
-          name: record.pending_update.name,
-          description: record.pending_update.description,
-          subject: record.pending_update.subject,
-          type: record.pending_update.type,
-          pending_update: null
-        })
-        .eq('id', id);
-      if (error) throw new Error(`Update Approval Failed`);
-    } else {
-      // If it's just a new upload
-      const { error } = await client
-        .from('documents')
-        .update({ status: 'approved' })
-        .eq('id', id);
-      if (error) throw new Error(`Approval Failed`);
+        .select('status, pending_update')
+        .eq('id', id)
+        .single();
+
+      if (fetchError || !record) throw new Error("Could not find document record.");
+
+      if (record.pending_update) {
+        const { error } = await client
+          .from('documents')
+          .update({
+            name: record.pending_update.name,
+            description: record.pending_update.description,
+            subject: record.pending_update.subject,
+            type: record.pending_update.type,
+            pending_update: null
+          })
+          .eq('id', id);
+        if (error) throw error;
+      } else {
+        const { error } = await client
+          .from('documents')
+          .update({ status: 'approved' })
+          .eq('id', id);
+        if (error) throw error;
+      }
+    } catch (e: any) {
+      throw new Error(`Approval operation failed: ${e.message}`);
     }
   }
 
   static async rejectUpdate(id: string): Promise<void> {
     const client = getSupabase();
-    if (!client) throw new Error('Connection Failed');
+    if (!client) throw new Error('Database connection unavailable.');
 
-    const { error } = await client
-      .from('documents')
-      .update({ pending_update: null })
-      .eq('id', id);
-
-    if (error) throw new Error(`Rejection Failed`);
+    try {
+      const { error } = await client
+        .from('documents')
+        .update({ pending_update: null })
+        .eq('id', id);
+      if (error) throw error;
+    } catch (e: any) {
+      throw new Error(`Rejection operation failed: ${e.message}`);
+    }
   }
 
   static async getFileUrl(path: string): Promise<string> {
     const client = getSupabase();
-    if (!client) throw new Error('Connection Failed');
+    if (!client) throw new Error('Database connection unavailable.');
     const { data } = client.storage.from(BUCKET_NAME).getPublicUrl(path);
     return data.publicUrl;
   }
 
   static async deleteFile(id: string, storagePath: string): Promise<void> {
     const client = getSupabase();
-    if (!client) throw new Error('Connection Failed');
+    if (!client) throw new Error('Database connection unavailable.');
 
-    const { error: dbError } = await client
-      .from('documents')
-      .delete()
-      .eq('id', id);
+    try {
+      const { error: dbError } = await client
+        .from('documents')
+        .delete()
+        .eq('id', id);
 
-    if (dbError) throw new Error(`Connection Failed`);
+      if (dbError) throw dbError;
 
-    const { error: storageError } = await client.storage
-      .from(BUCKET_NAME)
-      .remove([storagePath]);
+      const { error: storageError } = await client.storage
+        .from(BUCKET_NAME)
+        .remove([storagePath]);
+      
+      if (storageError) console.warn("Record deleted but storage removal failed:", storageError.message);
+    } catch (e: any) {
+      throw new Error(`Deletion failed: ${e.message}`);
+    }
   }
 }
 
