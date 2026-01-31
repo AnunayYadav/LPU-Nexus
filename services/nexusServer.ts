@@ -81,6 +81,24 @@ class NexusServer {
     return data;
   }
 
+  // --- FEEDBACK ---
+  static async submitFeedback(text: string, userId?: string, email?: string) {
+    const client = getSupabase();
+    if (!client) throw new Error("Database connection unavailable.");
+    
+    const { error } = await client
+      .from('feedback')
+      .insert([
+        { 
+          text, 
+          user_id: userId || null, 
+          user_email: email || null 
+        }
+      ]);
+      
+    if (error) throw error;
+  }
+
   // --- LIBRARY METHODS ---
   static async fetchFiles(query?: string, subject?: string): Promise<LibraryFile[]> {
     const client = getSupabase();

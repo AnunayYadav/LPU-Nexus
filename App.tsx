@@ -129,7 +129,13 @@ const App: React.FC = () => {
 
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-black text-slate-900 dark:text-slate-200 transition-colors duration-300">
-      <Sidebar currentModule={currentModule} setModule={navigateToModule} isMobileMenuOpen={isMobileMenuOpen} toggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
+      <Sidebar 
+        currentModule={currentModule} 
+        setModule={navigateToModule} 
+        isMobileMenuOpen={isMobileMenuOpen} 
+        toggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
+        userProfile={userProfile}
+      />
 
       <main className="flex-1 flex flex-col h-screen overflow-hidden relative">
         <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-white/5 bg-white dark:bg-black z-10 transition-colors">

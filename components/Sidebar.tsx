@@ -1,17 +1,21 @@
 
 import React, { useState } from 'react';
-import { ModuleType } from '../types';
+import { ModuleType, UserProfile } from '../types';
+import NexusServer from '../services/nexusServer.ts';
 
 interface SidebarProps {
   currentModule: ModuleType;
   setModule: (m: ModuleType) => void;
   isMobileMenuOpen: boolean;
   toggleMobileMenu: () => void;
+  userProfile: UserProfile | null;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentModule, setModule, isMobileMenuOpen, toggleMobileMenu }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentModule, setModule, isMobileMenuOpen, toggleMobileMenu, userProfile }) => {
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [feedbackText, setFeedbackText] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
 
   const navItems = [
     { 
@@ -61,11 +65,26 @@ const Sidebar: React.FC<SidebarProps> = ({ currentModule, setModule, isMobileMen
     },
   ];
 
-  const submitFeedback = () => {
-    if (feedbackText.trim()) {
-      alert("Thank you! Your feedback has been recorded.");
+  const submitFeedback = async () => {
+    if (!feedbackText.trim() || isSubmitting) return;
+    
+    setIsSubmitting(true);
+    try {
+      await NexusServer.submitFeedback(
+        feedbackText, 
+        userProfile?.id, 
+        userProfile?.email
+      );
+      setSubmitSuccess(true);
       setFeedbackText("");
-      setShowFeedbackModal(false);
+      setTimeout(() => {
+        setSubmitSuccess(false);
+        setShowFeedbackModal(false);
+      }, 2000);
+    } catch (e: any) {
+      alert(`Submission failed: ${e.message}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -82,29 +101,45 @@ const Sidebar: React.FC<SidebarProps> = ({ currentModule, setModule, isMobileMen
       {/* Feedback Modal */}
       {showFeedbackModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-          <div className="bg-white dark:bg-slate-950 rounded-3xl p-8 w-full max-w-md shadow-2xl animate-fade-in border border-white/5">
-            <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-2 tracking-tight">Feedback</h3>
-            <p className="text-sm text-slate-500 mb-6">Report a bug or request a feature.</p>
-            <textarea 
-              value={feedbackText}
-              onChange={(e) => setFeedbackText(e.target.value)}
-              className="w-full h-32 p-4 rounded-2xl bg-slate-100 dark:bg-black border border-transparent dark:border-white/5 focus:ring-2 focus:ring-orange-500 text-slate-800 dark:text-slate-200 resize-none transition-all outline-none"
-              placeholder="Type your feedback here..."
-            />
-            <div className="flex justify-end space-x-3 mt-6">
-              <button 
-                onClick={() => setShowFeedbackModal(false)}
-                className="px-4 py-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-bold text-sm"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={submitFeedback}
-                className="px-8 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-bold text-sm shadow-lg shadow-orange-600/20"
-              >
-                Submit
-              </button>
-            </div>
+          <div className="bg-white dark:bg-slate-950 rounded-3xl p-8 w-full max-w-md shadow-2xl animate-fade-in border border-white/5 relative overflow-hidden">
+            {submitSuccess ? (
+              <div className="text-center py-10 space-y-4 animate-fade-in">
+                <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto text-green-500">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="w-8 h-8"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <h3 className="text-xl font-bold dark:text-white uppercase tracking-tighter">Feedback Received</h3>
+                <p className="text-sm text-slate-500">Thank you for helping us improve LPU-Nexus.</p>
+              </div>
+            ) : (
+              <>
+                <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-2 tracking-tight">Feedback</h3>
+                <p className="text-sm text-slate-500 mb-6">Report a bug or request a feature.</p>
+                <textarea 
+                  value={feedbackText}
+                  onChange={(e) => setFeedbackText(e.target.value)}
+                  disabled={isSubmitting}
+                  className="w-full h-32 p-4 rounded-2xl bg-slate-100 dark:bg-black border border-transparent dark:border-white/5 focus:ring-2 focus:ring-orange-500 text-slate-800 dark:text-slate-200 resize-none transition-all outline-none"
+                  placeholder="Type your feedback here..."
+                />
+                <div className="flex justify-end space-x-3 mt-6">
+                  <button 
+                    onClick={() => setShowFeedbackModal(false)}
+                    disabled={isSubmitting}
+                    className="px-4 py-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-bold text-sm"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={submitFeedback}
+                    disabled={isSubmitting || !feedbackText.trim()}
+                    className="px-8 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-bold text-sm shadow-lg shadow-orange-600/20 disabled:opacity-50 transition-all flex items-center gap-2"
+                  >
+                    {isSubmitting && <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
+                    <span>{isSubmitting ? 'Sending...' : 'Submit'}</span>
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
