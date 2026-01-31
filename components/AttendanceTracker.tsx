@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface Subject {
   id: string;
@@ -35,6 +35,10 @@ const AttendanceTracker: React.FC = () => {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showArchived, setShowArchived] = useState(false);
+  
+  // State for Edit Modal
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
 
   const [newSub, setNewSub] = useState({
     name: '',
@@ -64,6 +68,18 @@ const AttendanceTracker: React.FC = () => {
     }]);
 
     setNewSub({ name: '', present: '0', total: '0', goal: '75' });
+  };
+
+  const handleEdit = (sub: Subject) => {
+    setEditingSubject({ ...sub });
+    setIsEditModalOpen(true);
+  };
+
+  const saveEdit = () => {
+    if (!editingSubject) return;
+    setSubjects(subjects.map(s => s.id === editingSubject.id ? editingSubject : s));
+    setIsEditModalOpen(false);
+    setEditingSubject(null);
   };
 
   const deleteSubject = (id: string) => {
@@ -172,10 +188,6 @@ const AttendanceTracker: React.FC = () => {
     setSelectedIds(new Set());
   };
 
-  const updateGoal = (id: string, newGoal: number) => {
-    setSubjects(subjects.map(s => s.id === id ? { ...s, goal: Math.min(Math.max(newGoal, 0), 100) } : s));
-  };
-
   const toggleSelection = (id: string) => {
     const newSelected = new Set(selectedIds);
     if (newSelected.has(id)) newSelected.delete(id);
@@ -185,26 +197,19 @@ const AttendanceTracker: React.FC = () => {
 
   const calculateStats = (s: Subject) => {
     const goal = s.goal || 75;
-    // Handle total classes being zero to avoid division by zero
     const percentage = s.total === 0 ? 0 : (s.present / s.total) * 100;
     
     let needed = 0;
-    // Avoid division by zero when goal is 100 (1 - 100/100 = 0)
     if (percentage < goal && goal < 100) {
         needed = Math.ceil(( (goal/100) * s.total - s.present) / (1 - (goal/100)));
     } else if (percentage < goal && goal === 100) {
-        // Technically infinity classes are needed to reach exactly 100% if even one class is missed,
-        // but in practical terms, we just can't reach 100% anymore.
         needed = 999; 
     }
     
     let skippable = 0;
-    // Avoid division by zero when goal is 0
     if (percentage >= goal && goal > 0) {
         skippable = Math.floor((100 * s.present - goal * s.total) / goal);
     } else if (percentage >= goal && goal === 0) {
-        // If goal is 0%, all remaining classes can be skipped.
-        // We can just represent this as a large number or current total classes.
         skippable = 999;
     }
 
@@ -214,117 +219,75 @@ const AttendanceTracker: React.FC = () => {
   const filteredSubjects = subjects.filter(s => showArchived ? s.archived : !s.archived);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-fade-in pb-32 relative">
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+    <div className="max-w-5xl mx-auto space-y-8 animate-fade-in pb-32">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2 tracking-tighter">Attendance Tracker</h2>
-          <p className="text-slate-600 dark:text-slate-400">Track your attendance and hit your personalized goals.</p>
+          <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-2 tracking-tighter uppercase">Attendance Tracker</h2>
+          <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Precision tracking for campus compliance.</p>
         </div>
         
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-3">
           {subjects.length > 0 && (
             <button 
               onClick={clearAll}
-              className="flex items-center space-x-2 px-4 py-2 bg-red-500/10 text-red-600 dark:text-red-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all border border-red-500/20 shadow-sm"
-              title="Clear all subjects"
+              className="flex items-center space-x-2 px-6 py-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-              <span>Clear All</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              <span>Wipe All</span>
             </button>
           )}
 
           <button 
             onClick={() => setShowArchived(!showArchived)}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border shadow-sm ${showArchived ? 'bg-indigo-600 border-indigo-700 text-white' : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/5 text-slate-600 dark:text-slate-400'}`}
+            className={`flex items-center space-x-2 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border shadow-sm ${showArchived ? 'bg-orange-600 border-orange-700 text-white' : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400'}`}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-            <span>{showArchived ? 'Active List' : 'Archive'}</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            <span>{showArchived ? 'Active List' : 'Archive Hub'}</span>
           </button>
         </div>
       </header>
 
-      {/* Bulk Actions Bar */}
-      {selectedIds.size > 0 && !showArchived && (
-        <div className="fixed bottom-6 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:max-w-md z-50 glass-panel p-4 rounded-3xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-950 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4 animate-fade-in">
-          <div className="flex items-center justify-between w-full sm:w-auto sm:border-r sm:border-slate-200 dark:sm:border-white/10 sm:pr-4">
-            <span className="text-[10px] font-black uppercase tracking-widest text-orange-600 dark:text-orange-400">{selectedIds.size} Selected</span>
-            <button 
-              onClick={() => setSelectedIds(new Set())}
-              className="sm:hidden p-1 text-slate-400 hover:text-red-500 transition-colors"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M18 6L6 18M6 6l12 12"/></svg>
-            </button>
-          </div>
-          <div className="flex items-center space-x-2 w-full sm:w-auto">
-            <button 
-              onClick={() => bulkUpdate('present')}
-              className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-green-600/20"
-            >
-              Mark Present
-            </button>
-            <button 
-              onClick={() => bulkUpdate('absent')}
-              className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-red-600/20"
-            >
-              Mark Absent
-            </button>
-            <button 
-              onClick={() => setSelectedIds(new Set())}
-              className="hidden sm:flex p-3 text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors"
-              title="Deselect All"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M18 6L6 18M6 6l12 12"/></svg>
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div className="glass-panel p-6 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/5 mb-8 shadow-sm">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="md:col-span-1">
-            <p className="text-[10px] font-black uppercase text-slate-400 mb-1 ml-1">Subject Name</p>
+      {/* Input Panel */}
+      <div className="glass-panel p-8 rounded-[40px] bg-white dark:bg-slate-950/50 border border-slate-200 dark:border-white/5 shadow-2xl">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-end">
+          <div className="md:col-span-4">
+            <label className="block text-[10px] font-black uppercase text-slate-400 mb-2 ml-1 tracking-widest">Subject Name</label>
             <input 
               type="text" 
-              placeholder="e.g. CSE408"
+              placeholder="e.g. CSE408 (Cloud Computing)"
               value={newSub.name}
               onChange={(e) => setNewSub({...newSub, name: e.target.value})}
-              className="w-full bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-2xl px-4 py-3 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-green-500 transition-all text-sm"
+              className="w-full bg-slate-100 dark:bg-black/40 border border-transparent dark:border-white/5 rounded-2xl px-6 py-4 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-orange-600 transition-all font-bold text-sm shadow-inner"
             />
           </div>
-          <div>
-            <p className="text-[10px] font-black uppercase text-slate-400 mb-1 ml-1">Present / Total</p>
+          <div className="md:col-span-3">
+            <label className="block text-[10px] font-black uppercase text-slate-400 mb-2 ml-1 tracking-widest">Present / Total</label>
             <div className="flex items-center space-x-2">
               <input 
-                type="number" 
-                placeholder="P"
-                value={newSub.present}
+                type="number" placeholder="P" value={newSub.present}
                 onChange={(e) => setNewSub({...newSub, present: e.target.value})}
-                className="w-full bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-2xl px-4 py-3 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-green-500 transition-all text-sm text-center"
+                className="w-full bg-slate-100 dark:bg-black/40 border border-transparent dark:border-white/5 rounded-2xl px-4 py-4 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-orange-600 transition-all text-sm text-center font-bold shadow-inner"
               />
-              <span className="text-slate-400">/</span>
+              <span className="text-slate-400 font-black">/</span>
               <input 
-                type="number" 
-                placeholder="T"
-                value={newSub.total}
+                type="number" placeholder="T" value={newSub.total}
                 onChange={(e) => setNewSub({...newSub, total: e.target.value})}
-                className="w-full bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-2xl px-4 py-3 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-green-500 transition-all text-sm text-center"
+                className="w-full bg-slate-100 dark:bg-black/40 border border-transparent dark:border-white/5 rounded-2xl px-4 py-4 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-orange-600 transition-all text-sm text-center font-bold shadow-inner"
               />
             </div>
           </div>
-          <div>
-            <p className="text-[10px] font-black uppercase text-slate-400 mb-1 ml-1">Goal %</p>
+          <div className="md:col-span-2">
+            <label className="block text-[10px] font-black uppercase text-slate-400 mb-2 ml-1 tracking-widest">Target %</label>
             <input 
-              type="number" 
-              placeholder="Goal %"
-              value={newSub.goal}
+              type="number" placeholder="75" value={newSub.goal}
               onChange={(e) => setNewSub({...newSub, goal: e.target.value})}
-              className="w-full bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-2xl px-4 py-3 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-green-500 transition-all text-sm text-center"
+              className="w-full bg-slate-100 dark:bg-black/40 border border-transparent dark:border-white/5 rounded-2xl px-6 py-4 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-orange-600 transition-all text-sm text-center font-bold shadow-inner"
             />
           </div>
-          <div className="flex items-end">
+          <div className="md:col-span-3">
             <button 
               onClick={addSubject}
-              className="w-full bg-green-600 hover:bg-green-700 text-white py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-green-600/20"
+              className="w-full bg-orange-600 hover:bg-orange-700 text-white py-[1.15rem] rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-orange-600/20 active:scale-95 flex items-center justify-center whitespace-nowrap"
             >
               Add Subject
             </button>
@@ -332,118 +295,119 @@ const AttendanceTracker: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Grid Display */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {filteredSubjects.map((sub) => {
           const { percentage, needed, skippable, goal } = calculateStats(sub);
           const isBelowGoal = percentage < goal;
           const isSelected = selectedIds.has(sub.id);
-          const colorClass = isBelowGoal ? 'text-red-500' : 'text-green-500';
-          const bgClass = isBelowGoal ? 'bg-red-500/10' : 'bg-green-500/10';
+          const accentColor = isBelowGoal ? 'text-red-500' : 'text-emerald-500';
+          const accentBg = isBelowGoal ? 'bg-red-500/10' : 'bg-emerald-500/10';
           const hasHistory = history.some(h => h.id === sub.id);
 
           return (
             <div 
               key={sub.id} 
               className={`
-                glass-panel p-6 rounded-3xl border transition-all duration-300 group relative
-                ${isSelected ? 'border-orange-500 ring-2 ring-orange-500/20 shadow-orange-500/10' : 'border-slate-200 dark:border-white/5 shadow-sm'}
-                bg-white dark:bg-slate-950/50 hover:shadow-xl
+                glass-panel p-6 md:p-8 rounded-[40px] border transition-all duration-500 group relative overflow-hidden flex flex-col
+                ${isSelected ? 'border-orange-500 ring-4 ring-orange-500/10 shadow-2xl' : 'border-slate-200 dark:border-white/5 shadow-sm'}
+                bg-white dark:bg-slate-950/40 hover:border-orange-500/50
               `}
             >
               {/* Checkbox for Selection */}
               {!showArchived && (
                 <div 
-                  className="absolute -top-3 -left-3 z-10"
+                  className="absolute top-6 left-6 z-10"
                   onClick={(e) => { e.stopPropagation(); toggleSelection(sub.id); }}
                 >
-                  <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center cursor-pointer transition-all ${isSelected ? 'bg-orange-600 border-orange-600 text-white shadow-lg' : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-transparent'}`}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="w-4 h-4"><polyline points="20 6 9 17 4 12"/></svg>
+                  <div className={`w-10 h-10 rounded-2xl border-2 flex items-center justify-center cursor-pointer transition-all duration-300 ${isSelected ? 'bg-orange-600 border-orange-600 text-white shadow-xl shadow-orange-600/30' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-transparent hover:border-orange-500'}`}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="w-5 h-5"><polyline points="20 6 9 17 4 12"/></svg>
                   </div>
                 </div>
               )}
 
-              <div className="flex justify-between items-start mb-6">
-                <div className="max-w-[70%]">
-                  <h3 className="text-lg font-black text-slate-800 dark:text-white tracking-tight truncate">{sub.name}</h3>
-                  <p className="text-xs text-slate-500 mt-1 font-bold">{sub.present} / {sub.total} Classes Attended</p>
+              <div className="flex flex-col items-center text-center mt-4 mb-8">
+                <div className={`px-8 py-4 rounded-[28px] ${accentBg} ${accentColor} text-5xl md:text-6xl font-black tracking-tighter shadow-sm mb-4 transition-transform group-hover:scale-110 duration-500`}>
+                  {percentage.toFixed(1)}<span className="text-2xl opacity-50 ml-1">%</span>
                 </div>
-                <div className="flex flex-col items-end">
-                  <div className={`px-4 py-2 rounded-2xl ${bgClass} ${colorClass} text-xl font-black tracking-tighter shadow-sm mb-1`}>
-                    {percentage.toFixed(2)}%
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Goal:</span>
-                    <input 
-                      type="number" 
-                      value={sub.goal}
-                      onChange={(e) => updateGoal(sub.id, parseInt(e.target.value) || 0)}
-                      className="bg-transparent text-[10px] font-black text-slate-500 w-8 outline-none border-b border-dashed border-slate-300 dark:border-slate-700 text-center"
-                    />
-                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">%</span>
-                  </div>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tighter uppercase mb-2 line-clamp-1">{sub.name}</h3>
+                <div className="flex items-center space-x-3 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                   <span>{sub.present} / {sub.total} Sessions</span>
+                   <span className="opacity-20">|</span>
+                   <span className="text-orange-600">Goal: {sub.goal}%</span>
                 </div>
               </div>
 
-              <div className="h-2 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden mb-6 relative">
+              {/* Progress Bar */}
+              <div className="h-3 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden mb-8 relative">
                  <div 
-                   className="absolute top-0 bottom-0 w-0.5 bg-orange-500 z-10 opacity-50"
-                   style={{ left: `${goal}%` }}
-                   title={`Goal: ${goal}%`}
-                 ></div>
-                 
-                <div 
-                  className={`h-full transition-all duration-1000 ${!isBelowGoal ? 'bg-green-500' : 'bg-red-500'}`}
-                  style={{ width: `${percentage}%` }}
-                />
+                    className="absolute top-0 bottom-0 w-1 bg-orange-600 z-10 shadow-[0_0_10px_rgba(249,115,22,0.8)]" 
+                    style={{ left: `${goal}%` }} 
+                    title={`Goal Line: ${goal}%`}
+                 />
+                 <div 
+                   className={`h-full transition-all duration-1000 ease-out ${!isBelowGoal ? 'bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)]'}`}
+                   style={{ width: `${percentage}%` }}
+                 />
               </div>
 
               {!showArchived && (
-                <div className="grid grid-cols-2 gap-3 mb-6">
+                <div className="grid grid-cols-2 gap-4 mb-8">
                   <button 
                     onClick={() => updateAttendance(sub.id, 'present')}
-                    className="bg-slate-900 dark:bg-white text-white dark:text-black py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-transform shadow-lg"
+                    className="bg-slate-900 dark:bg-white text-white dark:text-black py-4 rounded-[22px] font-black text-[10px] uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-md"
                   >
-                    Present
+                    Mark Present
                   </button>
                   <button 
                     onClick={() => updateAttendance(sub.id, 'absent')}
-                    className="bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-transform"
+                    className="bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400 py-4 rounded-[22px] font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-white/20 hover:scale-[1.02] active:scale-95 transition-all"
                   >
-                    Absent
+                    Mark Absent
                   </button>
                 </div>
               )}
 
-              <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest pt-4 border-t border-slate-100 dark:border-white/5">
-                {isBelowGoal ? (
-                  <span className="text-red-500 animate-pulse">Need {needed >= 999 ? '∞' : needed} more to hit {goal}%</span>
-                ) : (
-                  <span className="text-green-500">Safe to skip {skippable >= 999 ? '∞' : skippable} more classes</span>
-                )}
+              {/* Footer Actions */}
+              <div className="mt-auto flex items-center justify-between pt-6 border-t border-slate-100 dark:border-white/5">
+                <div className={`px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest ${isBelowGoal ? 'bg-red-500/10 text-red-500' : 'bg-emerald-500/10 text-emerald-500'}`}>
+                  {isBelowGoal ? (
+                    <span>Needs {needed >= 999 ? '∞' : needed} lectures</span>
+                  ) : (
+                    <span>Safe for {skippable >= 999 ? '∞' : skippable} lectures</span>
+                  )}
+                </div>
                 
-                <div className="flex items-center space-x-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                    {hasHistory && (
                      <button 
                        onClick={() => undoSubjectLastAction(sub.id)}
-                       className="text-slate-400 hover:text-orange-500 p-1 bg-slate-100 dark:bg-white/5 rounded-md transition-colors"
-                       title="Undo last action for this subject"
+                       className="p-2 text-slate-400 hover:text-orange-500 transition-colors"
+                       title="Undo last action"
                      >
-                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><path d="M3 10h10a5 5 0 0 1 0 10H11"/><polyline points="8 5 3 10 8 15"/></svg>
+                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M3 10h10a5 5 0 0 1 0 10H11"/><polyline points="8 5 3 10 8 15"/></svg>
                      </button>
                    )}
                    <button 
+                    onClick={() => handleEdit(sub)}
+                    className="p-2 text-slate-400 hover:text-orange-500 transition-colors"
+                    title="Edit Subject"
+                   >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                   </button>
+                   <button 
                     onClick={() => archiveSubject(sub.id)}
-                    className="text-slate-400 hover:text-indigo-500"
-                    title={sub.archived ? "Unarchive" : "Archive"}
+                    className="p-2 text-slate-400 hover:text-indigo-500 transition-colors"
+                    title={showArchived ? "Activate" : "Archive"}
                   >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3.5 h-3.5"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>
                   </button>
                   <button 
                     onClick={() => deleteSubject(sub.id)}
-                    className="text-slate-400 hover:text-red-500"
+                    className="p-2 text-slate-400 hover:text-red-500 transition-colors"
                     title="Delete"
                   >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3.5 h-3.5"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
                   </button>
                 </div>
               </div>
@@ -453,11 +417,113 @@ const AttendanceTracker: React.FC = () => {
       </div>
 
       {filteredSubjects.length === 0 && (
-        <div className="text-center py-20 bg-slate-50 dark:bg-white/5 rounded-3xl border border-dashed border-slate-200 dark:border-white/10">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="w-16 h-16 mx-auto mb-4 text-slate-300 dark:text-slate-700"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-          <p className="font-bold text-slate-500 uppercase tracking-widest text-xs">
-            {showArchived ? 'No archived subjects found.' : 'No active subjects tracked yet.'}
+        <div className="text-center py-24 bg-slate-50 dark:bg-white/5 rounded-[48px] border-4 border-dashed border-slate-200 dark:border-white/5">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="w-20 h-20 mx-auto mb-6 text-slate-200 dark:text-slate-800"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+          <p className="font-black text-slate-400 uppercase tracking-[0.3em] text-xs">
+            {showArchived ? 'Archive hub empty' : 'Registry initialized... waiting for courses'}
           </p>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {isEditModalOpen && editingSubject && (
+        <div className="fixed top-[73px] left-0 md:left-64 bottom-0 right-0 z-[110] flex items-center justify-center p-4 bg-slate-400/40 dark:bg-black/80 backdrop-blur-md animate-fade-in overflow-hidden">
+          <div className="bg-white dark:bg-slate-950 rounded-[40px] w-full max-w-md shadow-2xl border border-slate-200 dark:border-white/10 relative overflow-hidden flex flex-col">
+            <div className="bg-gradient-to-r from-orange-600 to-red-700 p-8 text-white relative rounded-t-[40px] flex-shrink-0">
+              <button onClick={() => setIsEditModalOpen(false)} className="absolute top-6 right-6 p-2 text-white/50 hover:text-white transition-colors">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+              <h3 className="text-xl font-black tracking-tighter uppercase leading-none mb-1">Modify Tracker</h3>
+              <p className="text-white/60 text-[10px] font-black uppercase tracking-widest">Adjust tracking parameters</p>
+            </div>
+            
+            <div className="p-8 space-y-6">
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Subject Name</label>
+                <input 
+                  type="text" 
+                  value={editingSubject.name} 
+                  onChange={(e) => setEditingSubject({...editingSubject, name: e.target.value})} 
+                  className="w-full bg-slate-100 dark:bg-black/40 p-4 rounded-2xl text-sm font-bold outline-none border border-transparent focus:ring-2 focus:ring-orange-500 shadow-inner dark:text-white" 
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Present Sessions</label>
+                  <input 
+                    type="number" 
+                    value={editingSubject.present} 
+                    onChange={(e) => setEditingSubject({...editingSubject, present: parseInt(e.target.value) || 0})} 
+                    className="w-full bg-slate-100 dark:bg-black/40 p-4 rounded-2xl text-sm font-bold outline-none border border-transparent focus:ring-2 focus:ring-orange-500 shadow-inner dark:text-white text-center" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Total Sessions</label>
+                  <input 
+                    type="number" 
+                    value={editingSubject.total} 
+                    onChange={(e) => setEditingSubject({...editingSubject, total: parseInt(e.target.value) || 0})} 
+                    className="w-full bg-slate-100 dark:bg-black/40 p-4 rounded-2xl text-sm font-bold outline-none border border-transparent focus:ring-2 focus:ring-orange-500 shadow-inner dark:text-white text-center" 
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Target Percentage (%)</label>
+                <input 
+                  type="number" 
+                  value={editingSubject.goal} 
+                  onChange={(e) => setEditingSubject({...editingSubject, goal: parseInt(e.target.value) || 0})} 
+                  className="w-full bg-slate-100 dark:bg-black/40 p-4 rounded-2xl text-sm font-bold outline-none border border-transparent focus:ring-2 focus:ring-orange-500 shadow-inner dark:text-white text-center" 
+                />
+              </div>
+
+              <div className="flex gap-4">
+                <button 
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={saveEdit} 
+                  className="flex-[2] bg-orange-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition-all"
+                >
+                  Update Registry
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Bulk Actions Bar */}
+      {selectedIds.size > 0 && !showArchived && (
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] w-[90%] md:w-auto min-w-[320px] glass-panel p-2.5 rounded-[32px] border border-white/20 dark:border-white/10 bg-slate-900 dark:bg-white shadow-2xl flex items-center gap-2 animate-fade-in ring-8 ring-black/5 dark:ring-white/5">
+          <div className="flex-1 flex items-center px-6">
+            <span className="text-[10px] font-black uppercase tracking-widest text-white dark:text-black">{selectedIds.size} Selected</span>
+          </div>
+          <div className="flex items-center space-x-1">
+            <button 
+              onClick={() => bulkUpdate('present')}
+              className="px-6 py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-[24px] text-[10px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-95"
+            >
+              Batch Present
+            </button>
+            <button 
+              onClick={() => bulkUpdate('absent')}
+              className="px-6 py-3.5 bg-red-500 hover:bg-red-600 text-white rounded-[24px] text-[10px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-95"
+            >
+              Batch Absent
+            </button>
+            <button 
+              onClick={() => setSelectedIds(new Set())}
+              className="p-3.5 text-slate-400 hover:text-red-500 transition-colors"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="w-4 h-4"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
         </div>
       )}
     </div>
