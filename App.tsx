@@ -67,6 +67,7 @@ const Dashboard: React.FC<{ setModule: (m: ModuleType) => void }> = ({ setModule
 
 const App: React.FC = () => {
   const [currentModule, setCurrentModule] = useState<ModuleType>(() => getModuleFromPath(window.location.pathname));
+  const [libraryInitialView, setLibraryInitialView] = useState<'browse' | 'my-uploads'>('browse');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -116,7 +117,7 @@ const App: React.FC = () => {
   const renderModule = () => {
     switch (currentModule) {
       case ModuleType.PLACEMENT: return <PlacementPrefect />;
-      case ModuleType.LIBRARY: return <ContentLibrary userProfile={userProfile} />;
+      case ModuleType.LIBRARY: return <ContentLibrary userProfile={userProfile} initialView={libraryInitialView} />;
       case ModuleType.CAMPUS: return <CampusNavigator />;
       case ModuleType.GLOBAL: return <GlobalGateway />;
       case ModuleType.HELP: return <HelpSection />;
@@ -164,15 +165,21 @@ const App: React.FC = () => {
                 )}
 
                 {isProfileMenuOpen && userProfile && (
-                  <div className="absolute top-full right-0 mt-2 w-48 glass-panel rounded-2xl border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden animate-fade-in z-50 bg-white dark:bg-slate-900">
+                  <div className="absolute top-full right-0 mt-2 w-56 glass-panel rounded-2xl border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden animate-fade-in z-50 bg-white dark:bg-slate-900">
                     <div className="p-4 border-b border-slate-100 dark:border-white/5">
                       <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Signed in as</p>
                       <p className="text-xs font-bold truncate dark:text-white">{userProfile.email}</p>
                     </div>
-                    <button onClick={async () => { await NexusServer.signOut(); setIsProfileMenuOpen(false); }} className="w-full text-left px-4 py-3 text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 flex items-center space-x-2">
-                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                       <span>Sign Out</span>
-                    </button>
+                    <div className="py-2">
+                       <button onClick={() => { setLibraryInitialView('my-uploads'); navigateToModule(ModuleType.LIBRARY); setIsProfileMenuOpen(false); }} className="w-full text-left px-4 py-3 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 flex items-center space-x-2">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                          <span>My Uploads</span>
+                       </button>
+                       <button onClick={async () => { await NexusServer.signOut(); setIsProfileMenuOpen(false); }} className="w-full text-left px-4 py-3 text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 flex items-center space-x-2">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                          <span>Sign Out</span>
+                       </button>
+                    </div>
                   </div>
                 )}
              </div>

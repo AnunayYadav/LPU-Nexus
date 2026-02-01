@@ -53,6 +53,8 @@ export interface LibraryFile {
   size: string;
   status: FileStatus;
   storage_path: string;
+  uploader_id?: string;
+  admin_notes?: string;
   isUserUploaded?: boolean;
   pending_update?: {
     name: string;
@@ -60,6 +62,7 @@ export interface LibraryFile {
     subject: string;
     semester: string;
     type: string;
+    admin_notes?: string;
   } | null;
 }
 

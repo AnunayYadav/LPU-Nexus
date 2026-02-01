@@ -120,11 +120,44 @@ class NexusServer {
         uploadDate: new Date(item.created_at).getTime(),
         size: item.size,
         storage_path: item.storage_path,
+        uploader_id: item.uploader_id,
+        admin_notes: item.admin_notes,
         isUserUploaded: true,
         pending_update: item.pending_update
       }));
     } catch (e: any) {
       console.error("fetchFiles error:", e);
+      throw e;
+    }
+  }
+
+  static async fetchUserFiles(userId: string): Promise<LibraryFile[]> {
+    const client = getSupabase();
+    if (!client) throw new Error("Database connection unavailable.");
+    try {
+      const { data, error } = await client
+        .from('documents')
+        .select('*')
+        .eq('uploader_id', userId)
+        .order('created_at', { ascending: false });
+      if (error) throw new Error(`Fetch failed: ${error.message}`);
+      return (data || []).map(item => ({
+        id: item.id,
+        name: item.name,
+        description: item.description,
+        subject: item.subject,
+        semester: item.semester || 'Other',
+        type: item.type,
+        status: item.status,
+        uploadDate: new Date(item.created_at).getTime(),
+        size: item.size,
+        storage_path: item.storage_path,
+        uploader_id: item.uploader_id,
+        admin_notes: item.admin_notes,
+        isUserUploaded: true,
+        pending_update: item.pending_update
+      }));
+    } catch (e: any) {
       throw e;
     }
   }
@@ -150,6 +183,8 @@ class NexusServer {
         uploadDate: new Date(item.created_at).getTime(),
         size: item.size,
         storage_path: item.storage_path,
+        uploader_id: item.uploader_id,
+        admin_notes: item.admin_notes,
         isUserUploaded: true,
         pending_update: item.pending_update
       }));
@@ -159,7 +194,7 @@ class NexusServer {
     }
   }
 
-  static async uploadFile(file: File, name: string, description: string, subject: string, semester: string, type: string, isAdmin: boolean = false): Promise<void> {
+  static async uploadFile(file: File, name: string, description: string, subject: string, semester: string, type: string, userId: string, isAdmin: boolean = false): Promise<void> {
     const client = getSupabase();
     if (!client) throw new Error('Database connection unavailable.');
     const fileExt = file.name.split('.').pop();
@@ -169,7 +204,7 @@ class NexusServer {
     if (storageError) throw new Error(`Upload failed: ${storageError.message}`);
     const fileSize = `${(file.size / 1024 / 1024).toFixed(2)} MB`;
     const { error: dbError } = await client.from('documents').insert([{
-      name, description, subject, semester, type, size: fileSize, storage_path: filePath, status: isAdmin ? 'approved' : 'pending'
+      name, description, subject, semester, type, size: fileSize, storage_path: filePath, uploader_id: userId, status: isAdmin ? 'approved' : 'pending'
     }]);
     if (dbError) {
       await client.storage.from(BUCKET_NAME).remove([filePath]);
