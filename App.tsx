@@ -13,6 +13,7 @@ import ShareReport from './components/ShareReport.tsx';
 import AuthModal from './components/AuthModal.tsx';
 import { ModuleType, UserProfile } from './types.ts';
 import NexusServer from './services/nexusServer.ts';
+import { Analytics } from "@vercel/analytics/react";
 
 const getModuleFromPath = (path: string): ModuleType => {
   const p = path.toLowerCase();
@@ -184,6 +185,7 @@ const App: React.FC = () => {
            {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
         </div>
       </main>
+      <Analytics />
     </div>
   );
 };

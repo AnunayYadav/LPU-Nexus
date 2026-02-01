@@ -474,7 +474,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile }) => {
                     className="group p-4 md:p-6 rounded-2xl md:rounded-[24px] border border-slate-200 dark:border-white/5 bg-white dark:bg-slate-950/40 hover:border-orange-500/50 hover:shadow-xl hover:shadow-orange-500/5 transition-all cursor-pointer relative overflow-hidden flex flex-col justify-center min-h-[110px] md:min-h-[140px]"
                   >
                     <FolderIcon />
-                    <h3 className="text-[10px] md:text-[11px] font-black uppercase tracking-tight text-slate-800 dark:text-white mb-0.5 md:mb-1">{subject}</h3>
+                    <h3 className="text-[10px] md:text-[11px] font-black tracking-tight text-slate-800 dark:text-white mb-0.5 md:mb-1">{subject}</h3>
                     <p className="text-[8px] md:text-[9px] font-black uppercase tracking-widest text-slate-500">
                       {groupedBySubject[subject].length} {groupedBySubject[subject].length === 1 ? 'Item' : 'Items'}
                     </p>
@@ -513,7 +513,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile }) => {
 
                         {isUpdateReq && <span className="text-[7px] font-black uppercase text-indigo-500 mb-0.5 md:mb-1 tracking-widest">Update Req</span>}
                         
-                        <h3 className="text-[9px] md:text-[10px] font-black uppercase tracking-tight text-slate-800 dark:text-white mb-1 md:mb-1.5 line-clamp-2 leading-tight">
+                        <h3 className="text-[9px] md:text-[10px] font-black tracking-tight text-slate-800 dark:text-white mb-1 md:mb-1.5 line-clamp-2 leading-tight">
                           {displayFile.name}
                         </h3>
                         
