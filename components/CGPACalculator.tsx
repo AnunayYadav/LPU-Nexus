@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 
 interface Course {
@@ -19,6 +18,8 @@ const GRADE_POINTS: Record<string, number> = {
   'P': 4,
   'F': 0
 };
+
+const GRADELIST = ['O', 'A+', 'A', 'B+', 'B', 'C', 'P', 'F'];
 
 const getGradeFromMarks = (marks: number): string => {
   if (marks === 0) return 'F';
@@ -98,6 +99,8 @@ const CGPACalculator: React.FC = () => {
     let totalPoints = 0;
     let totalCredits = 0;
     const gradeCounts: Record<string, number> = {};
+    GRADELIST.forEach(g => gradeCounts[g] = 0);
+    
     courses.forEach(c => {
       const point = GRADE_POINTS[c.grade] || 0;
       const credits = Number(c.credits) || 0;
@@ -105,8 +108,11 @@ const CGPACalculator: React.FC = () => {
       totalCredits += credits;
       gradeCounts[c.grade] = (gradeCounts[c.grade] || 0) + 1;
     });
+    
+    const maxGradeCount = Math.max(...Object.values(gradeCounts));
     const sgpa = totalCredits === 0 ? 0 : totalPoints / totalCredits;
-    return { sgpa, totalPoints, totalCredits, gradeCounts };
+    
+    return { sgpa, totalPoints, totalCredits, gradeCounts, maxGradeCount };
   }, [courses]);
 
   const overallCGPA = useMemo(() => {
@@ -414,6 +420,37 @@ const CGPACalculator: React.FC = () => {
               <div className="absolute bottom-0 left-0 w-48 h-48 bg-orange-500/10 blur-3xl rounded-full -ml-24 -mb-24 animate-pulse"></div>
             </div>
           )}
+
+          {/* New Grade Distribution Chart */}
+          <div className="glass-panel p-6 rounded-[32px] bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/5">
+            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-8 text-center">Grade Distribution</h4>
+            <div className="flex items-end justify-between h-40 gap-2 px-2">
+              {GRADELIST.map(g => {
+                const count = currentStats.gradeCounts[g] || 0;
+                const height = currentStats.maxGradeCount > 0 ? (count / currentStats.maxGradeCount) * 100 : 0;
+                return (
+                  <div key={g} className="flex-1 flex flex-col items-center group relative h-full">
+                    {count > 0 && (
+                      <div className="absolute -top-6 text-[9px] font-black text-orange-600 animate-fade-in">
+                        {count}
+                      </div>
+                    )}
+                    <div 
+                      className="w-full bg-slate-100 dark:bg-white/5 rounded-t-lg transition-all duration-700 ease-out relative overflow-hidden flex flex-col justify-end"
+                      style={{ height: `${Math.max(height, count > 0 ? 5 : 0)}%` }}
+                    >
+                      {count > 0 && (
+                        <div className="absolute inset-0 bg-gradient-to-t from-orange-600 to-red-500 opacity-80" />
+                      )}
+                    </div>
+                    <div className="mt-4 text-[10px] font-black text-slate-500 group-hover:text-orange-600 transition-colors uppercase">
+                      {g}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
 
           <div className="glass-panel p-6 rounded-[32px] bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/5">
             <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6 text-center">LPU Grade Matrix</h4>
