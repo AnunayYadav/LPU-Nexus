@@ -127,6 +127,7 @@ class NexusServer {
         name: item.name,
         description: item.description,
         subject: item.subject,
+        semester: item.semester || 'Other',
         type: item.type,
         status: item.status,
         uploadDate: new Date(item.created_at).getTime(),
@@ -159,6 +160,7 @@ class NexusServer {
         name: item.name,
         description: item.description,
         subject: item.subject,
+        semester: item.semester || 'Other',
         type: item.type,
         status: item.status,
         uploadDate: new Date(item.created_at).getTime(),
@@ -173,7 +175,7 @@ class NexusServer {
     }
   }
 
-  static async uploadFile(file: File, name: string, description: string, subject: string, type: string, isAdmin: boolean = false): Promise<void> {
+  static async uploadFile(file: File, name: string, description: string, subject: string, semester: string, type: string, isAdmin: boolean = false): Promise<void> {
     const client = getSupabase();
     if (!client) throw new Error('Database connection unavailable.');
 
@@ -198,6 +200,7 @@ class NexusServer {
           name: name,
           description: description,
           subject: subject,
+          semester: semester,
           type: type,
           size: fileSize,
           storage_path: filePath,
@@ -212,7 +215,7 @@ class NexusServer {
     }
   }
 
-  static async requestUpdate(id: string, metadata: { name: string; description: string; subject: string; type: string }, isAdmin: boolean = false): Promise<void> {
+  static async requestUpdate(id: string, metadata: { name: string; description: string; subject: string; semester: string; type: string }, isAdmin: boolean = false): Promise<void> {
     const client = getSupabase();
     if (!client) throw new Error('Database connection unavailable.');
 
@@ -260,6 +263,7 @@ class NexusServer {
             name: record.pending_update.name,
             description: record.pending_update.description,
             subject: record.pending_update.subject,
+            semester: record.pending_update.semester,
             type: record.pending_update.type,
             pending_update: null
           })

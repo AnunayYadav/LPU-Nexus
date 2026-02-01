@@ -47,6 +47,7 @@ export interface LibraryFile {
   name: string;
   description?: string;
   subject: string;
+  semester: string;
   type: string;
   uploadDate: number;
   size: string;
@@ -57,6 +58,7 @@ export interface LibraryFile {
     name: string;
     description: string;
     subject: string;
+    semester: string;
     type: string;
   } | null;
 }
