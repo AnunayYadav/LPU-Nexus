@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { LibraryFile, UserProfile, Folder } from '../types.ts';
 import NexusServer from '../services/nexusServer.ts';
 
-const FolderIcon = ({ type, size = "w-5 h-5" }: { type: 'semester' | 'subject' | 'category' | 'root', size?: string }) => {
+const FolderIcon = ({ type, size = "w-7 h-7" }: { type: 'semester' | 'subject' | 'category' | 'root', size?: string }) => {
   const colors = {
     root: 'text-slate-400',
     semester: 'text-orange-600',
@@ -11,7 +11,7 @@ const FolderIcon = ({ type, size = "w-5 h-5" }: { type: 'semester' | 'subject' |
     category: 'text-emerald-600'
   };
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={`${size} ${colors[type]} mb-1 transition-colors`}>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={`${size} ${colors[type]} mb-2 transition-colors`}>
       <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
     </svg>
   );
@@ -62,7 +62,6 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
   const fetchRegistry = useCallback(async (isSilent = false) => {
     if (!isSilent) setIsLoading(true);
     try {
-      // Parallel fetch for speed
       const [folderList, allFiles] = await Promise.all([
         NexusServer.fetchFolders(),
         isAdminView 
@@ -115,7 +114,6 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
     }
   }, [isAdminView, viewMode, userProfile, searchQuery, sortBy, activeSemester, activeSubject, activeCategory]);
 
-  // Handle navigation without flickering
   const navigateTo = (sem: Folder | null, subj: Folder | null, cat: Folder | null) => {
     setIsNavigating(true);
     setActiveSemester(sem);
@@ -218,40 +216,40 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
   const modalAvailableCategories = folders.filter(f => f.type === 'category' && f.parent_id === modalSelectedSubject?.id);
 
   return (
-    <div className="max-w-6xl mx-auto space-y-4 animate-fade-in pb-20 px-4 md:px-0">
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+    <div className="max-w-6xl mx-auto space-y-6 animate-fade-in pb-20 px-4 md:px-0">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl md:text-3xl font-black text-slate-800 dark:text-white tracking-tighter uppercase flex items-center gap-2">
-            Registry
-            <span className="text-[8px] font-black px-1.5 py-0.5 rounded-md border bg-orange-500/10 text-orange-600 border-orange-500/20 uppercase tracking-widest">FS Node</span>
+          <h2 className="text-2xl md:text-4xl font-black text-slate-800 dark:text-white tracking-tighter uppercase flex items-center gap-3">
+            Library
+            <span className="text-[9px] font-black px-2 py-0.5 rounded-md border bg-orange-500/10 text-orange-600 border-orange-500/20 uppercase tracking-widest">Nexus FS</span>
           </h2>
-          <nav className="mt-1 flex flex-wrap items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-slate-400">
+          <nav className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
             <button onClick={() => navigateTo(null, null, null)} className="hover:text-orange-500 transition-colors">Root</button>
             {activeSemester && <><span className="opacity-30">/</span><button onClick={() => navigateTo(activeSemester, null, null)} className={!activeSubject ? 'text-orange-600' : 'hover:text-orange-500'}>{activeSemester.name}</button></>}
             {activeSubject && <><span className="opacity-30">/</span><button onClick={() => navigateTo(activeSemester, activeSubject, null)} className={!activeCategory ? 'text-orange-600' : 'hover:text-orange-500'}>{activeSubject.name}</button></>}
             {activeCategory && <><span className="opacity-30">/</span><span className="text-orange-600">{activeCategory.name}</span></>}
           </nav>
         </div>
-        <div className="flex gap-1.5">
+        <div className="flex gap-2">
            {userProfile?.is_admin && viewMode === 'browse' && (
              <button 
               onClick={() => { setNewFolderName(''); setShowFolderModal(true); }}
-              className="w-8 h-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-lg flex items-center justify-center text-orange-600 hover:scale-105 transition-all shadow-sm"
+              className="w-10 h-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl flex items-center justify-center text-orange-600 hover:scale-110 active:scale-95 transition-all shadow-sm"
               title="Create Folder"
              >
-               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M12 5v14M5 12h14"/></svg>
+               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><path d="M12 5v14M5 12h14"/></svg>
              </button>
            )}
            <button 
             onClick={() => { setViewMode(viewMode === 'browse' ? 'my-uploads' : 'browse'); navigateTo(null, null, null); }}
-            className={`px-3 py-2 rounded-lg font-black text-[9px] uppercase tracking-widest border transition-all flex items-center gap-1.5 ${viewMode === 'my-uploads' ? 'bg-slate-900 dark:bg-white text-white dark:text-black border-transparent' : 'bg-white dark:bg-white/5 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-white/5'}`}
+            className={`px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest border transition-all flex items-center gap-2 ${viewMode === 'my-uploads' ? 'bg-slate-900 dark:bg-white text-white dark:text-black border-transparent' : 'bg-white dark:bg-white/5 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-white/5'}`}
            >
-             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
              {viewMode === 'my-uploads' ? 'Exit Hub' : 'My Vault'}
            </button>
-           <button onClick={() => { if (!userProfile) { alert("Sign in required."); return; } fileInputRef.current?.click(); }} className="px-4 py-2 bg-orange-600 text-white rounded-lg font-black text-[9px] uppercase tracking-widest shadow-lg shadow-orange-600/10 hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            Sync
+           <button onClick={() => { if (!userProfile) { alert("Sign in required."); return; } fileInputRef.current?.click(); }} className="px-5 py-2 bg-orange-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-orange-600/10 hover:scale-105 active:scale-95 transition-all flex items-center gap-2">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Contribute
           </button>
         </div>
       </header>
@@ -259,23 +257,23 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
       {viewMode === 'browse' && (
         <div className="flex gap-2 w-full">
           <div className="relative flex-1">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-            <input type="text" placeholder="Filter registry..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-lg text-[9px] font-black uppercase tracking-widest outline-none focus:ring-2 focus:ring-orange-500 transition-all" />
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input type="text" placeholder="Filter registry..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-xl text-[10px] font-black uppercase tracking-widest outline-none focus:ring-2 focus:ring-orange-500 transition-all" />
           </div>
           <button 
             onClick={() => fetchRegistry(false)}
-            className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-lg text-slate-400 hover:text-orange-600 transition-colors shadow-sm"
+            className="w-12 h-12 flex items-center justify-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl text-slate-400 hover:text-orange-600 transition-colors shadow-sm"
             title="Refresh Registry"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`}><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`}><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
           </button>
         </div>
       )}
 
       {isLoading && folders.length === 0 ? (
-        <div className="col-span-full py-20 text-center animate-pulse text-slate-400 font-black uppercase text-[9px] tracking-[0.2em]">Pinging Server...</div>
+        <div className="col-span-full py-40 text-center animate-pulse text-slate-400 font-black uppercase text-[10px] tracking-[0.2em]">Accessing Node...</div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
           {!searchQuery && !isAdminView && viewMode === 'browse' && (
             currentFolders.map(folder => (
               <div 
@@ -289,22 +287,22 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
                   else if (folder.type === 'category') navigateTo(activeSemester, activeSubject, folder);
                 }} 
                 className={`
-                  group p-3.5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden flex flex-col justify-center min-h-[90px]
+                  group p-5 rounded-[30px] border transition-all cursor-pointer relative overflow-hidden flex flex-col justify-center min-h-[130px]
                   ${draggingOverId === folder.id 
                     ? 'border-orange-500 bg-orange-500/10 scale-105 shadow-xl z-10' 
-                    : 'border-slate-100 dark:border-white/5 bg-white dark:bg-slate-950/40 hover:border-orange-500/50 hover:shadow-md'
+                    : 'border-slate-100 dark:border-white/5 bg-white dark:bg-slate-950/40 hover:border-orange-500/50 hover:shadow-lg'
                   }
                 `}
               >
                 {userProfile?.is_admin && (
-                  <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                    <button onClick={(e) => { e.stopPropagation(); setFolderToManage(folder); setNewFolderName(folder.name); setShowRenameModal(true); }} className="p-1 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-white/10 text-blue-500 hover:bg-blue-50 transition-colors"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-2.5 h-2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-                    <button onClick={(e) => handleDeleteFolder(folder, e)} className="p-1 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-white/10 text-red-500 hover:bg-red-50 transition-colors"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-2.5 h-2.5"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>
+                  <div className="absolute top-3 right-3 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                    <button onClick={(e) => { e.stopPropagation(); setFolderToManage(folder); setNewFolderName(folder.name); setShowRenameModal(true); }} className="p-1.5 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-white/10 text-blue-500 hover:bg-blue-50 transition-colors shadow-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                    <button onClick={(e) => handleDeleteFolder(folder, e)} className="p-1.5 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-white/10 text-red-500 hover:bg-red-50 transition-colors shadow-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>
                   </div>
                 )}
-                <FolderIcon type={folder.type} />
-                <h3 className="text-xs font-black text-slate-800 dark:text-white tracking-tight uppercase leading-none mt-1">{folder.name}</h3>
-                <div className="absolute -right-1 -bottom-1 opacity-5 group-hover:scale-110 transition-transform"><FolderIcon type={folder.type} size="w-12 h-12" /></div>
+                <FolderIcon type={folder.type} size="w-9 h-9" />
+                <h3 className="text-sm md:text-base font-black text-slate-800 dark:text-white tracking-tight uppercase leading-tight mt-1">{folder.name}</h3>
+                <div className="absolute -right-2 -bottom-2 opacity-5 group-hover:scale-110 transition-transform"><FolderIcon type={folder.type} size="w-20 h-20" /></div>
               </div>
             ))
           )}
@@ -321,22 +319,24 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
           ))}
 
           {files.length === 0 && currentFolders.length === 0 && (
-            <div className="col-span-full py-10 text-center text-slate-400 font-black uppercase text-[8px] tracking-[0.2em] opacity-40">Empty Sub-Protocol</div>
+            <div className="col-span-full py-20 text-center text-slate-400 font-black uppercase text-[10px] tracking-[0.2em] opacity-40">Empty Protocol.</div>
           )}
         </div>
       )}
 
       {/* CREATE FOLDER MODAL */}
       {showFolderModal && userProfile?.is_admin && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white dark:bg-slate-950 rounded-2xl w-full max-w-xs shadow-2xl border border-white/10 overflow-hidden">
-            <div className="bg-slate-900 p-4 text-white flex justify-between items-center">
-              <h3 className="text-sm font-black uppercase tracking-widest">New Node</h3>
-              <button onClick={() => setShowFolderModal(false)} className="opacity-50 hover:opacity-100"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+          <div className="bg-white dark:bg-slate-950 rounded-[30px] w-full max-w-sm shadow-2xl border border-white/10 overflow-hidden flex flex-col">
+            <div className="bg-slate-900 p-6 text-white flex justify-between items-center">
+              <h3 className="text-lg font-black uppercase tracking-widest">New Node</h3>
+              <button onClick={() => setShowFolderModal(false)} className="opacity-50 hover:opacity-100"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             </div>
-            <div className="p-4 space-y-3">
-              <input autoFocus placeholder="Name..." value={newFolderName} onChange={e => setNewFolderName(e.target.value)} className="w-full bg-slate-100 dark:bg-black/40 p-3 rounded-lg font-bold border-none text-xs dark:text-white" />
-              <button onClick={handleCreateFolder} disabled={isProcessing} className="w-full bg-orange-600 text-white py-3 rounded-lg font-black text-[9px] uppercase tracking-widest">Deploy</button>
+            <div className="p-6 space-y-4">
+              <input autoFocus placeholder="Name..." value={newFolderName} onChange={e => setNewFolderName(e.target.value)} className="w-full bg-slate-100 dark:bg-black/40 p-4 rounded-xl font-bold border-none text-sm dark:text-white outline-none focus:ring-2 focus:ring-orange-500" />
+              <button onClick={handleCreateFolder} disabled={isProcessing} className="w-full bg-orange-600 text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 disabled:opacity-50 transition-all">
+                {isProcessing ? 'Deploying...' : 'Create Folder'}
+              </button>
             </div>
           </div>
         </div>
@@ -344,15 +344,17 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
 
       {/* RENAME MODAL */}
       {showRenameModal && userProfile?.is_admin && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white dark:bg-slate-950 rounded-2xl w-full max-w-xs shadow-2xl border border-white/10 overflow-hidden">
-            <div className="bg-blue-900 p-4 text-white flex justify-between items-center">
-              <h3 className="text-sm font-black uppercase tracking-widest">Rename</h3>
-              <button onClick={() => setShowRenameModal(false)} className="opacity-50 hover:opacity-100"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+          <div className="bg-white dark:bg-slate-950 rounded-[30px] w-full max-w-sm shadow-2xl border border-white/10 overflow-hidden flex flex-col">
+            <div className="bg-blue-900 p-6 text-white flex justify-between items-center">
+              <h3 className="text-lg font-black uppercase tracking-widest">Rename</h3>
+              <button onClick={() => setShowRenameModal(false)} className="opacity-50 hover:opacity-100"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             </div>
-            <div className="p-4 space-y-3">
-              <input autoFocus value={newFolderName} onChange={e => setNewFolderName(e.target.value)} className="w-full bg-slate-100 dark:bg-black/40 p-3 rounded-lg font-bold border-none text-xs dark:text-white" />
-              <button onClick={handleRenameFolder} disabled={isProcessing} className="w-full bg-blue-600 text-white py-3 rounded-lg font-black text-[9px] uppercase tracking-widest">Sync</button>
+            <div className="p-6 space-y-4">
+              <input autoFocus value={newFolderName} onChange={e => setNewFolderName(e.target.value)} className="w-full bg-slate-100 dark:bg-black/40 p-4 rounded-xl font-bold border-none text-sm dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
+              <button onClick={handleRenameFolder} disabled={isProcessing} className="w-full bg-blue-600 text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 disabled:opacity-50 transition-all">
+                {isProcessing ? 'Syncing...' : 'Update Name'}
+              </button>
             </div>
           </div>
         </div>
@@ -360,48 +362,51 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
 
       {/* UPLOAD MODAL */}
       {showUploadModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white dark:bg-slate-950 rounded-3xl w-full max-w-md shadow-2xl border border-white/10 overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="bg-gradient-to-r from-orange-600 to-red-700 p-5 text-white flex justify-between items-center">
-              <h3 className="text-sm font-black uppercase tracking-widest">Upload Protocol</h3>
-              <button onClick={() => setShowUploadModal(false)} className="opacity-50 hover:opacity-100"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+          <div className="bg-white dark:bg-slate-950 rounded-[40px] w-full max-w-md shadow-2xl border border-white/10 overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="bg-gradient-to-r from-orange-600 to-red-700 p-6 text-white flex justify-between items-center">
+              <h3 className="text-lg font-black uppercase tracking-widest">Registry Sync</h3>
+              <button onClick={() => setShowUploadModal(false)} className="opacity-50 hover:opacity-100 transition-opacity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             </div>
-            <div className="p-5 space-y-5 overflow-y-auto no-scrollbar">
+            <div className="p-6 space-y-6 overflow-y-auto no-scrollbar">
               {processSuccess ? (
-                <div className="text-center py-5 animate-fade-in flex flex-col items-center">
-                  <div className="w-10 h-10 bg-green-500/10 rounded-full flex items-center justify-center mb-3 text-green-500"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="w-5 h-5"><polyline points="20 6 9 17 4 12"/></svg></div>
-                  <h3 className="text-sm font-black uppercase">Synced</h3>
+                <div className="text-center py-10 animate-fade-in flex flex-col items-center">
+                  <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mb-4 text-green-500 shadow-xl shadow-green-500/10">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="w-8 h-8"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                  <h3 className="text-xl font-black uppercase tracking-tight">Sync Established</h3>
+                  <p className="text-xs font-black uppercase tracking-widest text-slate-400 mt-2">File deployed to moderation.</p>
                 </div>
               ) : (
                 <>
-                  <div className="space-y-3">
-                    <div className="bg-slate-50 dark:bg-black/40 p-3 rounded-xl border border-dashed border-slate-200 dark:border-white/10 text-center"><p className="text-[10px] font-bold truncate dark:text-white">{pendingFile?.name}</p></div>
-                    <input value={metaForm.name} onChange={e => setMetaForm({...metaForm, name: e.target.value})} placeholder="Display Name" className="w-full bg-slate-100 dark:bg-black/40 p-3 rounded-xl font-bold border-none text-xs dark:text-white" />
-                    <textarea value={metaForm.description} onChange={e => setMetaForm({...metaForm, description: e.target.value})} placeholder="Notes (Optional)" className="w-full bg-slate-100 dark:bg-black/40 p-3 rounded-xl font-bold border-none text-xs dark:text-white h-16 resize-none" />
+                  <div className="space-y-4">
+                    <div className="bg-slate-50 dark:bg-black/40 p-4 rounded-2xl border border-dashed border-slate-300 dark:border-white/10 text-center"><p className="text-sm font-bold truncate dark:text-white">{pendingFile?.name}</p></div>
+                    <input value={metaForm.name} onChange={e => setMetaForm({...metaForm, name: e.target.value})} placeholder="Display Alias" className="w-full bg-slate-100 dark:bg-black/40 p-4 rounded-2xl font-bold border-none text-sm dark:text-white outline-none focus:ring-2 focus:ring-orange-500" />
+                    <textarea value={metaForm.description} onChange={e => setMetaForm({...metaForm, description: e.target.value})} placeholder="Registry Notes (Optional)" className="w-full bg-slate-100 dark:bg-black/40 p-4 rounded-2xl font-bold border-none text-sm dark:text-white h-24 resize-none outline-none focus:ring-2 focus:ring-orange-500" />
                   </div>
-                  <div className="space-y-3">
-                    <h4 className="text-[8px] font-black uppercase tracking-widest text-slate-400">Target Path</h4>
-                    <div className="flex flex-wrap gap-1.5">
+                  <div className="space-y-4">
+                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Path Configuration</h4>
+                    <div className="flex flex-wrap gap-2">
                       {modalAvailableSemesters.map(sem => (
-                        <button key={sem.id} onClick={() => setMetaForm({...metaForm, semester: sem.name, subject: '', type: ''})} className={`px-2.5 py-1.5 rounded-lg text-[8px] font-black uppercase border transition-all ${metaForm.semester === sem.name ? 'bg-orange-600 text-white' : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-500'}`}>{sem.name}</button>
+                        <button key={sem.id} onClick={() => setMetaForm({...metaForm, semester: sem.name, subject: '', type: ''})} className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase border transition-all ${metaForm.semester === sem.name ? 'bg-orange-600 text-white shadow-lg border-orange-700' : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-500 hover:border-orange-500'}`}>{sem.name}</button>
                       ))}
                     </div>
                     {metaForm.semester && (
-                      <div className="flex flex-wrap gap-1.5">
+                      <div className="flex flex-wrap gap-2 animate-fade-in">
                         {modalAvailableSubjects.map(sub => (
-                          <button key={sub.id} onClick={() => setMetaForm({...metaForm, subject: sub.name, type: ''})} className={`px-2.5 py-1.5 rounded-lg text-[8px] font-black uppercase border transition-all ${metaForm.subject === sub.name ? 'bg-blue-600 text-white' : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-500'}`}>{sub.name}</button>
+                          <button key={sub.id} onClick={() => setMetaForm({...metaForm, subject: sub.name, type: ''})} className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase border transition-all ${metaForm.subject === sub.name ? 'bg-blue-600 text-white shadow-lg border-blue-700' : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-500 hover:border-blue-500'}`}>{sub.name}</button>
                         ))}
                       </div>
                     )}
                     {metaForm.subject && (
-                      <div className="flex flex-wrap gap-1.5">
+                      <div className="flex flex-wrap gap-2 animate-fade-in">
                         {modalAvailableCategories.map(cat => (
-                          <button key={cat.id} onClick={() => setMetaForm({...metaForm, type: cat.name})} className={`px-2.5 py-1.5 rounded-lg text-[8px] font-black uppercase border transition-all ${metaForm.type === cat.name ? 'bg-emerald-600 text-white' : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-500'}`}>{cat.name}</button>
+                          <button key={cat.id} onClick={() => setMetaForm({...metaForm, type: cat.name})} className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase border transition-all ${metaForm.type === cat.name ? 'bg-emerald-600 text-white shadow-lg border-emerald-700' : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-500 hover:border-emerald-500'}`}>{cat.name}</button>
                         ))}
                       </div>
                     )}
                   </div>
-                  <button onClick={handleUpload} disabled={isProcessing || !metaForm.name.trim() || !metaForm.semester || !metaForm.subject || !metaForm.type} className="w-full bg-slate-900 dark:bg-white text-white dark:text-black py-4 rounded-xl font-black text-[9px] uppercase tracking-widest disabled:opacity-30 transition-all flex items-center justify-center gap-2">{isProcessing ? <div className="w-4 h-4 border-2 border-white dark:border-black border-t-transparent rounded-full animate-spin" /> : 'Deploy to Node'}</button>
+                  <button onClick={handleUpload} disabled={isProcessing || !metaForm.name.trim() || !metaForm.semester || !metaForm.subject || !metaForm.type} className="w-full bg-slate-900 dark:bg-white text-white dark:text-black py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl active:scale-95 disabled:opacity-30 transition-all flex items-center justify-center gap-3">{isProcessing ? <div className="w-5 h-5 border-2 border-white dark:border-black border-t-transparent rounded-full animate-spin" /> : 'Deploy to Registry'}</button>
                 </>
               )}
             </div>
@@ -423,26 +428,26 @@ const FileCard: React.FC<{
 }> = ({ file, isAdmin, isPersonal, onApprove, onAccess }) => {
   const statusConfig = {
     pending: { label: 'Queued', color: 'text-orange-500', bg: 'bg-orange-500/10' },
-    approved: { label: 'Active', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-    rejected: { label: 'Halt', color: 'text-red-500', bg: 'bg-red-500/10' }
+    approved: { label: 'Verified', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+    rejected: { label: 'Redacted', color: 'text-red-500', bg: 'bg-red-500/10' }
   };
   const status = statusConfig[file.status] || statusConfig.pending;
 
   return (
-    <div className="group p-3 rounded-2xl border border-slate-100 dark:border-white/5 bg-white dark:bg-slate-950/40 hover:border-orange-500 hover:shadow-md transition-all relative overflow-hidden flex flex-col min-h-[110px]">
-      <div className="flex items-start justify-between mb-1.5">
-        <div className="w-6 h-6 bg-slate-50 dark:bg-white/5 rounded-lg flex items-center justify-center group-hover:text-orange-500 transition-colors">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3 h-3"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    <div className="group p-5 rounded-[30px] border border-slate-100 dark:border-white/5 bg-white dark:bg-slate-950/40 hover:border-orange-500 hover:shadow-xl transition-all relative overflow-hidden flex flex-col min-h-[150px]">
+      <div className="flex items-start justify-between mb-2">
+        <div className="w-9 h-9 bg-slate-50 dark:bg-white/5 rounded-xl flex items-center justify-center group-hover:text-orange-500 transition-colors">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
         </div>
-        {isPersonal && <div className={`px-1.5 py-0.5 rounded text-[6px] font-black uppercase tracking-widest ${status.bg} ${status.color}`}>{status.label}</div>}
+        {isPersonal && <div className={`px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest ${status.bg} ${status.color}`}>{status.label}</div>}
       </div>
-      <h3 className="text-[10px] font-black text-slate-800 dark:text-white tracking-tight leading-tight line-clamp-2 mb-1.5">{file.name}</h3>
-      <div className="pt-2 mt-auto border-t border-slate-50 dark:border-white/5 flex items-center justify-between">
-        <span className="text-[7px] font-black text-slate-400 uppercase">{file.size}</span>
+      <h3 className="text-xs md:text-sm font-black text-slate-800 dark:text-white tracking-tight leading-tight line-clamp-2 mb-2">{file.name}</h3>
+      <div className="pt-3 mt-auto border-t border-slate-50 dark:border-white/5 flex items-center justify-between">
+        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{file.size}</span>
         {isAdmin ? (
-          <button onClick={(e) => { e.stopPropagation(); onApprove?.(); }} className="bg-green-600 text-white px-2 py-1 rounded text-[7px] font-black uppercase">Approve</button>
+          <button onClick={(e) => { e.stopPropagation(); onApprove?.(); }} className="bg-green-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-black uppercase shadow-lg shadow-green-600/10">Approve</button>
         ) : (
-          <button onClick={(e) => { e.stopPropagation(); onAccess(); }} className="text-orange-600 font-black text-[8px] uppercase tracking-widest flex items-center gap-1 hover:underline">Read <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-2 h-2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></button>
+          <button onClick={(e) => { e.stopPropagation(); onAccess(); }} className="text-orange-600 font-black text-[10px] uppercase tracking-widest flex items-center gap-1.5 hover:underline">Access <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></button>
         )}
       </div>
     </div>
