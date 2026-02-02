@@ -1,34 +1,34 @@
 
 /**
- * Global Environment Shim
- * Bridges Vite's build-time environment variables to process.env.API_KEY.
- * This MUST run before any other application code.
+ * LPU-Nexus Environment Bootstrap
+ * This must run at the absolute top of the entry point to ensure
+ * process.env.API_KEY is available to all subsequently loaded modules.
  */
-(function initializeNexusEnvironment() {
+(function initializeNexusGlobalEnv() {
   const g = (typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : ({} as any));
   
-  // Initialize process object if missing
+  // Initialize standard process.env structure
   g.process = g.process || { env: {} };
   g.process.env = g.process.env || {};
 
   try {
     /**
      * VITE STATIC REPLACEMENT:
-     * We must use the literal strings below so Vite can find and replace them 
-     * with the actual values from the Vercel/Local environment at build time.
+     * Using literal strings ensures the Vite bundler replaces these 
+     * with actual values from the Vercel/Local environment at build time.
      */
     // @ts-ignore
-    const vKey = import.meta.env?.VITE_API_KEY;
+    const V_KEY = import.meta.env ? import.meta.env.VITE_API_KEY : undefined;
     // @ts-ignore
-    const aKey = import.meta.env?.API_KEY;
+    const A_KEY = import.meta.env ? import.meta.env.API_KEY : undefined;
     
-    const key = vKey || aKey;
+    const key = V_KEY || A_KEY;
     
     if (key) {
       g.process.env.API_KEY = key;
     }
   } catch (e) {
-    // Silently fail if import.meta is not supported in the current context
+    // Fail silently - environment might not support import.meta
   }
 })();
 

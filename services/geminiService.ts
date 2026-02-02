@@ -3,20 +3,25 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { ResumeAnalysisResult, Flashcard } from "../types.ts";
 
 /**
- * Utility to ensure process.env.API_KEY is populated from Vite's environment.
- * We use literal paths to ensure the bundler performs static replacement.
+ * Internal utility to retrieve the API key with maximum redundancy.
  */
-const ensureApiKey = () => {
-  if (typeof process !== 'undefined' && !process.env.API_KEY) {
-    // @ts-ignore
-    process.env.API_KEY = import.meta.env.VITE_API_KEY || import.meta.env.API_KEY;
+const getApiKey = (): string => {
+  // 1. Try process.env (populated by our shim)
+  let key = (typeof process !== 'undefined' && process.env.API_KEY) ? process.env.API_KEY : undefined;
+  
+  // 2. Try direct literal access (triggers Vite static replacement in this module)
+  if (!key) {
+    try {
+      // @ts-ignore
+      key = import.meta.env.VITE_API_KEY || import.meta.env.API_KEY;
+    } catch (e) {}
   }
   
-  if (!process.env.API_KEY) {
-    throw new Error(
-      "Gemini API Key is missing. If you are in production, please ensure VITE_API_KEY is set in Vercel and a new deployment has been triggered."
-    );
+  if (!key) {
+    throw new Error("Gemini API Key is missing. Check your environment variables (VITE_API_KEY).");
   }
+  
+  return key;
 };
 
 /**
@@ -24,9 +29,8 @@ const ensureApiKey = () => {
  * Analyzes resume against job description.
  */
 export const analyzeResume = async (resumeText: string, jdText: string, deepAnalysis: boolean = false): Promise<ResumeAnalysisResult> => {
-  ensureApiKey();
-
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const apiKey = getApiKey();
+  const ai = new GoogleGenAI({ apiKey });
   const modelId = "gemini-3-flash-preview"; 
 
   const analysisType = deepAnalysis ? "DEEP ANALYSIS (STRICT)" : "STANDARD ANALYSIS";
@@ -93,8 +97,8 @@ export const askAcademicOracle = async (
   contextText: string, 
   chatHistory: { role: string; text: string }[]
 ): Promise<string> => {
-  ensureApiKey();
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const apiKey = getApiKey();
+  const ai = new GoogleGenAI({ apiKey });
   const modelId = "gemini-3-flash-preview";
 
   const systemInstruction = `
@@ -134,8 +138,8 @@ export const askAcademicOracle = async (
 };
 
 export const generateFlashcards = async (contextText: string): Promise<Flashcard[]> => {
-  ensureApiKey();
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const apiKey = getApiKey();
+  const ai = new GoogleGenAI({ apiKey });
   const modelId = "gemini-3-flash-preview";
   const prompt = `
     Create 5 high-quality flashcards based on the following text.
@@ -177,8 +181,8 @@ export const generateFlashcards = async (contextText: string): Promise<Flashcard
 }
 
 export const generateFlowchart = async (contextText: string): Promise<string> => {
-  ensureApiKey();
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const apiKey = getApiKey();
+  const ai = new GoogleGenAI({ apiKey });
   const modelId = "gemini-3-flash-preview";
   const prompt = `
     Create a Mermaid.js flowchart syntax based on the key processes or concepts in the following text.
@@ -203,9 +207,8 @@ export const generateFlowchart = async (contextText: string): Promise<string> =>
 }
 
 export const searchGlobalOpportunities = async (query: string) => {
-  ensureApiKey();
-
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const apiKey = getApiKey();
+  const ai = new GoogleGenAI({ apiKey });
   const modelId = "gemini-3-flash-preview"; 
   const contextualQuery = `
     Context: I am a student at Lovely Professional University (LPU), India. 
