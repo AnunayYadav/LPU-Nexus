@@ -102,14 +102,8 @@ class NexusServer {
       const { data, error } = await client
         .from('folders')
         .select('*')
-        .order('sort_order', { ascending: true })
         .order('name', { ascending: true });
-      if (error) {
-        // Fallback if sort_order doesn't exist yet
-        const { data: fallback, error: err } = await client.from('folders').select('*').order('name', { ascending: true });
-        if (err) throw err;
-        return fallback as Folder[];
-      }
+      if (error) throw error;
       return data as Folder[];
     } catch (e) {
       console.warn("Folders fetch error:", e);
@@ -139,20 +133,6 @@ class NexusServer {
     if (error) throw error;
   }
 
-  static async updateFoldersOrder(orderedIds: string[]): Promise<void> {
-    const client = getSupabase();
-    if (!client) return;
-    const updates = orderedIds.map((id, index) => ({ id, sort_order: index }));
-    await client.from('folders').upsert(updates);
-  }
-
-  static async updateFilesOrder(orderedIds: string[]): Promise<void> {
-    const client = getSupabase();
-    if (!client) return;
-    const updates = orderedIds.map((id, index) => ({ id, sort_order: index }));
-    await client.from('documents').upsert(updates);
-  }
-
   static async submitFeedback(text: string, userId?: string, email?: string) {
     const client = getSupabase();
     if (!client) throw new Error("Database connection unavailable.");
@@ -178,7 +158,6 @@ class NexusServer {
       uploader_username: item.profiles?.username || item.profiles?.email?.split('@')[0] || "Anonymous Verto",
       admin_notes: item.admin_notes,
       isUserUploaded: true,
-      sort_order: item.sort_order,
       pending_update: item.pending_update
     };
   }
@@ -187,15 +166,12 @@ class NexusServer {
     const client = getSupabase();
     if (!client) throw new Error("Database connection unavailable.");
     
-    // Attempt with profiles join first
     let result = await client
       .from('documents')
       .select('*, profiles(username, email)')
       .eq('status', 'approved')
-      .order('sort_order', { ascending: true })
       .order('created_at', { ascending: false });
 
-    // Fallback if join fails (table missing or relationship error)
     if (result.error) {
       result = await client
         .from('documents')

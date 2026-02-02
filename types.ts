@@ -60,7 +60,6 @@ export interface LibraryFile {
   uploader_username?: string;
   admin_notes?: string;
   isUserUploaded?: boolean;
-  sort_order?: number;
   pending_update?: {
     name: string;
     description: string;
@@ -76,7 +75,6 @@ export interface Folder {
   name: string;
   type: 'semester' | 'subject' | 'category';
   parent_id: string | null;
-  sort_order?: number;
 }
 
 export interface Flashcard {

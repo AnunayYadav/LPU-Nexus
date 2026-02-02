@@ -31,7 +31,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
   
   // Navigation State
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState('manual');
+  const [sortBy, setSortBy] = useState('newest');
   
   const [activeSemester, setActiveSemester] = useState<Folder | null>(null);
   const [activeSubject, setActiveSubject] = useState<Folder | null>(null);
@@ -55,12 +55,8 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
   const [metaForm, setMetaForm] = useState({ name: '', description: '', semester: '', subject: '', type: '' });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Drag and Drop State for Reordering
-  const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
-  const [draggingOverIndex, setDraggingOverIndex] = useState<number | null>(null);
-  const [draggingType, setDraggingType] = useState<'folder' | 'file' | null>(null);
+  // Drag and Drop State for OS file uploads
   const [draggingOverId, setDraggingOverId] = useState<string | null>(null);
-  const isDraggingInternal = useRef(false);
 
   useEffect(() => {
     if (initialView) setViewMode(initialView);
@@ -108,14 +104,12 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
         }
       }
 
-      if (sortBy !== 'manual') {
-        data.sort((a, b) => {
-          if (sortBy === 'newest') return b.uploadDate - a.uploadDate;
-          if (sortBy === 'oldest') return a.uploadDate - b.uploadDate;
-          if (sortBy === 'az') return a.name.localeCompare(b.name);
-          return 0;
-        });
-      }
+      data.sort((a, b) => {
+        if (sortBy === 'newest') return b.uploadDate - a.uploadDate;
+        if (sortBy === 'oldest') return a.uploadDate - b.uploadDate;
+        if (sortBy === 'az') return a.name.localeCompare(b.name);
+        return 0;
+      });
       setFiles(data);
     } catch (e: any) { 
       console.error("Registry load error:", e);
@@ -211,91 +205,29 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
     return false;
   });
 
-  // Reordering Logic
-  const handleItemDragStart = (e: React.DragEvent, index: number, type: 'folder' | 'file') => {
-    if (!userProfile?.is_admin) return;
-    isDraggingInternal.current = true;
-    setDraggedItemIndex(index);
-    setDraggingType(type);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleItemDragOver = (e: React.DragEvent, index: number, type: 'folder' | 'file', folderId?: string) => {
-    e.preventDefault();
-    if (!userProfile?.is_admin) return;
-    
-    // Check if dragging OS files for upload
-    if (e.dataTransfer.types.includes('Files')) {
-      if (type === 'folder' && folderId) setDraggingOverId(folderId);
-      return;
-    }
-
-    if (draggingType !== type) return;
-    setDraggingOverIndex(index);
-  };
-
-  const handleItemDrop = async (e: React.DragEvent, index: number, type: 'folder' | 'file', folder?: Folder) => {
+  const handleDragOver = (e: React.DragEvent, id: string) => {
     if (!userProfile?.is_admin) return;
     e.preventDefault();
-
-    // OS File Upload Drop
-    if (e.dataTransfer.types.includes('Files') && folder) {
-      setDraggingOverId(null);
-      const droppedFiles = e.dataTransfer.files;
-      if (droppedFiles && droppedFiles.length > 0) {
-        const file = droppedFiles[0];
-        setPendingFile(file);
-        setMetaForm({
-          name: file.name.replace(/\.[^/.]+$/, ""),
-          description: '',
-          semester: folder.type === 'semester' ? folder.name : activeSemester?.name || '',
-          subject: folder.type === 'subject' ? folder.name : activeSubject?.name || '',
-          type: folder.type === 'category' ? folder.name : ''
-        });
-        setShowUploadModal(true);
-      }
-      return;
-    }
-
-    // Manual Reorder Drop
-    if (draggingType !== type || draggedItemIndex === null || draggedItemIndex === index) {
-      setDraggedItemIndex(null);
-      setDraggingOverIndex(null);
-      setTimeout(() => { isDraggingInternal.current = false; }, 100);
-      return;
-    }
-
-    if (type === 'folder') {
-      const newFolders = [...currentFolders];
-      const [dragged] = newFolders.splice(draggedItemIndex, 1);
-      newFolders.splice(index, 0, dragged);
-      
-      const orderedIds = newFolders.map(f => f.id);
-      await NexusServer.updateFoldersOrder(orderedIds);
-      fetchRegistry(true);
-    } else {
-      const newFiles = [...files];
-      const [dragged] = newFiles.splice(draggedItemIndex, 1);
-      newFiles.splice(index, 0, dragged);
-      setFiles(newFiles);
-      setSortBy('manual');
-      const orderedIds = newFiles.map(f => f.id);
-      await NexusServer.updateFilesOrder(orderedIds);
-    }
-
-    setDraggedItemIndex(null);
-    setDraggingOverIndex(null);
-    setDraggingType(null);
-    // Add small delay to prevent click fire
-    setTimeout(() => { isDraggingInternal.current = false; }, 100);
+    setDraggingOverId(id);
   };
 
-  const handleItemDragEnd = () => {
-    setDraggedItemIndex(null);
-    setDraggingOverIndex(null);
-    setDraggingType(null);
+  const handleDrop = (e: React.DragEvent, folder: Folder) => {
+    if (!userProfile?.is_admin) return;
+    e.preventDefault();
     setDraggingOverId(null);
-    setTimeout(() => { isDraggingInternal.current = false; }, 100);
+    const droppedFiles = e.dataTransfer.files;
+    if (droppedFiles && droppedFiles.length > 0) {
+      const file = droppedFiles[0];
+      setPendingFile(file);
+      setMetaForm({
+        name: file.name.replace(/\.[^/.]+$/, ""),
+        description: '',
+        semester: folder.type === 'semester' ? folder.name : activeSemester?.name || '',
+        subject: folder.type === 'subject' ? folder.name : activeSubject?.name || '',
+        type: folder.type === 'category' ? folder.name : ''
+      });
+      setShowUploadModal(true);
+    }
   };
 
   const toggleAdminView = () => {
@@ -383,17 +315,13 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
           {!searchQuery && !isAdminView && viewMode === 'browse' && (
-            currentFolders.map((folder, idx) => (
+            currentFolders.map(folder => (
               <div 
                 key={folder.id} 
-                draggable={userProfile?.is_admin}
-                onDragStart={(e) => handleItemDragStart(e, idx, 'folder')}
-                onDragOver={(e) => handleItemDragOver(e, idx, 'folder', folder.id)}
-                onDragLeave={() => { setDraggingOverIndex(null); setDraggingOverId(null); }}
-                onDragEnd={handleItemDragEnd}
-                onDrop={(e) => handleItemDrop(e, idx, 'folder', folder)}
+                onDragOver={(e) => handleDragOver(e, folder.id)}
+                onDragLeave={() => setDraggingOverId(null)}
+                onDrop={(e) => handleDrop(e, folder)}
                 onClick={() => {
-                  if (isDraggingInternal.current) return;
                   if (folder.type === 'semester') navigateTo(folder, null, null);
                   else if (folder.type === 'subject') navigateTo(activeSemester, folder, null);
                   else if (folder.type === 'category') navigateTo(activeSemester, activeSubject, folder);
@@ -402,18 +330,12 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
                   group p-5 rounded-[30px] border transition-all cursor-pointer relative overflow-hidden flex flex-col justify-center min-h-[140px]
                   ${draggingOverId === folder.id 
                     ? 'border-orange-500 bg-orange-500/10 scale-105 shadow-xl z-10' 
-                    : draggingOverIndex === idx && draggingType === 'folder'
-                    ? 'border-orange-600 border-t-4'
                     : 'border-slate-100 dark:border-white/5 bg-white dark:bg-slate-950/40 hover:border-orange-500/50 hover:shadow-lg'
                   }
-                  ${draggedItemIndex === idx && draggingType === 'folder' ? 'opacity-30 grayscale' : ''}
                 `}
               >
                 {userProfile?.is_admin && (
                   <div className="absolute top-3 right-3 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                    <div className="p-1.5 bg-black rounded-lg text-slate-500 cursor-move" title="Drag to reorder">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>
-                    </div>
                     <button 
                       onClick={(e) => { e.stopPropagation(); setFolderToManage(folder); setNewFolderName(folder.name); setShowRenameModal(true); }} 
                       className="p-1.5 bg-black rounded-lg text-orange-600 hover:bg-orange-50 dark:hover:bg-slate-900 transition-colors shadow-sm border-none"
@@ -435,68 +357,57 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
             ))
           )}
 
-          {files.map((file, idx) => (
-            <div 
+          {files.map(file => (
+            <FileCard 
               key={file.id} 
-              draggable={userProfile?.is_admin}
-              onDragStart={(e) => handleItemDragStart(e, idx, 'file')}
-              onDragOver={(e) => handleItemDragOver(e, idx, 'file')}
-              onDragLeave={() => setDraggingOverIndex(null)}
-              onDragEnd={handleItemDragEnd}
-              onDrop={(e) => handleItemDrop(e, idx, 'file')}
-              className={`contents ${draggingOverIndex === idx && draggingType === 'file' ? 'border-orange-600 border-t-4' : ''}`}
-            >
-              <FileCard 
-                file={file} 
-                userProfile={userProfile}
-                isAdminMode={isAdminView}
-                isPersonal={viewMode === 'my-uploads'} 
-                dragged={draggedItemIndex === idx && draggingType === 'file'}
-                onApprove={() => {
+              file={file} 
+              userProfile={userProfile}
+              isAdminMode={isAdminView}
+              isPersonal={viewMode === 'my-uploads'} 
+              onApprove={() => {
+                setIsProcessing(true);
+                NexusServer.approveFile(file.id)
+                  .then(() => fetchRegistry(true))
+                  .finally(() => setIsProcessing(false));
+              }}
+              onReject={() => {
+                if (confirm("Reject and remove this file?")) {
                   setIsProcessing(true);
-                  NexusServer.approveFile(file.id)
+                  NexusServer.rejectFile(file.id)
                     .then(() => fetchRegistry(true))
                     .finally(() => setIsProcessing(false));
-                }}
-                onReject={() => {
-                  if (confirm("Reject and remove this file?")) {
-                    setIsProcessing(true);
-                    NexusServer.rejectFile(file.id)
-                      .then(() => fetchRegistry(true))
-                      .finally(() => setIsProcessing(false));
-                  }
-                }}
-                onDemote={() => {
-                   if (confirm("Send this file back to pending review?")) {
-                    setIsProcessing(true);
-                    NexusServer.demoteFile(file.id)
-                      .then(() => fetchRegistry(true))
-                      .finally(() => setIsProcessing(false));
-                  }
-                }}
-                onEdit={() => {
-                   setSelectedFile(file);
-                   setMetaForm({
-                     name: file.name,
-                     description: file.description || '',
-                     semester: file.semester,
-                     subject: file.subject,
-                     type: file.type
-                   });
-                   setShowEditModal(true);
-                }}
-                onDelete={() => {
-                  if (confirm("Permanently delete this file from registry?")) {
-                    setIsProcessing(true);
-                    NexusServer.deleteFile(file.id, file.storage_path)
-                      .then(() => fetchRegistry(true))
-                      .finally(() => setIsProcessing(false));
-                  }
-                }}
-                onAccess={() => NexusServer.getFileUrl(file.storage_path).then(url => window.open(url, '_blank'))} 
-                onShowDetails={() => { if (!isDraggingInternal.current) { setSelectedFile(file); setShowDetailsModal(true); } }}
-              />
-            </div>
+                }
+              }}
+              onDemote={() => {
+                 if (confirm("Send this file back to pending review?")) {
+                  setIsProcessing(true);
+                  NexusServer.demoteFile(file.id)
+                    .then(() => fetchRegistry(true))
+                    .finally(() => setIsProcessing(false));
+                }
+              }}
+              onEdit={() => {
+                 setSelectedFile(file);
+                 setMetaForm({
+                   name: file.name,
+                   description: file.description || '',
+                   semester: file.semester,
+                   subject: file.subject,
+                   type: file.type
+                 });
+                 setShowEditModal(true);
+              }}
+              onDelete={() => {
+                if (confirm("Permanently delete this file from registry?")) {
+                  setIsProcessing(true);
+                  NexusServer.deleteFile(file.id, file.storage_path)
+                    .then(() => fetchRegistry(true))
+                    .finally(() => setIsProcessing(false));
+                }
+              }}
+              onAccess={() => NexusServer.getFileUrl(file.storage_path).then(url => window.open(url, '_blank'))} 
+              onShowDetails={() => { setSelectedFile(file); setShowDetailsModal(true); }}
+            />
           ))}
 
           {files.length === 0 && (currentFolders.length === 0 || isAdminView) && !isLoading && (
@@ -508,7 +419,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
       {/* CREATE FOLDER MODAL */}
       {showFolderModal && userProfile?.is_admin && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-          <div className="bg-white dark:bg-slate-950 rounded-[30px] w-full max-sm shadow-2xl border border-white/10 overflow-hidden flex flex-col">
+          <div className="bg-white dark:bg-slate-950 rounded-[30px] w-full max-w-sm shadow-2xl border border-white/10 overflow-hidden flex flex-col">
             <div className="bg-black p-6 text-white flex justify-between items-center">
               <h3 className="text-lg font-black uppercase tracking-widest">New Node</h3>
               <button onClick={() => setShowFolderModal(false)} className="opacity-50 hover:opacity-100 transition-opacity border-none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
@@ -526,7 +437,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
       {/* RENAME FOLDER MODAL */}
       {showRenameModal && userProfile?.is_admin && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-          <div className="bg-white dark:bg-slate-950 rounded-[30px] w-full max-sm shadow-2xl border border-white/10 overflow-hidden flex flex-col">
+          <div className="bg-white dark:bg-slate-950 rounded-[30px] w-full max-w-sm shadow-2xl border border-white/10 overflow-hidden flex flex-col">
             <div className="bg-black p-6 text-white flex justify-between items-center">
               <h3 className="text-lg font-black uppercase tracking-widest leading-none">Rename Node</h3>
               <button onClick={() => setShowRenameModal(false)} className="opacity-50 hover:opacity-100 transition-opacity border-none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
@@ -633,7 +544,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
           <div className="bg-white dark:bg-slate-950 rounded-[40px] w-full max-w-md shadow-2xl border border-white/10 overflow-hidden flex flex-col max-h-[90vh]">
             <div className="bg-gradient-to-r from-orange-600 to-red-700 p-6 text-white flex justify-between items-center">
               <h3 className="text-lg font-black uppercase tracking-widest">Registry Sync</h3>
-              <button onClick={() => setShowUploadModal(false)} className="opacity-50 hover:opacity-100 transition-opacity border-none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+              <button onClick={() => setShowUploadModal(false)} className="opacity-50 hover:opacity-100 transition-opacity border-none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             </div>
             <div className="p-6 space-y-6 overflow-y-auto no-scrollbar flex-1">
               {processSuccess ? (
@@ -695,7 +606,6 @@ const FileCard: React.FC<{
   userProfile: UserProfile | null; 
   isAdminMode: boolean;
   isPersonal?: boolean;
-  dragged?: boolean;
   onApprove?: () => void; 
   onReject?: () => void;
   onDemote?: () => void;
@@ -703,7 +613,7 @@ const FileCard: React.FC<{
   onDelete?: () => void;
   onAccess: () => void; 
   onShowDetails: () => void;
-}> = ({ file, userProfile, isAdminMode, isPersonal, dragged, onApprove, onReject, onDemote, onEdit, onDelete, onAccess, onShowDetails }) => {
+}> = ({ file, userProfile, isAdminMode, isPersonal, onApprove, onReject, onDemote, onEdit, onDelete, onAccess, onShowDetails }) => {
   const isAdmin = userProfile?.is_admin || false;
   const statusConfig = {
     pending: { label: 'Queued', color: 'text-orange-500', bg: 'bg-orange-500/10' },
@@ -715,21 +625,11 @@ const FileCard: React.FC<{
   return (
     <div 
       onClick={onShowDetails}
-      className={`
-        group p-5 rounded-[30px] border border-slate-100 dark:border-white/5 bg-white dark:bg-slate-950/40 hover:border-orange-500 hover:shadow-xl transition-all relative overflow-hidden flex flex-col min-h-[160px] cursor-pointer
-        ${dragged ? 'opacity-30 grayscale scale-95 pointer-events-none' : ''}
-      `}
+      className="group p-5 rounded-[30px] border border-slate-100 dark:border-white/5 bg-white dark:bg-slate-950/40 hover:border-orange-500 hover:shadow-xl transition-all relative overflow-hidden flex flex-col min-h-[160px] cursor-pointer"
     >
       <div className="flex items-start justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <div className="w-9 h-9 bg-black rounded-xl flex items-center justify-center group-hover:text-orange-500 transition-colors">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          </div>
-          {isAdmin && (
-            <div className="opacity-0 group-hover:opacity-40 transition-opacity cursor-move" title="Drag to reorder">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>
-            </div>
-          )}
+        <div className="w-9 h-9 bg-black rounded-xl flex items-center justify-center group-hover:text-orange-500 transition-colors">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
         </div>
         {(isPersonal || isAdmin) && <div className={`px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest ${status.bg} ${status.color}`}>{status.label}</div>}
       </div>
@@ -747,14 +647,14 @@ const FileCard: React.FC<{
                     className="w-8 h-8 bg-black text-red-500 rounded-lg flex items-center justify-center shadow-lg hover:bg-red-500 hover:text-white transition-all border-none"
                     title="Reject"
                   >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4"><path d="M18 6L6 18M6 6l12 12"/></svg>
                   </button>
                   <button 
                     onClick={(e) => { e.stopPropagation(); onApprove?.(); }} 
                     className="w-8 h-8 bg-black text-emerald-500 rounded-lg flex items-center justify-center shadow-lg hover:bg-emerald-500 hover:text-white transition-all border-none"
                     title="Approve"
                   >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><polyline points="20 6 9 17 4 12"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4"><polyline points="20 6 9 17 4 12"/></svg>
                   </button>
                  </>
               ) : (
@@ -764,14 +664,14 @@ const FileCard: React.FC<{
                     className="w-8 h-8 bg-black text-red-500 rounded-lg flex items-center justify-center shadow-lg hover:bg-red-500 hover:text-white transition-all border-none"
                     title="Delete"
                   >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
                   </button>
                   <button 
                     onClick={(e) => { e.stopPropagation(); onEdit?.(); }} 
                     className="w-8 h-8 bg-black text-orange-600 rounded-lg flex items-center justify-center shadow-lg hover:bg-orange-600 hover:text-white transition-all border-none"
                     title="Edit"
                   >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                   </button>
                   {file.status === 'approved' && (
                     <button 
@@ -779,7 +679,7 @@ const FileCard: React.FC<{
                       className="w-8 h-8 bg-black text-slate-400 rounded-lg flex items-center justify-center shadow-lg hover:bg-slate-400 hover:text-black transition-all border-none"
                       title="Send to Pending"
                     >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
                     </button>
                   )}
                 </>
@@ -792,7 +692,7 @@ const FileCard: React.FC<{
               onClick={(e) => { e.stopPropagation(); onAccess(); }} 
               className="bg-black text-orange-600 px-4 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-1.5 hover:bg-orange-600 hover:text-white transition-all shadow-md border-none"
             >
-              Access <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+              Access <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3 h-3"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
             </button>
           )}
         </div>
