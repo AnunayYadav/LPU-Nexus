@@ -59,6 +59,9 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
   const [metaForm, setMetaForm] = useState({ name: '', description: '', semester: '', subject: '', type: '' });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Drag and Drop State
+  const [draggingOverId, setDraggingOverId] = useState<string | null>(null);
+
   useEffect(() => {
     if (initialView) setViewMode(initialView);
   }, [initialView]);
@@ -81,10 +84,32 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
       if (selectedType !== 'All') data = data.filter(f => f.type === selectedType);
       
       // Filter based on hierarchy if not searching
+      // FIXED: Implement strict hierarchical filtering so files only appear in their deepest specified level
       if (!searchQuery && !isAdminView && viewMode === 'browse') {
-        if (activeSemester) data = data.filter(f => f.semester === activeSemester.name);
-        if (activeSubject) data = data.filter(f => f.subject === activeSubject.name);
-        if (activeCategory) data = data.filter(f => f.type === activeCategory.name);
+        if (activeCategory) {
+          // We are inside a Category: show files that match Sem + Subj + Cat
+          data = data.filter(f => 
+            f.semester === activeSemester?.name && 
+            f.subject === activeSubject?.name && 
+            f.type === activeCategory.name
+          );
+        } else if (activeSubject) {
+          // We are inside a Subject: show files that are assigned to this Subject but have NO sub-category
+          data = data.filter(f => 
+            f.semester === activeSemester?.name && 
+            f.subject === activeSubject.name && 
+            (!f.type || f.type === '' || f.type === 'All')
+          );
+        } else if (activeSemester) {
+          // We are inside a Semester: show files that are assigned to this Semester but have NO subject
+          data = data.filter(f => 
+            f.semester === activeSemester.name && 
+            (!f.subject || f.subject === '' || f.subject === 'All')
+          );
+        } else {
+          // We are at Root: don't show any files (only folders/semesters are shown)
+          data = [];
+        }
       }
 
       data.sort((a, b) => {
@@ -142,6 +167,54 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
     if (!activeCategory) return f.type === 'category' && f.parent_id === activeSubject.id;
     return false;
   });
+
+  // Drag and Drop Handlers
+  const handleDragOver = (e: React.DragEvent, id: string) => {
+    if (!userProfile?.is_admin) return;
+    e.preventDefault();
+    setDraggingOverId(id);
+  };
+
+  const handleDragLeave = () => {
+    setDraggingOverId(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, folder: Folder) => {
+    if (!userProfile?.is_admin) return;
+    e.preventDefault();
+    setDraggingOverId(null);
+
+    const droppedFiles = e.dataTransfer.files;
+    if (droppedFiles && droppedFiles.length > 0) {
+      const file = droppedFiles[0];
+      setPendingFile(file);
+
+      // Pre-populate based on folder type and active context
+      let semester = '';
+      let subject = '';
+      let type = '';
+
+      if (folder.type === 'semester') {
+        semester = folder.name;
+      } else if (folder.type === 'subject') {
+        semester = activeSemester?.name || '';
+        subject = folder.name;
+      } else if (folder.type === 'category') {
+        semester = activeSemester?.name || '';
+        subject = activeSubject?.name || '';
+        type = folder.name;
+      }
+
+      setMetaForm({
+        name: file.name.replace(/\.[^/.]+$/, ""),
+        description: '',
+        semester,
+        subject,
+        type
+      });
+      setShowUploadModal(true);
+    }
+  };
 
   // Visual Path Selector Logic for Modal
   const modalAvailableSemesters = folders.filter(f => f.type === 'semester');
@@ -209,13 +282,27 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
             currentFolders.map(folder => (
               <div 
                 key={folder.id} 
+                onDragOver={(e) => handleDragOver(e, folder.id)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, folder)}
                 onClick={() => {
                   if (folder.type === 'semester') setActiveSemester(folder);
                   else if (folder.type === 'subject') setActiveSubject(folder);
                   else if (folder.type === 'category') setActiveCategory(folder);
                 }} 
-                className="group p-8 rounded-[40px] border border-slate-200 dark:border-white/5 bg-white dark:bg-slate-950/40 hover:border-orange-500 hover:shadow-2xl transition-all cursor-pointer relative overflow-hidden flex flex-col justify-center min-h-[180px]"
+                className={`
+                  group p-8 rounded-[40px] border transition-all cursor-pointer relative overflow-hidden flex flex-col justify-center min-h-[180px]
+                  ${draggingOverId === folder.id 
+                    ? 'border-orange-500 bg-orange-500/10 scale-105 shadow-2xl z-10' 
+                    : 'border-slate-200 dark:border-white/5 bg-white dark:bg-slate-950/40 hover:border-orange-500/50 hover:shadow-xl'
+                  }
+                `}
               >
+                {draggingOverId === folder.id && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-orange-600/20 backdrop-blur-[2px] animate-pulse">
+                    <span className="text-[10px] font-black uppercase text-orange-600 tracking-widest">Drop to Upload</span>
+                  </div>
+                )}
                 <FolderIcon type={folder.type} size="w-12 h-12" />
                 <h3 className="text-xl md:text-2xl font-black text-slate-800 dark:text-white tracking-tighter uppercase">{folder.name}</h3>
                 <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-125 transition-transform"><FolderIcon type={folder.type} size="w-24 h-24" /></div>
@@ -290,6 +377,15 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
                 <>
                   <section className="space-y-4">
                     <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">File Details</h4>
+                    <div className="bg-slate-100 dark:bg-black/40 p-4 rounded-2xl border border-dashed border-slate-300 dark:border-white/10 flex items-center gap-4 mb-4">
+                       <div className="w-10 h-10 bg-orange-600/10 rounded-xl flex items-center justify-center text-orange-600">
+                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                       </div>
+                       <div className="flex-1 overflow-hidden">
+                          <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Pending Sync</p>
+                          <p className="text-xs font-bold text-slate-800 dark:text-white truncate">{pendingFile?.name}</p>
+                       </div>
+                    </div>
                     <div><label className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Display Name</label><input value={metaForm.name} onChange={e => setMetaForm({...metaForm, name: e.target.value})} className="w-full bg-slate-100 dark:bg-black/40 p-4 rounded-2xl font-bold border border-transparent focus:ring-2 focus:ring-orange-500 outline-none dark:text-white transition-all" /></div>
                     <div><label className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Short Description</label><textarea value={metaForm.description} onChange={e => setMetaForm({...metaForm, description: e.target.value})} className="w-full bg-slate-100 dark:bg-black/40 p-4 rounded-2xl font-bold border border-transparent focus:ring-2 focus:ring-orange-500 outline-none dark:text-white transition-all h-24 resize-none" /></div>
                   </section>
