@@ -287,6 +287,36 @@ class NexusServer {
     }
   }
 
+  static async demoteFile(id: string): Promise<void> {
+    const client = getSupabase();
+    if (!client) throw new Error('Database connection unavailable.');
+    try {
+      const { error } = await client.from('documents').update({ status: 'pending' }).eq('id', id);
+      if (error) throw error;
+    } catch (e: any) {
+      throw new Error(`Demotion failed: ${e.message}`);
+    }
+  }
+
+  static async rejectFile(id: string): Promise<void> {
+    const client = getSupabase();
+    if (!client) throw new Error('Database connection unavailable.');
+    try {
+      const { data: record, error: fetchError } = await client.from('documents').select('status, storage_path').eq('id', id).single();
+      if (fetchError || !record) throw new Error("Could not find record.");
+      
+      // If it's a pending initial upload, we delete it entirely.
+      if (record.status === 'pending') {
+        await this.deleteFile(id, record.storage_path);
+      } else {
+        // If it's an approved file with a pending update, we just reject the update.
+        await this.rejectUpdate(id);
+      }
+    } catch (e: any) {
+      throw new Error(`Rejection failed: ${e.message}`);
+    }
+  }
+
   static async rejectUpdate(id: string): Promise<void> {
     const client = getSupabase();
     if (!client) throw new Error('Database connection unavailable.');

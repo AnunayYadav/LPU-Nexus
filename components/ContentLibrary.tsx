@@ -38,12 +38,16 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
   const [activeCategory, setActiveCategory] = useState<Folder | null>(null);
 
   const [isAdminView, setIsAdminView] = useState(false);
+  const [modSubTab, setModSubTab] = useState<'pending' | 'live'>('pending');
   const [isProcessing, setIsProcessing] = useState(false);
   const [processSuccess, setProcessSuccess] = useState(false);
   
   // Modals
   const [showFolderModal, setShowFolderModal] = useState(false);
   const [showRenameModal, setShowRenameModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<LibraryFile | null>(null);
   const [folderToManage, setFolderToManage] = useState<Folder | null>(null);
   const [newFolderName, setNewFolderName] = useState('');
   
@@ -65,7 +69,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
       const [folderList, allFiles] = await Promise.all([
         NexusServer.fetchFolders(),
         isAdminView 
-          ? NexusServer.fetchPendingFiles() 
+          ? (modSubTab === 'pending' ? NexusServer.fetchPendingFiles() : NexusServer.fetchFiles(searchQuery, 'All'))
           : (viewMode === 'my-uploads' && userProfile) 
             ? NexusServer.fetchUserFiles(userProfile.id) 
             : NexusServer.fetchFiles(searchQuery, 'All')
@@ -76,7 +80,10 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
       let data = [...allFiles];
       
       // Strict hierarchical filtering
-      if (!searchQuery && !isAdminView && viewMode === 'browse') {
+      // Show hierarchy for regular browse OR for admins managing the live registry
+      const isHierarchical = (!isAdminView && viewMode === 'browse') || (isAdminView && modSubTab === 'live');
+      
+      if (!searchQuery && isHierarchical) {
         if (activeCategory) {
           data = data.filter(f => 
             f.semester === activeSemester?.name && 
@@ -112,7 +119,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
       setIsLoading(false);
       setIsNavigating(false);
     }
-  }, [isAdminView, viewMode, userProfile, searchQuery, sortBy, activeSemester, activeSubject, activeCategory]);
+  }, [isAdminView, modSubTab, viewMode, userProfile, searchQuery, sortBy, activeSemester, activeSubject, activeCategory]);
 
   const navigateTo = (sem: Folder | null, subj: Folder | null, cat: Folder | null) => {
     setIsNavigating(true);
@@ -177,6 +184,22 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
     } catch (e: any) { alert(e.message); } finally { setIsProcessing(false); }
   };
 
+  const handleDirectEdit = async () => {
+    if (!selectedFile || !metaForm.name.trim()) return;
+    setIsProcessing(true);
+    try {
+      await NexusServer.requestUpdate(selectedFile.id, {
+        name: metaForm.name,
+        description: metaForm.description || '',
+        subject: metaForm.subject,
+        semester: metaForm.semester,
+        type: metaForm.type
+      }, true);
+      setShowEditModal(false);
+      fetchRegistry(true);
+    } catch (e: any) { alert(e.message); } finally { setIsProcessing(false); }
+  };
+
   const currentFolders = folders.filter(f => {
     if (!activeSemester) return f.type === 'semester';
     if (!activeSubject) return f.type === 'subject' && f.parent_id === activeSemester.id;
@@ -209,6 +232,11 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
     }
   };
 
+  const toggleAdminView = () => {
+    setIsAdminView(!isAdminView);
+    navigateTo(null, null, null);
+  };
+
   const modalAvailableSemesters = folders.filter(f => f.type === 'semester');
   const modalSelectedSemester = folders.find(f => f.name === metaForm.semester && f.type === 'semester');
   const modalAvailableSubjects = folders.filter(f => f.type === 'subject' && f.parent_id === modalSelectedSemester?.id);
@@ -221,7 +249,6 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
         <div>
           <h2 className="text-2xl md:text-4xl font-black text-slate-800 dark:text-white tracking-tighter uppercase flex items-center gap-3">
             Library
-            <span className="text-[9px] font-black px-2 py-0.5 rounded-md border bg-orange-500/10 text-orange-600 border-orange-500/20 uppercase tracking-widest">Nexus FS</span>
           </h2>
           <nav className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
             <button onClick={() => navigateTo(null, null, null)} className="hover:text-orange-500 transition-colors">Root</button>
@@ -232,29 +259,56 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
         </div>
         <div className="flex gap-2">
            {userProfile?.is_admin && viewMode === 'browse' && (
-             <button 
-              onClick={() => { setNewFolderName(''); setShowFolderModal(true); }}
-              className="w-10 h-10 bg-slate-100 dark:bg-black rounded-xl flex items-center justify-center text-orange-600 hover:scale-110 active:scale-95 transition-all shadow-sm"
-              title="Create Folder"
-             >
-               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><path d="M12 5v14M5 12h14"/></svg>
-             </button>
+             <>
+                <button 
+                  onClick={toggleAdminView}
+                  className={`px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 border-none ${isAdminView ? 'bg-orange-600 text-white shadow-lg' : 'bg-black text-slate-400'}`}
+                  title="Moderation Center"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                  {isAdminView ? 'Exit Mod' : 'Mod View'}
+                </button>
+                <button 
+                  onClick={() => { setNewFolderName(''); setShowFolderModal(true); }}
+                  className="w-10 h-10 bg-black rounded-xl flex items-center justify-center text-orange-600 hover:scale-110 active:scale-95 transition-all shadow-sm border-none"
+                  title="Create Folder"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><path d="M12 5v14M5 12h14"/></svg>
+                </button>
+             </>
            )}
            <button 
-            onClick={() => { setViewMode(viewMode === 'browse' ? 'my-uploads' : 'browse'); navigateTo(null, null, null); }}
-            className={`px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 ${viewMode === 'my-uploads' ? 'bg-orange-600 text-white' : 'bg-slate-100 dark:bg-black text-slate-600 dark:text-slate-400'}`}
+            onClick={() => { setViewMode(viewMode === 'browse' ? 'my-uploads' : 'browse'); navigateTo(null, null, null); setIsAdminView(false); }}
+            className={`px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 border-none ${viewMode === 'my-uploads' ? 'bg-orange-600 text-white shadow-lg' : 'bg-black text-slate-400'}`}
            >
              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
              {viewMode === 'my-uploads' ? 'Exit Hub' : 'My Vault'}
            </button>
-           <button onClick={() => { if (!userProfile) { alert("Sign in required."); return; } fileInputRef.current?.click(); }} className="px-5 py-2 bg-orange-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-orange-600/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2">
+           <button onClick={() => { if (!userProfile) { alert("Sign in required."); return; } fileInputRef.current?.click(); }} className="px-5 py-2 bg-orange-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-orange-600/20 border-none hover:scale-105 active:scale-95 transition-all flex items-center gap-2">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
             Contribute
           </button>
         </div>
       </header>
 
-      {viewMode === 'browse' && (
+      {isAdminView && (
+        <div className="flex gap-2 bg-black p-1 rounded-2xl w-fit">
+           <button 
+            onClick={() => { setModSubTab('pending'); navigateTo(null, null, null); }}
+            className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border-none ${modSubTab === 'pending' ? 'bg-orange-600 text-white shadow-lg' : 'text-slate-500 hover:text-orange-600'}`}
+           >
+             Pending Review
+           </button>
+           <button 
+            onClick={() => { setModSubTab('live'); navigateTo(null, null, null); }}
+            className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border-none ${modSubTab === 'live' ? 'bg-orange-600 text-white shadow-lg' : 'text-slate-500 hover:text-orange-600'}`}
+           >
+             Live Registry
+           </button>
+        </div>
+      )}
+
+      {((viewMode === 'browse' && !isAdminView) || (isAdminView && modSubTab === 'live')) && (
         <div className="flex gap-2 w-full">
           <div className="relative flex-1">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
@@ -262,7 +316,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
           </div>
           <button 
             onClick={() => fetchRegistry(false)}
-            className="w-12 h-12 flex items-center justify-center bg-slate-100 dark:bg-black rounded-xl text-slate-400 hover:text-orange-600 transition-colors shadow-sm"
+            className="w-12 h-12 flex items-center justify-center bg-black rounded-xl text-slate-400 hover:text-orange-600 transition-colors shadow-sm border-none"
             title="Refresh Registry"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`}><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
@@ -274,7 +328,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
         <div className="col-span-full py-40 text-center animate-pulse text-slate-400 font-black uppercase text-[10px] tracking-[0.2em]">Accessing Node...</div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
-          {!searchQuery && !isAdminView && viewMode === 'browse' && (
+          {!searchQuery && ((!isAdminView && viewMode === 'browse') || (isAdminView && modSubTab === 'live')) && (
             currentFolders.map(folder => (
               <div 
                 key={folder.id} 
@@ -298,13 +352,13 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
                   <div className="absolute top-3 right-3 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-20">
                     <button 
                       onClick={(e) => { e.stopPropagation(); setFolderToManage(folder); setNewFolderName(folder.name); setShowRenameModal(true); }} 
-                      className="p-1.5 bg-slate-100 dark:bg-black rounded-lg text-orange-600 hover:bg-orange-50 dark:hover:bg-slate-900 transition-colors shadow-sm"
+                      className="p-1.5 bg-black rounded-lg text-orange-600 hover:bg-orange-50 dark:hover:bg-slate-900 transition-colors shadow-sm border-none"
                     >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     </button>
                     <button 
                       onClick={(e) => handleDeleteFolder(folder, e)} 
-                      className="p-1.5 bg-slate-100 dark:bg-black rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-slate-900 transition-colors shadow-sm"
+                      className="p-1.5 bg-black rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-slate-900 transition-colors shadow-sm border-none"
                     >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
                     </button>
@@ -322,9 +376,51 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
               key={file.id} 
               file={file} 
               isAdmin={isAdminView} 
+              modSubTab={modSubTab}
               isPersonal={viewMode === 'my-uploads'} 
-              onApprove={() => NexusServer.approveFile(file.id).then(() => fetchRegistry(true))} 
+              onApprove={() => {
+                setIsProcessing(true);
+                NexusServer.approveFile(file.id)
+                  .then(() => fetchRegistry(true))
+                  .finally(() => setIsProcessing(false));
+              }}
+              onReject={() => {
+                if (confirm("Reject and remove this file?")) {
+                  setIsProcessing(true);
+                  NexusServer.rejectFile(file.id)
+                    .then(() => fetchRegistry(true))
+                    .finally(() => setIsProcessing(false));
+                }
+              }}
+              onDemote={() => {
+                 if (confirm("Send this file back to pending review?")) {
+                  setIsProcessing(true);
+                  NexusServer.demoteFile(file.id)
+                    .then(() => fetchRegistry(true))
+                    .finally(() => setIsProcessing(false));
+                }
+              }}
+              onEdit={() => {
+                 setSelectedFile(file);
+                 setMetaForm({
+                   name: file.name,
+                   description: file.description || '',
+                   semester: file.semester,
+                   subject: file.subject,
+                   type: file.type
+                 });
+                 setShowEditModal(true);
+              }}
+              onDelete={() => {
+                if (confirm("Permanently delete this file from registry?")) {
+                  setIsProcessing(true);
+                  NexusServer.deleteFile(file.id, file.storage_path)
+                    .then(() => fetchRegistry(true))
+                    .finally(() => setIsProcessing(false));
+                }
+              }}
               onAccess={() => NexusServer.getFileUrl(file.storage_path).then(url => window.open(url, '_blank'))} 
+              onShowDetails={() => { setSelectedFile(file); setShowDetailsModal(true); }}
             />
           ))}
 
@@ -340,11 +436,11 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
           <div className="bg-white dark:bg-slate-950 rounded-[30px] w-full max-w-sm shadow-2xl border border-white/10 overflow-hidden flex flex-col">
             <div className="bg-black p-6 text-white flex justify-between items-center">
               <h3 className="text-lg font-black uppercase tracking-widest">New Node</h3>
-              <button onClick={() => setShowFolderModal(false)} className="opacity-50 hover:opacity-100"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+              <button onClick={() => setShowFolderModal(false)} className="opacity-50 hover:opacity-100 transition-opacity border-none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             </div>
             <div className="p-6 space-y-4">
               <input autoFocus placeholder="Name..." value={newFolderName} onChange={e => setNewFolderName(e.target.value)} className="w-full bg-slate-100 dark:bg-black p-4 rounded-xl font-bold border-none text-sm dark:text-white outline-none focus:ring-2 focus:ring-orange-500" />
-              <button onClick={handleCreateFolder} disabled={isProcessing} className="w-full bg-orange-600 text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 disabled:opacity-50 transition-all">
+              <button onClick={handleCreateFolder} disabled={isProcessing} className="w-full bg-orange-600 text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 disabled:opacity-50 transition-all border-none">
                 {isProcessing ? 'Deploying...' : 'Create Folder'}
               </button>
             </div>
@@ -352,19 +448,105 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
         </div>
       )}
 
-      {/* RENAME MODAL */}
+      {/* RENAME FOLDER MODAL */}
       {showRenameModal && userProfile?.is_admin && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
           <div className="bg-white dark:bg-slate-950 rounded-[30px] w-full max-w-sm shadow-2xl border border-white/10 overflow-hidden flex flex-col">
             <div className="bg-black p-6 text-white flex justify-between items-center">
               <h3 className="text-lg font-black uppercase tracking-widest leading-none">Rename Node</h3>
-              <button onClick={() => setShowRenameModal(false)} className="opacity-50 hover:opacity-100"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+              <button onClick={() => setShowRenameModal(false)} className="opacity-50 hover:opacity-100 transition-opacity border-none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             </div>
             <div className="p-6 space-y-4">
               <input autoFocus value={newFolderName} onChange={e => setNewFolderName(e.target.value)} className="w-full bg-slate-100 dark:bg-black p-4 rounded-xl font-bold border-none text-sm dark:text-white outline-none focus:ring-2 focus:ring-orange-600" />
-              <button onClick={handleRenameFolder} disabled={isProcessing} className="w-full bg-orange-600 text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 disabled:opacity-50 transition-all">
+              <button onClick={handleRenameFolder} disabled={isProcessing} className="w-full bg-orange-600 text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 disabled:opacity-50 transition-all border-none">
                 {isProcessing ? 'Syncing...' : 'Update Name'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ADMIN EDIT FILE MODAL */}
+      {showEditModal && selectedFile && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+          <div className="bg-white dark:bg-slate-950 rounded-[40px] w-full max-w-md shadow-2xl border border-white/10 overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="bg-black p-6 text-white flex justify-between items-center">
+              <h3 className="text-lg font-black uppercase tracking-widest">Edit Entry</h3>
+              <button onClick={() => setShowEditModal(false)} className="opacity-50 hover:opacity-100 transition-opacity border-none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+            </div>
+            <div className="p-6 space-y-6 overflow-y-auto no-scrollbar flex-1">
+              <div className="space-y-4">
+                <input value={metaForm.name} onChange={e => setMetaForm({...metaForm, name: e.target.value})} placeholder="Display Alias" className="w-full bg-slate-100 dark:bg-black p-4 rounded-2xl font-bold border-none text-sm dark:text-white outline-none focus:ring-2 focus:ring-orange-500" />
+                <textarea value={metaForm.description} onChange={e => setMetaForm({...metaForm, description: e.target.value})} placeholder="Registry Notes" className="w-full bg-slate-100 dark:bg-black p-4 rounded-2xl font-bold border-none text-sm dark:text-white h-24 resize-none outline-none focus:ring-2 focus:ring-orange-500" />
+              </div>
+              <div className="space-y-4">
+                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Hierarchy Shift</h4>
+                <div className="flex flex-wrap gap-2">
+                  {modalAvailableSemesters.map(sem => (
+                    <button key={sem.id} onClick={() => setMetaForm({...metaForm, semester: sem.name, subject: '', type: ''})} className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all border-none ${metaForm.semester === sem.name ? 'bg-orange-600 text-white shadow-lg' : 'bg-black text-slate-500 hover:text-orange-500'}`}>{sem.name}</button>
+                  ))}
+                </div>
+                {metaForm.semester && (
+                  <div className="flex flex-wrap gap-2 animate-fade-in">
+                    {modalAvailableSubjects.map(sub => (
+                      <button key={sub.id} onClick={() => setMetaForm({...metaForm, subject: sub.name, type: ''})} className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all border-none ${metaForm.subject === sub.name ? 'bg-orange-600/20 text-orange-600' : 'bg-black text-slate-500 hover:text-orange-500'}`}>{sub.name}</button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <button onClick={handleDirectEdit} disabled={isProcessing} className="w-full bg-orange-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl active:scale-95 disabled:opacity-30 transition-all flex items-center justify-center gap-3 border-none">
+                {isProcessing ? <div className="w-5 h-5 border-2 border-white dark:border-white border-t-transparent rounded-full animate-spin" /> : 'Save Parameters'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FILE DETAILS MODAL */}
+      {showDetailsModal && selectedFile && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+          <div className="bg-white dark:bg-slate-950 rounded-[40px] w-full max-w-md shadow-2xl border border-white/10 overflow-hidden flex flex-col relative">
+            <div className="bg-black p-8 text-white flex justify-between items-start">
+              <div>
+                <h3 className="text-2xl font-black uppercase tracking-tighter leading-none">{selectedFile.name}</h3>
+                <p className="text-orange-500 text-[10px] font-black uppercase tracking-widest mt-2">{selectedFile.subject} • {selectedFile.semester}</p>
+              </div>
+              <button onClick={() => setShowDetailsModal(false)} className="opacity-50 hover:opacity-100 transition-opacity border-none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+            </div>
+            <div className="p-8 space-y-6">
+              <div>
+                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Metadata Summary</h4>
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-300 leading-relaxed">
+                  {selectedFile.description || "No registry description provided for this node."}
+                </p>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-black/5 dark:bg-black/40 p-4 rounded-2xl">
+                  <h4 className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">Contributor</h4>
+                  <p className="text-xs font-bold dark:text-white truncate">{selectedFile.uploader_id ? "Nexus Contributor" : "Anonymous Verto"}</p>
+                </div>
+                <div className="bg-black/5 dark:bg-black/40 p-4 rounded-2xl">
+                  <h4 className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">Upload Date</h4>
+                  <p className="text-xs font-bold dark:text-white">{new Date(selectedFile.uploadDate).toLocaleDateString()}</p>
+                </div>
+              </div>
+
+              {selectedFile.admin_notes && (
+                <div className="border-l-4 border-l-orange-600 bg-orange-600/5 p-4 rounded-r-2xl">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-orange-600 mb-1">Admin Notes</h4>
+                  <p className="text-xs font-bold text-slate-700 dark:text-slate-200">{selectedFile.admin_notes}</p>
+                </div>
+              )}
+
+              <div className="pt-4 flex gap-3">
+                <button 
+                  onClick={() => { NexusServer.getFileUrl(selectedFile.storage_path).then(url => window.open(url, '_blank')); setShowDetailsModal(false); }}
+                  className="flex-1 bg-orange-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-orange-600/20 active:scale-95 transition-all border-none"
+                >
+                  Access File
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -376,7 +558,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
           <div className="bg-white dark:bg-slate-950 rounded-[40px] w-full max-w-md shadow-2xl border border-white/10 overflow-hidden flex flex-col max-h-[90vh]">
             <div className="bg-gradient-to-r from-orange-600 to-red-700 p-6 text-white flex justify-between items-center">
               <h3 className="text-lg font-black uppercase tracking-widest">Registry Sync</h3>
-              <button onClick={() => setShowUploadModal(false)} className="opacity-50 hover:opacity-100 transition-opacity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+              <button onClick={() => setShowUploadModal(false)} className="opacity-50 hover:opacity-100 transition-opacity border-none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             </div>
             <div className="p-6 space-y-6 overflow-y-auto no-scrollbar flex-1">
               {processSuccess ? (
@@ -398,20 +580,20 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
                     <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Path Configuration</h4>
                     <div className="flex flex-wrap gap-2">
                       {modalAvailableSemesters.map(sem => (
-                        <button key={sem.id} onClick={() => setMetaForm({...metaForm, semester: sem.name, subject: '', type: ''})} className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${metaForm.semester === sem.name ? 'bg-orange-600 text-white shadow-lg' : 'bg-slate-100 dark:bg-black text-slate-500 hover:text-orange-500'}`}>{sem.name}</button>
+                        <button key={sem.id} onClick={() => setMetaForm({...metaForm, semester: sem.name, subject: '', type: ''})} className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all border-none ${metaForm.semester === sem.name ? 'bg-orange-600 text-white shadow-lg' : 'bg-black text-slate-500 hover:text-orange-500'}`}>{sem.name}</button>
                       ))}
                     </div>
                     {metaForm.semester && (
                       <div className="flex flex-wrap gap-2 animate-fade-in">
                         {modalAvailableSubjects.map(sub => (
-                          <button key={sub.id} onClick={() => setMetaForm({...metaForm, subject: sub.name, type: ''})} className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${metaForm.subject === sub.name ? 'bg-orange-600/20 text-orange-600' : 'bg-slate-100 dark:bg-black text-slate-500 hover:text-orange-500'}`}>{sub.name}</button>
+                          <button key={sub.id} onClick={() => setMetaForm({...metaForm, subject: sub.name, type: ''})} className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all border-none ${metaForm.subject === sub.name ? 'bg-orange-600/20 text-orange-600' : 'bg-black text-slate-500 hover:text-orange-500'}`}>{sub.name}</button>
                         ))}
                       </div>
                     )}
                     {metaForm.subject && (
                       <div className="flex flex-wrap gap-2 animate-fade-in">
                         {modalAvailableCategories.map(cat => (
-                          <button key={cat.id} onClick={() => setMetaForm({...metaForm, type: cat.name})} className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${metaForm.type === cat.name ? 'bg-orange-500 text-white shadow-lg' : 'bg-slate-100 dark:bg-black text-slate-500 hover:text-orange-500'}`}>{cat.name}</button>
+                          <button key={cat.id} onClick={() => setMetaForm({...metaForm, type: cat.name})} className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all border-none ${metaForm.type === cat.name ? 'bg-orange-600 text-white shadow-lg' : 'bg-black text-slate-500 hover:text-orange-500'}`}>{cat.name}</button>
                         ))}
                       </div>
                     )}
@@ -421,7 +603,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
             </div>
             {!processSuccess && (
               <div className="p-6 border-t border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-slate-900/50">
-                <button onClick={handleUpload} disabled={isProcessing || !metaForm.name.trim() || !metaForm.semester || !metaForm.subject || !metaForm.type} className="w-full bg-slate-900 dark:bg-black text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl active:scale-95 disabled:opacity-30 transition-all flex items-center justify-center gap-3">{isProcessing ? <div className="w-5 h-5 border-2 border-white dark:border-white border-t-transparent rounded-full animate-spin" /> : 'Deploy to Registry'}</button>
+                <button onClick={handleUpload} disabled={isProcessing || !metaForm.name.trim() || !metaForm.semester || !metaForm.subject || !metaForm.type} className="w-full bg-black text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl active:scale-95 disabled:opacity-30 transition-all flex items-center justify-center gap-3 border-none">{isProcessing ? <div className="w-5 h-5 border-2 border-white dark:border-white border-t-transparent rounded-full animate-spin" /> : 'Deploy to Registry'}</button>
               </div>
             )}
           </div>
@@ -436,10 +618,16 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
 const FileCard: React.FC<{ 
   file: LibraryFile; 
   isAdmin: boolean; 
+  modSubTab: 'pending' | 'live';
   isPersonal?: boolean;
   onApprove?: () => void; 
+  onReject?: () => void;
+  onDemote?: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
   onAccess: () => void; 
-}> = ({ file, isAdmin, isPersonal, onApprove, onAccess }) => {
+  onShowDetails: () => void;
+}> = ({ file, isAdmin, modSubTab, isPersonal, onApprove, onReject, onDemote, onEdit, onDelete, onAccess, onShowDetails }) => {
   const statusConfig = {
     pending: { label: 'Queued', color: 'text-orange-500', bg: 'bg-orange-500/10' },
     approved: { label: 'Verified', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
@@ -448,20 +636,66 @@ const FileCard: React.FC<{
   const status = statusConfig[file.status] || statusConfig.pending;
 
   return (
-    <div className="group p-5 rounded-[30px] border border-slate-100 dark:border-white/5 bg-white dark:bg-slate-950/40 hover:border-orange-500 hover:shadow-xl transition-all relative overflow-hidden flex flex-col min-h-[160px]">
+    <div 
+      onClick={onShowDetails}
+      className="group p-5 rounded-[30px] border border-slate-100 dark:border-white/5 bg-white dark:bg-slate-950/40 hover:border-orange-500 hover:shadow-xl transition-all relative overflow-hidden flex flex-col min-h-[160px] cursor-pointer"
+    >
       <div className="flex items-start justify-between mb-2">
-        <div className="w-9 h-9 bg-slate-50 dark:bg-white/5 rounded-xl flex items-center justify-center group-hover:text-orange-500 transition-colors">
+        <div className="w-9 h-9 bg-black rounded-xl flex items-center justify-center group-hover:text-orange-500 transition-colors">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
         </div>
-        {isPersonal && <div className={`px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest ${status.bg} ${status.color}`}>{status.label}</div>}
+        {(isPersonal || isAdmin) && <div className={`px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest ${status.bg} ${status.color}`}>{status.label}</div>}
       </div>
       <h3 className="text-xs md:text-sm font-black text-slate-800 dark:text-white tracking-tight leading-tight line-clamp-2 mb-2">{file.name}</h3>
       <div className="pt-3 mt-auto border-t border-slate-50 dark:border-white/5 flex items-center justify-between">
         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{file.size}</span>
         {isAdmin ? (
-          <button onClick={(e) => { e.stopPropagation(); onApprove?.(); }} className="bg-green-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-black uppercase shadow-lg shadow-green-600/10">Approve</button>
+          <div className="flex gap-1.5">
+            {modSubTab === 'pending' ? (
+               <>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onReject?.(); }} 
+                  className="bg-black text-red-500 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase shadow-lg hover:bg-red-500 hover:text-white transition-colors border-none"
+                >
+                  Reject
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onApprove?.(); }} 
+                  className="bg-black text-emerald-500 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase shadow-lg hover:bg-emerald-500 hover:text-white transition-colors border-none"
+                >
+                  Approve
+                </button>
+               </>
+            ) : (
+              <>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onDelete?.(); }} 
+                  className="bg-black text-red-500 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase shadow-lg hover:bg-red-500 hover:text-white transition-colors border-none"
+                >
+                  Del
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onEdit?.(); }} 
+                  className="bg-black text-orange-600 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase shadow-lg hover:bg-orange-600 hover:text-white transition-colors border-none"
+                >
+                  Edit
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onDemote?.(); }} 
+                  className="bg-black text-slate-400 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase shadow-lg hover:bg-slate-400 hover:text-black transition-colors border-none"
+                >
+                  Demote
+                </button>
+              </>
+            )}
+          </div>
         ) : (
-          <button onClick={(e) => { e.stopPropagation(); onAccess(); }} className="text-orange-600 font-black text-[10px] uppercase tracking-widest flex items-center gap-1.5 hover:underline">Access <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></button>
+          <button 
+            onClick={(e) => { e.stopPropagation(); onAccess(); }} 
+            className="bg-black text-orange-600 px-4 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-1.5 hover:bg-orange-600 hover:text-white transition-all shadow-md border-none"
+          >
+            Access <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </button>
         )}
       </div>
     </div>
