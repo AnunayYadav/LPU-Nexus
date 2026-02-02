@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 
 const IconMess = () => (
@@ -289,14 +288,11 @@ const CampusNavigator: React.FC = () => {
          <div className="glass-panel p-1 rounded-3xl h-[650px] overflow-hidden shadow-2xl relative animate-fade-in border dark:border-white/5 bg-black">
            <iframe
             src="https://iviewd.com/lpu2/"
-            className="w-full h-full rounded-2xl grayscale hover:grayscale-0 transition-all duration-700"
+            className="w-full h-full rounded-2xl transition-all duration-700"
             frameBorder="0"
             allowFullScreen
             title="LPU 3D Campus Map"
            />
-           <div className="absolute bottom-6 right-6 bg-black/80 backdrop-blur-xl text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-full border border-white/10 pointer-events-none">
-             Powered by iViewd
-           </div>
         </div>
       )}
 

@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { ResumeAnalysisResult, Flashcard } from "../types.ts";
 
@@ -26,35 +25,39 @@ const getApiKey = (): string => {
 
 /**
  * Module A: The Placement Prefect
- * Analyzes resume against job description.
+ * Analyzes resume against job description or industry trends.
  */
 export const analyzeResume = async (resumeText: string, jdText: string, deepAnalysis: boolean = false): Promise<ResumeAnalysisResult> => {
   const apiKey = getApiKey();
   const ai = new GoogleGenAI({ apiKey });
   const modelId = "gemini-3-flash-preview"; 
 
-  const analysisType = deepAnalysis ? "DEEP ANALYSIS (STRICT)" : "STANDARD ANALYSIS";
+  const analysisType = deepAnalysis ? "DEEP CRITICAL ANALYSIS (STRICT)" : "STANDARD ATS SCAN";
   const depthInstruction = deepAnalysis 
-    ? "Provide extremely detailed, critical feedback. Scrutinize every bullet point. Be harsh but constructive. The summary should be longer and comprehensive."
-    : "Provide a quick, punchy analysis highlighting key gaps.";
+    ? "Scrutunize every bullet point for quantifiable impact (metrics, percentages). Identify weak action verbs. Provide 'harsh' feedback on whether the candidate actually demonstrates seniority or proficiency. Scrutunize '2025 Industry Trends' alignment specifically."
+    : "Highlight missing keywords and provide high-level phrasing improvements to bypass modern ATS filters.";
 
   const prompt = `
-    You are a ruthless technical recruiter for a top-tier tech company. 
-    Perform a ${analysisType} of the following Candidate Resume against the provided Job Description.
-    ${depthInstruction}
+    You are a ruthless technical recruiter at a FAANG+ company specializing in university hiring. 
+    Perform a ${analysisType} of the following Candidate Resume.
     
-    JOB DESCRIPTION:
+    TARGET TARGET (JD or Industry Trends):
     ${jdText}
 
-    RESUME CONTENT:
+    CANDIDATE RESUME:
     ${resumeText}
 
+    INSTRUCTIONS:
+    ${depthInstruction}
+    
+    If the TARGET text mentions 'Trends', evaluate the resume against current 2025 technology standards and high-demand skills for that specific role.
+    
     Output a strict JSON object with:
     1. matchScore (0-100 integer)
-    2. missingKeywords (array of strings, critical skills missing)
-    3. phrasingAdvice (array of strings, specific bullet point improvements)
-    4. projectFeedback (string, critique on the projects section specifically)
-    5. summary (string, overall verdict)
+    2. missingKeywords (array of strings, specific technical skills or buzzwords missing for 2025 market)
+    3. phrasingAdvice (array of strings, specific 'Before/After' improvements for bullet points)
+    4. projectFeedback (string, critique on project complexity and technical depth)
+    5. summary (string, maximum 2 sentences, overall fit verdict)
   `;
 
   const schema = {
@@ -76,7 +79,7 @@ export const analyzeResume = async (resumeText: string, jdText: string, deepAnal
       config: {
         responseMimeType: "application/json",
         responseSchema: schema,
-        temperature: deepAnalysis ? 0.2 : 0.3, 
+        temperature: deepAnalysis ? 0.2 : 0.4, 
       },
     });
 
@@ -209,12 +212,26 @@ export const generateFlowchart = async (contextText: string): Promise<string> =>
 export const searchGlobalOpportunities = async (query: string) => {
   const apiKey = getApiKey();
   const ai = new GoogleGenAI({ apiKey });
-  const modelId = "gemini-3-flash-preview"; 
-  const contextualQuery = `
-    Context: I am a student at Lovely Professional University (LPU), India. 
-    I am looking for study abroad opportunities, semester exchange programs, university tie-ups, or masters programs relevant to my background.
+  const modelId = "gemini-3-flash-preview"; // Optimized for search grounding
+  
+  const systemInstruction = `
+    You are the "LPU Global Gateway", a specialized counselor helping students at Lovely Professional University (LPU), India, find international academic and professional opportunities.
     
-    User Query: ${query}
+    Your goal is to provide up-to-date, live web information on:
+    - Master's programs and PhDs in USA, UK, Europe, Australia, and Canada.
+    - Visa processing times and requirements for Indian citizens.
+    - Scholarships specifically for Indian students (e.g., Commonwealth, Chevening, DAAD).
+    - Cost of living conversions to Indian Rupees (INR).
+    - LPU tie-ups with foreign universities if mentioned in recent web news.
+    
+    STRICT RULES:
+    1. Be concise and use Markdown tables or lists where appropriate.
+    2. Always list key deadlines.
+    3. If information is uncertain, specify that the user should verify with the official university website.
+  `;
+
+  const contextualQuery = `
+    Student at LPU, India query: ${query}
   `;
   
   try {
@@ -222,7 +239,9 @@ export const searchGlobalOpportunities = async (query: string) => {
       model: modelId,
       contents: contextualQuery,
       config: {
+        systemInstruction,
         tools: [{ googleSearch: {} }],
+        temperature: 0.2, // Lower temperature for more factual search results
       },
     });
 
