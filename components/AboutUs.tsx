@@ -97,7 +97,7 @@ const AboutUs: React.FC = () => {
 
       <footer className="text-center pt-8">
         <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">
-          LPU-Nexus v1.2.0 • Independent Student Project
+          LPU-Nexus v1.3.0 • Independent Student Project
         </p>
       </footer>
     </div>
