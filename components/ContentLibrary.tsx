@@ -80,7 +80,6 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
       let data = [...allFiles];
       
       // Strict hierarchical filtering
-      // Show hierarchy for regular browse OR for admins managing the live registry
       const isHierarchical = (!isAdminView && viewMode === 'browse') || (isAdminView && modSubTab === 'live');
       
       if (!searchQuery && isHierarchical) {
@@ -524,7 +523,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-black/5 dark:bg-black/40 p-4 rounded-2xl">
                   <h4 className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">Contributor</h4>
-                  <p className="text-xs font-bold dark:text-white truncate">{selectedFile.uploader_id ? "Nexus Contributor" : "Anonymous Verto"}</p>
+                  <p className="text-xs font-bold dark:text-white truncate">{selectedFile.uploader_username || "Anonymous Verto"}</p>
                 </div>
                 <div className="bg-black/5 dark:bg-black/40 p-4 rounded-2xl">
                   <h4 className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">Upload Date</h4>

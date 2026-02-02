@@ -80,13 +80,27 @@ class NexusServer {
     return data;
   }
 
-  // --- FOLDER REGISTRY METHODS ---
+  static async updateUsername(userId: string, username: string): Promise<void> {
+    const client = getSupabase();
+    if (!client) throw new Error("Database connection unavailable.");
+    const { error } = await client
+      .from('profiles')
+      .update({ username })
+      .eq('id', userId);
+    if (error) {
+      if (error.message.includes('unique')) {
+        throw new Error("Username already taken.");
+      }
+      throw error;
+    }
+  }
+
   static async fetchFolders(): Promise<Folder[]> {
     const client = getSupabase();
     if (!client) return [];
     const { data, error } = await client.from('folders').select('*').order('name', { ascending: true });
     if (error) {
-      console.warn("Folders table missing? Falling back to empty array. Run SQL in README.");
+      console.warn("Folders table missing? Falling back to empty array.");
       return [];
     }
     return data as Folder[];
@@ -129,7 +143,7 @@ class NexusServer {
     try {
       let supabaseQuery = client
         .from('documents')
-        .select('*')
+        .select('*, profiles(username, email)')
         .eq('status', 'approved') 
         .order('created_at', { ascending: false });
 
@@ -155,6 +169,7 @@ class NexusServer {
         size: item.size,
         storage_path: item.storage_path,
         uploader_id: item.uploader_id,
+        uploader_username: item.profiles?.username || item.profiles?.email?.split('@')[0] || "Anonymous Verto",
         admin_notes: item.admin_notes,
         isUserUploaded: true,
         pending_update: item.pending_update
@@ -171,7 +186,7 @@ class NexusServer {
     try {
       const { data, error } = await client
         .from('documents')
-        .select('*')
+        .select('*, profiles(username, email)')
         .eq('uploader_id', userId)
         .order('created_at', { ascending: false });
       if (error) throw new Error(`Fetch failed: ${error.message}`);
@@ -187,6 +202,7 @@ class NexusServer {
         size: item.size,
         storage_path: item.storage_path,
         uploader_id: item.uploader_id,
+        uploader_username: item.profiles?.username || item.profiles?.email?.split('@')[0] || "Anonymous Verto",
         admin_notes: item.admin_notes,
         isUserUploaded: true,
         pending_update: item.pending_update
@@ -202,7 +218,7 @@ class NexusServer {
     try {
       const { data, error } = await client
         .from('documents')
-        .select('*')
+        .select('*, profiles(username, email)')
         .or('status.eq.pending,pending_update.not.is.null')
         .order('created_at', { ascending: true });
       if (error) throw new Error(`Moderation fetch failed: ${error.message}`);
@@ -218,6 +234,7 @@ class NexusServer {
         size: item.size,
         storage_path: item.storage_path,
         uploader_id: item.uploader_id,
+        uploader_username: item.profiles?.username || item.profiles?.email?.split('@')[0] || "Anonymous Verto",
         admin_notes: item.admin_notes,
         isUserUploaded: true,
         pending_update: item.pending_update
@@ -305,11 +322,9 @@ class NexusServer {
       const { data: record, error: fetchError } = await client.from('documents').select('status, storage_path').eq('id', id).single();
       if (fetchError || !record) throw new Error("Could not find record.");
       
-      // If it's a pending initial upload, we delete it entirely.
       if (record.status === 'pending') {
         await this.deleteFile(id, record.storage_path);
       } else {
-        // If it's an approved file with a pending update, we just reject the update.
         await this.rejectUpdate(id);
       }
     } catch (e: any) {

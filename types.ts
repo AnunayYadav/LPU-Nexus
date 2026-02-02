@@ -10,13 +10,15 @@ export enum ModuleType {
   CGPA = 'CGPA',
   ATTENDANCE = 'ATTENDANCE',
   SHARE_CGPA = 'SHARE_CGPA',
-  ABOUT = 'ABOUT'
+  ABOUT = 'ABOUT',
+  PROFILE = 'PROFILE'
 }
 
 export interface UserProfile {
   id: string;
   email: string;
   is_admin: boolean;
+  username?: string;
 }
 
 export interface ChatMessage {
@@ -55,6 +57,7 @@ export interface LibraryFile {
   status: FileStatus;
   storage_path: string;
   uploader_id?: string;
+  uploader_username?: string;
   admin_notes?: string;
   isUserUploaded?: boolean;
   pending_update?: {

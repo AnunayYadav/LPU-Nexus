@@ -12,6 +12,7 @@ import AttendanceTracker from './components/AttendanceTracker.tsx';
 import ShareReport from './components/ShareReport.tsx';
 import AboutUs from './components/AboutUs.tsx';
 import AuthModal from './components/AuthModal.tsx';
+import ProfileSection from './components/ProfileSection.tsx';
 import { ModuleType, UserProfile } from './types.ts';
 import NexusServer from './services/nexusServer.ts';
 import { Analytics } from "@vercel/analytics/react";
@@ -28,6 +29,7 @@ const getModuleFromPath = (path: string): ModuleType => {
   if (p.endsWith('/freshers')) return ModuleType.FRESHERS;
   if (p.endsWith('/help')) return ModuleType.HELP;
   if (p.endsWith('/about')) return ModuleType.ABOUT;
+  if (p.endsWith('/profile')) return ModuleType.PROFILE;
   return ModuleType.DASHBOARD;
 };
 
@@ -44,6 +46,7 @@ const getPathFromModule = (module: ModuleType): string => {
     case ModuleType.ABOUT: return '/about';
     case ModuleType.DASHBOARD: return '/';
     case ModuleType.SHARE_CGPA: return '/share-cgpa';
+    case ModuleType.PROFILE: return '/profile';
     default: return '/';
   }
 };
@@ -129,6 +132,7 @@ const App: React.FC = () => {
       case ModuleType.ATTENDANCE: return <AttendanceTracker />;
       case ModuleType.SHARE_CGPA: return <ShareReport />;
       case ModuleType.ABOUT: return <AboutUs />;
+      case ModuleType.PROFILE: return <ProfileSection userProfile={userProfile} setUserProfile={setUserProfile} navigateToModule={navigateToModule} />;
       default: return <Dashboard setModule={navigateToModule} />;
     }
   };
@@ -159,11 +163,11 @@ const App: React.FC = () => {
              
              <div className="relative">
                 {userProfile ? (
-                  <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="w-10 h-10 rounded-full bg-gradient-to-tr from-orange-400 to-red-500 flex items-center justify-center text-white font-black border-2 border-white dark:border-slate-800 shadow-lg group">
-                    {userProfile.email[0].toUpperCase()}
+                  <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="w-10 h-10 rounded-full bg-black flex items-center justify-center text-orange-500 font-black border-none shadow-lg group hover:scale-110 transition-all">
+                    {userProfile.username ? userProfile.username[0].toUpperCase() : userProfile.email[0].toUpperCase()}
                   </button>
                 ) : (
-                  <button onClick={() => setShowAuthModal(true)} className="w-10 h-10 rounded-full border-2 border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-600 dark:text-slate-400 hover:border-orange-500 hover:text-orange-500 transition-all shadow-sm active:scale-95">
+                  <button onClick={() => setShowAuthModal(true)} className="w-10 h-10 rounded-full border-none bg-black flex items-center justify-center text-slate-400 hover:text-orange-500 transition-all shadow-sm active:scale-95">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                   </button>
                 )}
@@ -171,12 +175,16 @@ const App: React.FC = () => {
                 {isProfileMenuOpen && userProfile && (
                   <div className="absolute top-full right-0 mt-2 w-56 glass-panel rounded-2xl border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden animate-fade-in z-50 bg-white dark:bg-slate-900">
                     <div className="p-4 border-b border-slate-100 dark:border-white/5">
-                      <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Signed in as</p>
-                      <p className="text-xs font-bold truncate dark:text-white">{userProfile.email}</p>
+                      <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Authenticated</p>
+                      <p className="text-xs font-bold truncate dark:text-white">{userProfile.username || userProfile.email}</p>
                     </div>
                     <div className="py-2">
+                       <button onClick={() => { navigateToModule(ModuleType.PROFILE); setIsProfileMenuOpen(false); }} className="w-full text-left px-4 py-3 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 flex items-center space-x-2">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4 text-orange-600"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                          <span>View Profile</span>
+                       </button>
                        <button onClick={() => { setLibraryInitialView('my-uploads'); navigateToModule(ModuleType.LIBRARY); setIsProfileMenuOpen(false); }} className="w-full text-left px-4 py-3 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 flex items-center space-x-2">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4 text-orange-600"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                           <span>My Uploads</span>
                        </button>
                        <button onClick={async () => { await NexusServer.signOut(); setIsProfileMenuOpen(false); }} className="w-full text-left px-4 py-3 text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 flex items-center space-x-2">
