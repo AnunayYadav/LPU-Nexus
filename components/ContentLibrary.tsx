@@ -79,10 +79,10 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
 
       let data = [...allFiles];
       
-      // Strict hierarchical filtering
-      const isHierarchical = (!isAdminView && viewMode === 'browse') || (isAdminView && modSubTab === 'live');
+      // Hierarchy logic only applies if NOT searching and browsing normal live registry
+      const isHierarchicalView = !searchQuery && ((!isAdminView && viewMode === 'browse') || (isAdminView && modSubTab === 'live'));
       
-      if (!searchQuery && isHierarchical) {
+      if (isHierarchicalView) {
         if (activeCategory) {
           data = data.filter(f => 
             f.semester === activeSemester?.name && 
@@ -101,6 +101,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
             (!f.subject || f.subject === '' || f.subject === 'All')
           );
         } else {
+          // At Root (No semester selected), don't show any files (only folders)
           data = []; 
         }
       }
@@ -113,7 +114,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
       });
       setFiles(data);
     } catch (e: any) { 
-      console.error(e);
+      console.error("Registry load error:", e);
     } finally { 
       setIsLoading(false);
       setIsNavigating(false);
@@ -257,7 +258,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
           </nav>
         </div>
         <div className="flex gap-2">
-           {userProfile?.is_admin && viewMode === 'browse' && (
+           {userProfile?.is_admin && (
              <>
                 <button 
                   onClick={toggleAdminView}
@@ -374,8 +375,8 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
             <FileCard 
               key={file.id} 
               file={file} 
-              isAdmin={isAdminView} 
-              modSubTab={modSubTab}
+              userProfile={userProfile}
+              modSubTab={isAdminView ? modSubTab : 'live'}
               isPersonal={viewMode === 'my-uploads'} 
               onApprove={() => {
                 setIsProcessing(true);
@@ -423,7 +424,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
             />
           ))}
 
-          {files.length === 0 && currentFolders.length === 0 && (
+          {files.length === 0 && currentFolders.length === 0 && !isLoading && (
             <div className="col-span-full py-20 text-center text-slate-400 font-black uppercase text-[10px] tracking-[0.2em] opacity-40">Empty Protocol.</div>
           )}
         </div>
@@ -616,7 +617,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
 
 const FileCard: React.FC<{ 
   file: LibraryFile; 
-  isAdmin: boolean; 
+  userProfile: UserProfile | null; 
   modSubTab: 'pending' | 'live';
   isPersonal?: boolean;
   onApprove?: () => void; 
@@ -626,7 +627,8 @@ const FileCard: React.FC<{
   onDelete?: () => void;
   onAccess: () => void; 
   onShowDetails: () => void;
-}> = ({ file, isAdmin, modSubTab, isPersonal, onApprove, onReject, onDemote, onEdit, onDelete, onAccess, onShowDetails }) => {
+}> = ({ file, userProfile, modSubTab, isPersonal, onApprove, onReject, onDemote, onEdit, onDelete, onAccess, onShowDetails }) => {
+  const isAdmin = userProfile?.is_admin || false;
   const statusConfig = {
     pending: { label: 'Queued', color: 'text-orange-500', bg: 'bg-orange-500/10' },
     approved: { label: 'Verified', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
@@ -648,54 +650,61 @@ const FileCard: React.FC<{
       <h3 className="text-xs md:text-sm font-black text-slate-800 dark:text-white tracking-tight leading-tight line-clamp-2 mb-2">{file.name}</h3>
       <div className="pt-3 mt-auto border-t border-slate-50 dark:border-white/5 flex items-center justify-between">
         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{file.size}</span>
-        {isAdmin ? (
-          <div className="flex gap-1.5">
-            {modSubTab === 'pending' ? (
-               <>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); onReject?.(); }} 
-                  className="bg-black text-red-500 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase shadow-lg hover:bg-red-500 hover:text-white transition-colors border-none"
-                >
-                  Reject
-                </button>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); onApprove?.(); }} 
-                  className="bg-black text-emerald-500 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase shadow-lg hover:bg-emerald-500 hover:text-white transition-colors border-none"
-                >
-                  Approve
-                </button>
-               </>
-            ) : (
-              <>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); onDelete?.(); }} 
-                  className="bg-black text-red-500 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase shadow-lg hover:bg-red-500 hover:text-white transition-colors border-none"
-                >
-                  Del
-                </button>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); onEdit?.(); }} 
-                  className="bg-black text-orange-600 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase shadow-lg hover:bg-orange-600 hover:text-white transition-colors border-none"
-                >
-                  Edit
-                </button>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); onDemote?.(); }} 
-                  className="bg-black text-slate-400 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase shadow-lg hover:bg-slate-400 hover:text-black transition-colors border-none"
-                >
-                  Demote
-                </button>
-              </>
-            )}
-          </div>
-        ) : (
-          <button 
-            onClick={(e) => { e.stopPropagation(); onAccess(); }} 
-            className="bg-black text-orange-600 px-4 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-1.5 hover:bg-orange-600 hover:text-white transition-all shadow-md border-none"
-          >
-            Access <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-          </button>
-        )}
+        
+        <div className="flex gap-1.5">
+          {isAdmin && (
+            <div className="flex gap-1.5">
+              {modSubTab === 'pending' ? (
+                 <>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); onReject?.(); }} 
+                    className="bg-black text-red-500 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase shadow-lg hover:bg-red-500 hover:text-white transition-colors border-none"
+                  >
+                    Reject
+                  </button>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); onApprove?.(); }} 
+                    className="bg-black text-emerald-500 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase shadow-lg hover:bg-emerald-500 hover:text-white transition-colors border-none"
+                  >
+                    Approve
+                  </button>
+                 </>
+              ) : (
+                <>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); onDelete?.(); }} 
+                    className="bg-black text-red-500 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase shadow-lg hover:bg-red-500 hover:text-white transition-colors border-none"
+                  >
+                    Del
+                  </button>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); onEdit?.(); }} 
+                    className="bg-black text-orange-600 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase shadow-lg hover:bg-orange-600 hover:text-white transition-colors border-none"
+                  >
+                    Edit
+                  </button>
+                  {file.status === 'approved' && (
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); onDemote?.(); }} 
+                      className="bg-black text-slate-400 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase shadow-lg hover:bg-slate-400 hover:text-black transition-colors border-none"
+                    >
+                      Mod
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {!isAdmin && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); onAccess(); }} 
+              className="bg-black text-orange-600 px-4 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-1.5 hover:bg-orange-600 hover:text-white transition-all shadow-md border-none"
+            >
+              Access <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

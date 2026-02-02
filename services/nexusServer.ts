@@ -98,12 +98,14 @@ class NexusServer {
   static async fetchFolders(): Promise<Folder[]> {
     const client = getSupabase();
     if (!client) return [];
-    const { data, error } = await client.from('folders').select('*').order('name', { ascending: true });
-    if (error) {
-      console.warn("Folders table missing? Falling back to empty array.");
+    try {
+      const { data, error } = await client.from('folders').select('*').order('name', { ascending: true });
+      if (error) throw error;
+      return data as Folder[];
+    } catch (e) {
+      console.warn("Folders fetch error:", e);
       return [];
     }
-    return data as Folder[];
   }
 
   static async createFolder(name: string, type: 'semester' | 'subject' | 'category', parentId: string | null): Promise<Folder> {
@@ -137,112 +139,103 @@ class NexusServer {
     if (error) throw error;
   }
 
+  private static mapFileResult(item: any): LibraryFile {
+    return {
+      id: item.id,
+      name: item.name,
+      description: item.description,
+      subject: item.subject,
+      semester: item.semester || 'Other',
+      type: item.type,
+      status: item.status,
+      uploadDate: new Date(item.created_at).getTime(),
+      size: item.size,
+      storage_path: item.storage_path,
+      uploader_id: item.uploader_id,
+      uploader_username: item.profiles?.username || item.profiles?.email?.split('@')[0] || "Anonymous Verto",
+      admin_notes: item.admin_notes,
+      isUserUploaded: true,
+      pending_update: item.pending_update
+    };
+  }
+
   static async fetchFiles(query?: string, subject?: string): Promise<LibraryFile[]> {
     const client = getSupabase();
     if (!client) throw new Error("Database connection unavailable.");
-    try {
-      let supabaseQuery = client
+    
+    // Attempt with profiles join first
+    let result = await client
+      .from('documents')
+      .select('*, profiles(username, email)')
+      .eq('status', 'approved')
+      .order('created_at', { ascending: false });
+
+    // Fallback if join fails (table missing or relationship error)
+    if (result.error) {
+      console.warn("Profiles join failed, falling back to simple fetch.");
+      result = await client
         .from('documents')
-        .select('*, profiles(username, email)')
-        .eq('status', 'approved') 
+        .select('*')
+        .eq('status', 'approved')
         .order('created_at', { ascending: false });
-
-      if (subject && subject !== 'All') {
-        supabaseQuery = supabaseQuery.eq('subject', subject);
-      }
-      if (query) {
-        supabaseQuery = supabaseQuery.ilike('name', `%${query}%`);
-      }
-
-      const { data, error } = await supabaseQuery;
-      if (error) throw new Error(`Fetch failed: ${error.message}`);
-
-      return (data || []).map(item => ({
-        id: item.id,
-        name: item.name,
-        description: item.description,
-        subject: item.subject,
-        semester: item.semester || 'Other',
-        type: item.type,
-        status: item.status,
-        uploadDate: new Date(item.created_at).getTime(),
-        size: item.size,
-        storage_path: item.storage_path,
-        uploader_id: item.uploader_id,
-        uploader_username: item.profiles?.username || item.profiles?.email?.split('@')[0] || "Anonymous Verto",
-        admin_notes: item.admin_notes,
-        isUserUploaded: true,
-        pending_update: item.pending_update
-      }));
-    } catch (e: any) {
-      console.error("fetchFiles error:", e);
-      throw e;
     }
+
+    if (result.error) throw result.error;
+    let data = result.data || [];
+
+    if (subject && subject !== 'All') {
+      data = data.filter(d => d.subject === subject);
+    }
+    if (query) {
+      const q = query.toLowerCase();
+      data = data.filter(d => d.name.toLowerCase().includes(q));
+    }
+
+    return data.map(this.mapFileResult);
   }
 
   static async fetchUserFiles(userId: string): Promise<LibraryFile[]> {
     const client = getSupabase();
     if (!client) throw new Error("Database connection unavailable.");
-    try {
-      const { data, error } = await client
+    
+    let result = await client
+      .from('documents')
+      .select('*, profiles(username, email)')
+      .eq('uploader_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (result.error) {
+      result = await client
         .from('documents')
-        .select('*, profiles(username, email)')
+        .select('*')
         .eq('uploader_id', userId)
         .order('created_at', { ascending: false });
-      if (error) throw new Error(`Fetch failed: ${error.message}`);
-      return (data || []).map(item => ({
-        id: item.id,
-        name: item.name,
-        description: item.description,
-        subject: item.subject,
-        semester: item.semester || 'Other',
-        type: item.type,
-        status: item.status,
-        uploadDate: new Date(item.created_at).getTime(),
-        size: item.size,
-        storage_path: item.storage_path,
-        uploader_id: item.uploader_id,
-        uploader_username: item.profiles?.username || item.profiles?.email?.split('@')[0] || "Anonymous Verto",
-        admin_notes: item.admin_notes,
-        isUserUploaded: true,
-        pending_update: item.pending_update
-      }));
-    } catch (e: any) {
-      throw e;
     }
+
+    if (result.error) throw result.error;
+    return (result.data || []).map(this.mapFileResult);
   }
 
   static async fetchPendingFiles(): Promise<LibraryFile[]> {
     const client = getSupabase();
     if (!client) throw new Error("Database connection unavailable.");
-    try {
-      const { data, error } = await client
+    
+    let result = await client
+      .from('documents')
+      .select('*, profiles(username, email)')
+      .or('status.eq.pending,pending_update.not.is.null')
+      .order('created_at', { ascending: true });
+
+    if (result.error) {
+      result = await client
         .from('documents')
-        .select('*, profiles(username, email)')
+        .select('*')
         .or('status.eq.pending,pending_update.not.is.null')
         .order('created_at', { ascending: true });
-      if (error) throw new Error(`Moderation fetch failed: ${error.message}`);
-      return (data || []).map(item => ({
-        id: item.id,
-        name: item.name,
-        description: item.description,
-        subject: item.subject,
-        semester: item.semester || 'Other',
-        type: item.type,
-        status: item.status,
-        uploadDate: new Date(item.created_at).getTime(),
-        size: item.size,
-        storage_path: item.storage_path,
-        uploader_id: item.uploader_id,
-        uploader_username: item.profiles?.username || item.profiles?.email?.split('@')[0] || "Anonymous Verto",
-        admin_notes: item.admin_notes,
-        isUserUploaded: true,
-        pending_update: item.pending_update
-      }));
-    } catch (e: any) {
-      console.error("fetchPendingFiles error:", e);
-      throw e;
     }
+
+    if (result.error) throw result.error;
+    return (result.data || []).map(this.mapFileResult);
   }
 
   static async uploadFile(file: File, name: string, description: string, subject: string, semester: string, type: string, userId: string, isAdmin: boolean = false): Promise<void> {
