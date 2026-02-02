@@ -66,7 +66,7 @@ const Dashboard: React.FC<{ setModule: (m: ModuleType) => void }> = ({ setModule
       <div onClick={() => setModule(ModuleType.PLACEMENT)} className="group relative p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/50 hover:border-orange-500/50 transition-all cursor-pointer hover:shadow-2xl overflow-hidden min-h-[160px]"><h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Placement Prefect</h3><p className="text-slate-600 dark:text-slate-400 text-sm">Resume ATS matching & optimization tailored for campus drives.</p></div>
       <div onClick={() => setModule(ModuleType.LIBRARY)} className="group relative p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/50 hover:border-orange-500/50 transition-all cursor-pointer hover:shadow-2xl overflow-hidden min-h-[160px]"><h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Content Library</h3><p className="text-slate-600 dark:text-slate-400 text-sm">Centralized hub for all your lectures, question banks and notes.</p></div>
       <div onClick={() => setModule(ModuleType.CAMPUS)} className="group relative p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/50 hover:border-indigo-500/50 transition-all cursor-pointer hover:shadow-2xl overflow-hidden min-h-[160px]"><h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Campus Navigator</h3><p className="text-slate-600 dark:text-slate-400 text-sm">Mess menu checker and interactive 3D map.</p></div>
-      <div onClick={() => setModule(ModuleType.GLOBAL)} className="group relative p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/50 hover:border-emerald-500/50 transition-all cursor-pointer hover:shadow-2xl overflow-hidden min-h-[160px]"><h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Global Gateway</h3><p className="text-slate-600 dark:text-slate-400 text-sm">Real-time study abroad info using Google Search Grounding.</p></div>
+      <div onClick={() => setModule(ModuleType.GLOBAL)} className="group relative p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/5 hover:border-emerald-500/50 transition-all cursor-pointer hover:shadow-2xl overflow-hidden min-h-[160px]"><h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Global Gateway</h3><p className="text-slate-600 dark:text-slate-400 text-sm">Real-time study abroad info using Google Search Grounding.</p></div>
     </div>
   </div>
 );
@@ -153,46 +153,55 @@ const App: React.FC = () => {
             <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden p-2 text-slate-600 dark:text-slate-400 mr-4">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
             </button>
-            <span className="md:hidden font-bold text-orange-500" onClick={() => navigateToModule(ModuleType.DASHBOARD)}>LPU-Nexus</span>
+            <span className="md:hidden font-bold text-orange-500 cursor-pointer" onClick={() => navigateToModule(ModuleType.DASHBOARD)}>LPU-Nexus</span>
           </div>
 
           <div className="flex items-center space-x-3 ml-auto">
-             <button onClick={toggleTheme} className="p-2 rounded-full bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-slate-200 transition-all">
+             <button onClick={toggleTheme} className="p-2 rounded-full bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-all">
                {theme === 'dark' ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg> : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>}
              </button>
              
              <div className="relative">
                 {userProfile ? (
-                  <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="w-10 h-10 rounded-full bg-black flex items-center justify-center text-orange-500 font-black border-none shadow-lg group hover:scale-110 transition-all">
-                    {userProfile.username ? userProfile.username[0].toUpperCase() : userProfile.email[0].toUpperCase()}
+                  <button 
+                    onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} 
+                    className="w-10 h-10 rounded-full bg-gradient-to-tr from-orange-600 to-red-700 flex items-center justify-center text-white font-black border-none shadow-lg group hover:scale-110 transition-all relative overflow-hidden"
+                  >
+                    <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
+                    <span className="relative z-10">{userProfile.username ? userProfile.username[0].toUpperCase() : userProfile.email[0].toUpperCase()}</span>
                   </button>
                 ) : (
-                  <button onClick={() => setShowAuthModal(true)} className="w-10 h-10 rounded-full border-none bg-black flex items-center justify-center text-slate-400 hover:text-orange-500 transition-all shadow-sm active:scale-95">
+                  <button onClick={() => setShowAuthModal(true)} className="w-10 h-10 rounded-full border-none bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400 hover:text-orange-500 transition-all shadow-sm active:scale-95">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                   </button>
                 )}
 
                 {isProfileMenuOpen && userProfile && (
-                  <div className="absolute top-full right-0 mt-2 w-56 glass-panel rounded-2xl border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden animate-fade-in z-50 bg-white dark:bg-slate-900">
-                    <div className="p-4 border-b border-slate-100 dark:border-white/5">
-                      <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Authenticated</p>
-                      <p className="text-xs font-bold truncate dark:text-white">{userProfile.username || userProfile.email}</p>
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setIsProfileMenuOpen(false)} />
+                    <div className="absolute top-full right-0 mt-3 w-64 glass-panel rounded-3xl border border-slate-200 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden animate-fade-in z-50 bg-white dark:bg-black">
+                      <div className="p-5 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02]">
+                        <p className="text-[10px] font-black uppercase text-orange-600 tracking-[0.2em] mb-1">Authenticated</p>
+                        <p className="text-sm font-black truncate dark:text-white uppercase tracking-tight">{userProfile.username || 'Citizen Verto'}</p>
+                        <p className="text-[9px] font-bold text-slate-400 truncate mt-0.5">{userProfile.email}</p>
+                      </div>
+                      <div className="py-2">
+                         <button onClick={() => { navigateToModule(ModuleType.PROFILE); setIsProfileMenuOpen(false); }} className="w-full text-left px-5 py-3.5 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-orange-600/10 hover:text-orange-600 dark:hover:text-orange-500 flex items-center space-x-3 transition-all">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            <span>Profile Terminal</span>
+                         </button>
+                         <button onClick={() => { setLibraryInitialView('my-uploads'); navigateToModule(ModuleType.LIBRARY); setIsProfileMenuOpen(false); }} className="w-full text-left px-5 py-3.5 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-orange-600/10 hover:text-orange-600 dark:hover:text-orange-500 flex items-center space-x-3 transition-all">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                            <span>Personal Vault</span>
+                         </button>
+                         <div className="mx-4 my-2 h-px bg-slate-100 dark:bg-white/5" />
+                         <button onClick={async () => { await NexusServer.signOut(); setIsProfileMenuOpen(false); }} className="w-full text-left px-5 py-3.5 text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 flex items-center space-x-3 transition-all">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                            <span>De-authenticate</span>
+                         </button>
+                      </div>
                     </div>
-                    <div className="py-2">
-                       <button onClick={() => { navigateToModule(ModuleType.PROFILE); setIsProfileMenuOpen(false); }} className="w-full text-left px-4 py-3 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 flex items-center space-x-2">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4 text-orange-600"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                          <span>View Profile</span>
-                       </button>
-                       <button onClick={() => { setLibraryInitialView('my-uploads'); navigateToModule(ModuleType.LIBRARY); setIsProfileMenuOpen(false); }} className="w-full text-left px-4 py-3 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 flex items-center space-x-2">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4 text-orange-600"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                          <span>My Uploads</span>
-                       </button>
-                       <button onClick={async () => { await NexusServer.signOut(); setIsProfileMenuOpen(false); }} className="w-full text-left px-4 py-3 text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 flex items-center space-x-2">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                          <span>Sign Out</span>
-                       </button>
-                    </div>
-                  </div>
+                  </>
                 )}
              </div>
           </div>
