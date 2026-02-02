@@ -100,6 +100,20 @@ class NexusServer {
     return data as Folder;
   }
 
+  static async renameFolder(id: string, newName: string): Promise<void> {
+    const client = getSupabase();
+    if (!client) throw new Error("Database offline.");
+    const { error } = await client.from('folders').update({ name: newName }).eq('id', id);
+    if (error) throw error;
+  }
+
+  static async deleteFolder(id: string): Promise<void> {
+    const client = getSupabase();
+    if (!client) throw new Error("Database offline.");
+    const { error } = await client.from('folders').delete().eq('id', id);
+    if (error) throw error;
+  }
+
   static async submitFeedback(text: string, userId?: string, email?: string) {
     const client = getSupabase();
     if (!client) throw new Error("Database connection unavailable.");
