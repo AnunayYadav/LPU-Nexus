@@ -1,5 +1,4 @@
 
-
 export enum ModuleType {
   DASHBOARD = 'DASHBOARD',
   PLACEMENT = 'PLACEMENT',
@@ -56,7 +55,6 @@ export interface LibraryFile {
   status: FileStatus;
   storage_path: string;
   uploader_id?: string;
-  uploader_email?: string;
   admin_notes?: string;
   isUserUploaded?: boolean;
   pending_update?: {
