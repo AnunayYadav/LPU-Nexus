@@ -3,7 +3,7 @@
 
 **LPU-Nexus** is a comprehensive, AI-powered student utility platform designed specifically for the students of Lovely Professional University. From tracking attendance to crushing placement drives with AI resume analysis, Nexus is the ultimate campus companion.
 
-![Version](https://img.shields.io/badge/version-1.1.0-orange)
+![Version](https://img.shields.io/badge/version-1.2.0-orange)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![AI](https://img.shields.io/badge/Powered%20By-Gemini%203-red)
 ![Cloud](https://img.shields.io/badge/Database-Supabase-emerald)
@@ -16,8 +16,9 @@
 - **ATS Matching:** Upload your resume (PDF) and paste a Job Description to get an instant match score.
 - **Brutal Feedback:** Leverages **Gemini 3 Flash/Pro** to provide critical phrasing advice and project critiques.
 
-### 📂 Nexus Cloud Registry (Content Library)
-- **Centralized Database:** A shared repository for LPU-specific lectures, question banks, and lab manuals.
+### 📂 Nexus FS Registry (Content Library)
+- **Hierarchical File Manager:** Semester -> Subject -> Category structure.
+- **Dynamic Admin Folders:** Admins can create and manage the folder registry dynamically.
 - **Supabase Powered:** Real-time persistence using Supabase Storage and PostgreSQL.
 
 ---
@@ -33,36 +34,45 @@
 
 ## ⚙️ Backend Setup (Supabase)
 
-To enable the **Content Library**, you must run the following SQL in your Supabase **SQL Editor**:
+To enable the **Content Library** and **Folder Registry**, run the following SQL:
 
 ```sql
--- 1. Create documents table with all required columns
+-- 1. Create documents table
 CREATE TABLE IF NOT EXISTS public.documents (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     created_at TIMESTAMPTZ DEFAULT now(),
     name TEXT NOT NULL,
     description TEXT,
     subject TEXT NOT NULL,
+    semester TEXT NOT NULL,
     type TEXT NOT NULL,
     size TEXT NOT NULL,
     status TEXT DEFAULT 'pending',
-    storage_path TEXT NOT NULL
+    storage_path TEXT NOT NULL,
+    uploader_id UUID,
+    admin_notes TEXT,
+    pending_update JSONB
 );
 
--- 2. Enable RLS
+-- 2. Create folders table (New)
+CREATE TABLE IF NOT EXISTS public.folders (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL, -- 'semester', 'subject', 'category'
+    parent_id UUID REFERENCES public.folders(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 3. Enable RLS
 ALTER TABLE public.documents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.folders ENABLE ROW LEVEL SECURITY;
 
--- 3. Table Policies
-CREATE POLICY "Allow public read" ON public.documents FOR SELECT USING (true);
-CREATE POLICY "Allow public insert" ON public.documents FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow public delete" ON public.documents FOR DELETE USING (true);
-CREATE POLICY "Allow public update" ON public.documents FOR UPDATE USING (true);
-
--- 4. Storage Policies (Bucket: 'nexus-documents')
--- Make sure to create a bucket named 'nexus-documents' in Supabase Storage first.
-CREATE POLICY "Public Access" ON storage.objects FOR SELECT USING (bucket_id = 'nexus-documents');
-CREATE POLICY "Public Upload" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'nexus-documents');
-CREATE POLICY "Public Delete" ON storage.objects FOR DELETE USING (bucket_id = 'nexus-documents');
+-- 4. Policies
+CREATE POLICY "Public Read" ON public.documents FOR SELECT USING (true);
+CREATE POLICY "Public Read Folders" ON public.folders FOR SELECT USING (true);
+-- Update/Insert policies should be restricted to authenticated users in production
+CREATE POLICY "Public Insert" ON public.documents FOR INSERT WITH CHECK (true);
+CREATE POLICY "Admin Folders" ON public.folders FOR INSERT WITH CHECK (true);
 ```
 
 ---
@@ -75,28 +85,14 @@ CREATE POLICY "Public Delete" ON storage.objects FOR DELETE USING (bucket_id = '
 - A **Supabase Project** with a public bucket named `nexus-documents`.
 
 ### Installation
-
-1. **Clone & Install:**
-   ```bash
-   npm install
-   ```
-
-2. **Set up environment variables:**
-   ```env
-   API_KEY=your_gemini_api_key_here
-   SUPABASE_URL=your_supabase_url
-   SUPABASE_ANON_KEY=your_supabase_anon_key
-   ```
-
-3. **Run:**
-   ```bash
-   npm run dev
-   ```
+1. `npm install`
+2. Configure `.env` with `API_KEY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`.
+3. `npm run dev`
 
 ---
 
 ## 📄 License
-Distributed under the MIT License. See `LICENSE` for more information.
+Distributed under the MIT License.
 
 ---
 *Disclaimer: LPU-Nexus is an independent student-led project and is not officially affiliated with Lovely Professional University.*

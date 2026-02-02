@@ -67,6 +67,13 @@ export interface LibraryFile {
   } | null;
 }
 
+export interface Folder {
+  id: string;
+  name: string;
+  type: 'semester' | 'subject' | 'category';
+  parent_id: string | null;
+}
+
 export interface Flashcard {
   front: string;
   back: string;

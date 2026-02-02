@@ -1,6 +1,6 @@
 
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
-import { LibraryFile, UserProfile } from '../types.ts';
+import { LibraryFile, UserProfile, Folder } from '../types.ts';
 
 const getEnvVar = (name: string): string => {
   const vitePrefix = `VITE_${name}`;
@@ -78,6 +78,26 @@ class NexusServer {
       .single();
     if (error) return null;
     return data;
+  }
+
+  // --- FOLDER REGISTRY METHODS ---
+  static async fetchFolders(): Promise<Folder[]> {
+    const client = getSupabase();
+    if (!client) return [];
+    const { data, error } = await client.from('folders').select('*').order('name', { ascending: true });
+    if (error) {
+      console.warn("Folders table missing? Falling back to empty array. Run SQL in README.");
+      return [];
+    }
+    return data as Folder[];
+  }
+
+  static async createFolder(name: string, type: 'semester' | 'subject' | 'category', parentId: string | null): Promise<Folder> {
+    const client = getSupabase();
+    if (!client) throw new Error("Database offline.");
+    const { data, error } = await client.from('folders').insert([{ name, type, parent_id: parentId }]).select().single();
+    if (error) throw error;
+    return data as Folder;
   }
 
   static async submitFeedback(text: string, userId?: string, email?: string) {
