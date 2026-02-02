@@ -60,6 +60,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
   const [draggingOverIndex, setDraggingOverIndex] = useState<number | null>(null);
   const [draggingType, setDraggingType] = useState<'folder' | 'file' | null>(null);
   const [draggingOverId, setDraggingOverId] = useState<string | null>(null);
+  const isDraggingInternal = useRef(false);
 
   useEffect(() => {
     if (initialView) setViewMode(initialView);
@@ -213,11 +214,10 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
   // Reordering Logic
   const handleItemDragStart = (e: React.DragEvent, index: number, type: 'folder' | 'file') => {
     if (!userProfile?.is_admin) return;
+    isDraggingInternal.current = true;
     setDraggedItemIndex(index);
     setDraggingType(type);
     e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('nexus-reorder-type', type);
-    e.dataTransfer.setData('nexus-reorder-index', index.toString());
   };
 
   const handleItemDragOver = (e: React.DragEvent, index: number, type: 'folder' | 'file', folderId?: string) => {
@@ -261,6 +261,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
     if (draggingType !== type || draggedItemIndex === null || draggedItemIndex === index) {
       setDraggedItemIndex(null);
       setDraggingOverIndex(null);
+      setTimeout(() => { isDraggingInternal.current = false; }, 100);
       return;
     }
 
@@ -269,11 +270,6 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
       const [dragged] = newFolders.splice(draggedItemIndex, 1);
       newFolders.splice(index, 0, dragged);
       
-      // Update local state temporarily for UI feedback
-      const globalFolders = [...folders];
-      // Note: This logic assumes we are only reordering within the same parent/type context
-      // Replace original objects in the global folders array with new positions
-      // We'll just trigger a save and fetch
       const orderedIds = newFolders.map(f => f.id);
       await NexusServer.updateFoldersOrder(orderedIds);
       fetchRegistry(true);
@@ -290,6 +286,16 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
     setDraggedItemIndex(null);
     setDraggingOverIndex(null);
     setDraggingType(null);
+    // Add small delay to prevent click fire
+    setTimeout(() => { isDraggingInternal.current = false; }, 100);
+  };
+
+  const handleItemDragEnd = () => {
+    setDraggedItemIndex(null);
+    setDraggingOverIndex(null);
+    setDraggingType(null);
+    setDraggingOverId(null);
+    setTimeout(() => { isDraggingInternal.current = false; }, 100);
   };
 
   const toggleAdminView = () => {
@@ -384,8 +390,10 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
                 onDragStart={(e) => handleItemDragStart(e, idx, 'folder')}
                 onDragOver={(e) => handleItemDragOver(e, idx, 'folder', folder.id)}
                 onDragLeave={() => { setDraggingOverIndex(null); setDraggingOverId(null); }}
+                onDragEnd={handleItemDragEnd}
                 onDrop={(e) => handleItemDrop(e, idx, 'folder', folder)}
                 onClick={() => {
+                  if (isDraggingInternal.current) return;
                   if (folder.type === 'semester') navigateTo(folder, null, null);
                   else if (folder.type === 'subject') navigateTo(activeSemester, folder, null);
                   else if (folder.type === 'category') navigateTo(activeSemester, activeSubject, folder);
@@ -434,6 +442,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
               onDragStart={(e) => handleItemDragStart(e, idx, 'file')}
               onDragOver={(e) => handleItemDragOver(e, idx, 'file')}
               onDragLeave={() => setDraggingOverIndex(null)}
+              onDragEnd={handleItemDragEnd}
               onDrop={(e) => handleItemDrop(e, idx, 'file')}
               className={`contents ${draggingOverIndex === idx && draggingType === 'file' ? 'border-orange-600 border-t-4' : ''}`}
             >
@@ -485,7 +494,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
                   }
                 }}
                 onAccess={() => NexusServer.getFileUrl(file.storage_path).then(url => window.open(url, '_blank'))} 
-                onShowDetails={() => { setSelectedFile(file); setShowDetailsModal(true); }}
+                onShowDetails={() => { if (!isDraggingInternal.current) { setSelectedFile(file); setShowDetailsModal(true); } }}
               />
             </div>
           ))}
@@ -577,7 +586,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
                 <h3 className="text-2xl font-black uppercase tracking-tighter leading-none">{selectedFile.name}</h3>
                 <p className="text-orange-500 text-[10px] font-black uppercase tracking-widest mt-2">{selectedFile.subject} • {selectedFile.semester}</p>
               </div>
-              <button onClick={() => setShowDetailsModal(false)} className="opacity-50 hover:opacity-100 transition-opacity border-none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+              <button onClick={() => setShowDetailsModal(false)} className="opacity-50 hover:opacity-100 transition-opacity border-none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             </div>
             <div className="p-8 space-y-6">
               <div>
@@ -708,7 +717,7 @@ const FileCard: React.FC<{
       onClick={onShowDetails}
       className={`
         group p-5 rounded-[30px] border border-slate-100 dark:border-white/5 bg-white dark:bg-slate-950/40 hover:border-orange-500 hover:shadow-xl transition-all relative overflow-hidden flex flex-col min-h-[160px] cursor-pointer
-        ${dragged ? 'opacity-30 grayscale scale-95' : ''}
+        ${dragged ? 'opacity-30 grayscale scale-95 pointer-events-none' : ''}
       `}
     >
       <div className="flex items-start justify-between mb-2">
