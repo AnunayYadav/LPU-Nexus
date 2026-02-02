@@ -9,7 +9,8 @@ export enum ModuleType {
   HELP = 'HELP',
   CGPA = 'CGPA',
   ATTENDANCE = 'ATTENDANCE',
-  SHARE_CGPA = 'SHARE_CGPA'
+  SHARE_CGPA = 'SHARE_CGPA',
+  ABOUT = 'ABOUT'
 }
 
 export interface UserProfile {

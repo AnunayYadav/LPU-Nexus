@@ -10,6 +10,7 @@ import FreshersKit from './components/FreshersKit.tsx';
 import CGPACalculator from './components/CGPACalculator.tsx';
 import AttendanceTracker from './components/AttendanceTracker.tsx';
 import ShareReport from './components/ShareReport.tsx';
+import AboutUs from './components/AboutUs.tsx';
 import AuthModal from './components/AuthModal.tsx';
 import { ModuleType, UserProfile } from './types.ts';
 import NexusServer from './services/nexusServer.ts';
@@ -26,6 +27,7 @@ const getModuleFromPath = (path: string): ModuleType => {
   if (p.endsWith('/global')) return ModuleType.GLOBAL;
   if (p.endsWith('/freshers')) return ModuleType.FRESHERS;
   if (p.endsWith('/help')) return ModuleType.HELP;
+  if (p.endsWith('/about')) return ModuleType.ABOUT;
   return ModuleType.DASHBOARD;
 };
 
@@ -39,6 +41,7 @@ const getPathFromModule = (module: ModuleType): string => {
     case ModuleType.GLOBAL: return '/global';
     case ModuleType.FRESHERS: return '/freshers';
     case ModuleType.HELP: return '/help';
+    case ModuleType.ABOUT: return '/about';
     case ModuleType.DASHBOARD: return '/';
     case ModuleType.SHARE_CGPA: return '/share-cgpa';
     default: return '/';
@@ -125,6 +128,7 @@ const App: React.FC = () => {
       case ModuleType.CGPA: return <CGPACalculator />;
       case ModuleType.ATTENDANCE: return <AttendanceTracker />;
       case ModuleType.SHARE_CGPA: return <ShareReport />;
+      case ModuleType.ABOUT: return <AboutUs />;
       default: return <Dashboard setModule={navigateToModule} />;
     }
   };
