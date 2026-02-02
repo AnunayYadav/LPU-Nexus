@@ -80,13 +80,12 @@ class NexusServer {
     return data;
   }
 
-  // --- FOLDER REGISTRY METHODS ---
   static async fetchFolders(): Promise<Folder[]> {
     const client = getSupabase();
     if (!client) return [];
     const { data, error } = await client.from('folders').select('*').order('name', { ascending: true });
     if (error) {
-      console.warn("Folders table missing? Falling back to empty array. Run SQL in README.");
+      console.warn("Folders fetch failed.");
       return [];
     }
     return data as Folder[];
