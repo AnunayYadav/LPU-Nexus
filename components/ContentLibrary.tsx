@@ -38,6 +38,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
   const [activeCategory, setActiveCategory] = useState<Folder | null>(null);
 
   const [isAdminView, setIsAdminView] = useState(false);
+  const [modSubTab, setModSubTab] = useState<'pending' | 'active'>('pending');
   const [isProcessing, setIsProcessing] = useState(false);
   const [processSuccess, setProcessSuccess] = useState(false);
   
@@ -45,6 +46,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
   const [showFolderModal, setShowFolderModal] = useState(false);
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [selectedFile, setSelectedFile] = useState<LibraryFile | null>(null);
   const [folderToManage, setFolderToManage] = useState<Folder | null>(null);
   const [newFolderName, setNewFolderName] = useState('');
@@ -67,7 +69,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
       const [folderList, allFiles] = await Promise.all([
         NexusServer.fetchFolders(),
         isAdminView 
-          ? NexusServer.fetchPendingFiles() 
+          ? (modSubTab === 'pending' ? NexusServer.fetchPendingFiles() : NexusServer.fetchFiles(searchQuery, 'All'))
           : (viewMode === 'my-uploads' && userProfile) 
             ? NexusServer.fetchUserFiles(userProfile.id) 
             : NexusServer.fetchFiles(searchQuery, 'All')
@@ -77,7 +79,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
 
       let data = [...allFiles];
       
-      // Strict hierarchical filtering
+      // Strict hierarchical filtering - Skip filtering for Admin Pending view to see all tasks
       if (!searchQuery && !isAdminView && viewMode === 'browse') {
         if (activeCategory) {
           data = data.filter(f => 
@@ -99,6 +101,15 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
         } else {
           data = []; 
         }
+      } else if (isAdminView && modSubTab === 'active' && !searchQuery) {
+         // Apply same hierarchy if browsing Live Registry as admin
+         if (activeCategory) {
+            data = data.filter(f => f.semester === activeSemester?.name && f.subject === activeSubject?.name && f.type === activeCategory.name);
+          } else if (activeSubject) {
+            data = data.filter(f => f.semester === activeSemester?.name && f.subject === activeSubject.name);
+          } else if (activeSemester) {
+            data = data.filter(f => f.semester === activeSemester.name);
+          }
       }
 
       data.sort((a, b) => {
@@ -114,7 +125,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
       setIsLoading(false);
       setIsNavigating(false);
     }
-  }, [isAdminView, viewMode, userProfile, searchQuery, sortBy, activeSemester, activeSubject, activeCategory]);
+  }, [isAdminView, modSubTab, viewMode, userProfile, searchQuery, sortBy, activeSemester, activeSubject, activeCategory]);
 
   const navigateTo = (sem: Folder | null, subj: Folder | null, cat: Folder | null) => {
     setIsNavigating(true);
@@ -176,6 +187,22 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
       );
       setProcessSuccess(true);
       setTimeout(() => { setShowUploadModal(false); setProcessSuccess(false); fetchRegistry(true); }, 1500);
+    } catch (e: any) { alert(e.message); } finally { setIsProcessing(false); }
+  };
+
+  const handleDirectEdit = async () => {
+    if (!selectedFile || !metaForm.name.trim()) return;
+    setIsProcessing(true);
+    try {
+      await NexusServer.requestUpdate(selectedFile.id, {
+        name: metaForm.name,
+        description: metaForm.description || '',
+        subject: metaForm.subject,
+        semester: metaForm.semester,
+        type: metaForm.type
+      }, true);
+      setShowEditModal(false);
+      fetchRegistry(true);
     } catch (e: any) { alert(e.message); } finally { setIsProcessing(false); }
   };
 
@@ -271,7 +298,24 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
         </div>
       </header>
 
-      {viewMode === 'browse' && !isAdminView && (
+      {isAdminView && (
+        <div className="flex gap-2 bg-slate-100 dark:bg-black p-1 rounded-2xl w-fit">
+           <button 
+            onClick={() => setModSubTab('pending')}
+            className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${modSubTab === 'pending' ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/20' : 'text-slate-500 hover:text-orange-600'}`}
+           >
+             Pending Review
+           </button>
+           <button 
+            onClick={() => setModSubTab('active')}
+            className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${modSubTab === 'active' ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/20' : 'text-slate-500 hover:text-orange-600'}`}
+           >
+             Live Registry
+           </button>
+        </div>
+      )}
+
+      {(viewMode === 'browse' && !isAdminView) || (isAdminView && modSubTab === 'active') ? (
         <div className="flex gap-2 w-full">
           <div className="relative flex-1">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
@@ -285,13 +329,13 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`}><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
           </button>
         </div>
-      )}
+      ) : null}
 
       {isLoading && folders.length === 0 ? (
         <div className="col-span-full py-40 text-center animate-pulse text-slate-400 font-black uppercase text-[10px] tracking-[0.2em]">Accessing Node...</div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
-          {!searchQuery && !isAdminView && viewMode === 'browse' && (
+          {(!searchQuery && !isAdminView && viewMode === 'browse') || (isAdminView && modSubTab === 'active' && !searchQuery) ? (
             currentFolders.map(folder => (
               <div 
                 key={folder.id} 
@@ -332,13 +376,14 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
                 <div className="absolute -right-2 -bottom-2 opacity-5 group-hover:scale-110 transition-transform"><FolderIcon type={folder.type} size="w-24 h-24" /></div>
               </div>
             ))
-          )}
+          ) : null}
 
           {files.map(file => (
             <FileCard 
               key={file.id} 
               file={file} 
               isAdmin={isAdminView} 
+              modSubTab={modSubTab}
               isPersonal={viewMode === 'my-uploads'} 
               onApprove={() => {
                 setIsProcessing(true);
@@ -353,6 +398,25 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
                     .then(() => fetchRegistry(true))
                     .finally(() => setIsProcessing(false));
                 }
+              }}
+              onDemote={() => {
+                 if (confirm("Send this file back to pending review?")) {
+                  setIsProcessing(true);
+                  NexusServer.demoteFile(file.id)
+                    .then(() => fetchRegistry(true))
+                    .finally(() => setIsProcessing(false));
+                }
+              }}
+              onEdit={() => {
+                 setSelectedFile(file);
+                 setMetaForm({
+                   name: file.name,
+                   description: file.description || '',
+                   semester: file.semester,
+                   subject: file.subject,
+                   type: file.type
+                 });
+                 setShowEditModal(true);
               }}
               onAccess={() => NexusServer.getFileUrl(file.storage_path).then(url => window.open(url, '_blank'))} 
               onShowDetails={() => { setSelectedFile(file); setShowDetailsModal(true); }}
@@ -383,7 +447,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
         </div>
       )}
 
-      {/* RENAME MODAL */}
+      {/* RENAME FOLDER MODAL */}
       {showRenameModal && userProfile?.is_admin && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
           <div className="bg-white dark:bg-slate-950 rounded-[30px] w-full max-w-sm shadow-2xl border border-white/10 overflow-hidden flex flex-col">
@@ -395,6 +459,42 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
               <input autoFocus value={newFolderName} onChange={e => setNewFolderName(e.target.value)} className="w-full bg-slate-100 dark:bg-black p-4 rounded-xl font-bold border-none text-sm dark:text-white outline-none focus:ring-2 focus:ring-orange-600" />
               <button onClick={handleRenameFolder} disabled={isProcessing} className="w-full bg-orange-600 text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 disabled:opacity-50 transition-all">
                 {isProcessing ? 'Syncing...' : 'Update Name'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ADMIN EDIT FILE MODAL */}
+      {showEditModal && selectedFile && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+          <div className="bg-white dark:bg-slate-950 rounded-[40px] w-full max-w-md shadow-2xl border border-white/10 overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="bg-black p-6 text-white flex justify-between items-center">
+              <h3 className="text-lg font-black uppercase tracking-widest">Edit Entry</h3>
+              <button onClick={() => setShowEditModal(false)} className="opacity-50 hover:opacity-100 transition-opacity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+            </div>
+            <div className="p-6 space-y-6 overflow-y-auto no-scrollbar flex-1">
+              <div className="space-y-4">
+                <input value={metaForm.name} onChange={e => setMetaForm({...metaForm, name: e.target.value})} placeholder="Display Alias" className="w-full bg-slate-100 dark:bg-black p-4 rounded-2xl font-bold border-none text-sm dark:text-white outline-none focus:ring-2 focus:ring-orange-500" />
+                <textarea value={metaForm.description} onChange={e => setMetaForm({...metaForm, description: e.target.value})} placeholder="Registry Notes" className="w-full bg-slate-100 dark:bg-black p-4 rounded-2xl font-bold border-none text-sm dark:text-white h-24 resize-none outline-none focus:ring-2 focus:ring-orange-500" />
+              </div>
+              <div className="space-y-4">
+                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Hierarchy Shift</h4>
+                <div className="flex flex-wrap gap-2">
+                  {modalAvailableSemesters.map(sem => (
+                    <button key={sem.id} onClick={() => setMetaForm({...metaForm, semester: sem.name, subject: '', type: ''})} className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${metaForm.semester === sem.name ? 'bg-orange-600 text-white shadow-lg' : 'bg-slate-100 dark:bg-black text-slate-500 hover:text-orange-500'}`}>{sem.name}</button>
+                  ))}
+                </div>
+                {metaForm.semester && (
+                  <div className="flex flex-wrap gap-2 animate-fade-in">
+                    {modalAvailableSubjects.map(sub => (
+                      <button key={sub.id} onClick={() => setMetaForm({...metaForm, subject: sub.name, type: ''})} className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${metaForm.subject === sub.name ? 'bg-orange-600/20 text-orange-600' : 'bg-slate-100 dark:bg-black text-slate-500 hover:text-orange-500'}`}>{sub.name}</button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <button onClick={handleDirectEdit} disabled={isProcessing} className="w-full bg-orange-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl active:scale-95 disabled:opacity-30 transition-all flex items-center justify-center gap-3">
+                {isProcessing ? <div className="w-5 h-5 border-2 border-white dark:border-white border-t-transparent rounded-full animate-spin" /> : 'Save Parameters'}
               </button>
             </div>
           </div>
@@ -517,12 +617,15 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
 const FileCard: React.FC<{ 
   file: LibraryFile; 
   isAdmin: boolean; 
+  modSubTab: 'pending' | 'active';
   isPersonal?: boolean;
   onApprove?: () => void; 
   onReject?: () => void;
+  onDemote?: () => void;
+  onEdit?: () => void;
   onAccess: () => void; 
   onShowDetails: () => void;
-}> = ({ file, isAdmin, isPersonal, onApprove, onReject, onAccess, onShowDetails }) => {
+}> = ({ file, isAdmin, modSubTab, isPersonal, onApprove, onReject, onDemote, onEdit, onAccess, onShowDetails }) => {
   const statusConfig = {
     pending: { label: 'Queued', color: 'text-orange-500', bg: 'bg-orange-500/10' },
     approved: { label: 'Verified', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
@@ -545,19 +648,38 @@ const FileCard: React.FC<{
       <div className="pt-3 mt-auto border-t border-slate-50 dark:border-white/5 flex items-center justify-between">
         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{file.size}</span>
         {isAdmin ? (
-          <div className="flex gap-2">
-            <button 
-              onClick={(e) => { e.stopPropagation(); onReject?.(); }} 
-              className="bg-black text-red-500 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase shadow-lg hover:bg-red-500 hover:text-white transition-colors"
-            >
-              Reject
-            </button>
-            <button 
-              onClick={(e) => { e.stopPropagation(); onApprove?.(); }} 
-              className="bg-black text-emerald-500 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase shadow-lg hover:bg-emerald-500 hover:text-white transition-colors"
-            >
-              Approve
-            </button>
+          <div className="flex gap-1.5">
+            {modSubTab === 'pending' ? (
+               <>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onReject?.(); }} 
+                  className="bg-black text-red-500 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase shadow-lg hover:bg-red-500 hover:text-white transition-colors"
+                >
+                  Reject
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onApprove?.(); }} 
+                  className="bg-black text-emerald-500 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase shadow-lg hover:bg-emerald-500 hover:text-white transition-colors"
+                >
+                  Approve
+                </button>
+               </>
+            ) : (
+              <>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onEdit?.(); }} 
+                  className="bg-black text-orange-600 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase shadow-lg hover:bg-orange-600 hover:text-white transition-colors"
+                >
+                  Edit
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onDemote?.(); }} 
+                  className="bg-black text-slate-400 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase shadow-lg hover:bg-slate-400 hover:text-black transition-colors"
+                >
+                  Demote
+                </button>
+              </>
+            )}
           </div>
         ) : (
           <button 

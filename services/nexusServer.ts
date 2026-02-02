@@ -290,6 +290,17 @@ class NexusServer {
     }
   }
 
+  static async demoteFile(id: string): Promise<void> {
+    const client = getSupabase();
+    if (!client) throw new Error('Database connection unavailable.');
+    try {
+      const { error } = await client.from('documents').update({ status: 'pending' }).eq('id', id);
+      if (error) throw error;
+    } catch (e: any) {
+      throw new Error(`Demotion failed: ${e.message}`);
+    }
+  }
+
   static async rejectFile(id: string): Promise<void> {
     const client = getSupabase();
     if (!client) throw new Error('Database connection unavailable.');
