@@ -129,7 +129,7 @@ class NexusServer {
     try {
       let supabaseQuery = client
         .from('documents')
-        .select('*')
+        .select('*, profiles(email)')
         .eq('status', 'approved') 
         .order('created_at', { ascending: false });
 
@@ -155,6 +155,7 @@ class NexusServer {
         size: item.size,
         storage_path: item.storage_path,
         uploader_id: item.uploader_id,
+        uploader_email: item.profiles?.email,
         admin_notes: item.admin_notes,
         isUserUploaded: true,
         pending_update: item.pending_update
@@ -171,7 +172,7 @@ class NexusServer {
     try {
       const { data, error } = await client
         .from('documents')
-        .select('*')
+        .select('*, profiles(email)')
         .eq('uploader_id', userId)
         .order('created_at', { ascending: false });
       if (error) throw new Error(`Fetch failed: ${error.message}`);
@@ -187,6 +188,7 @@ class NexusServer {
         size: item.size,
         storage_path: item.storage_path,
         uploader_id: item.uploader_id,
+        uploader_email: item.profiles?.email,
         admin_notes: item.admin_notes,
         isUserUploaded: true,
         pending_update: item.pending_update
@@ -202,7 +204,7 @@ class NexusServer {
     try {
       const { data, error } = await client
         .from('documents')
-        .select('*')
+        .select('*, profiles(email)')
         .or('status.eq.pending,pending_update.not.is.null')
         .order('created_at', { ascending: true });
       if (error) throw new Error(`Moderation fetch failed: ${error.message}`);
@@ -218,6 +220,7 @@ class NexusServer {
         size: item.size,
         storage_path: item.storage_path,
         uploader_id: item.uploader_id,
+        uploader_email: item.profiles?.email,
         admin_notes: item.admin_notes,
         isUserUploaded: true,
         pending_update: item.pending_update
@@ -284,6 +287,25 @@ class NexusServer {
       }
     } catch (e: any) {
       throw new Error(`Approval failed: ${e.message}`);
+    }
+  }
+
+  static async rejectFile(id: string): Promise<void> {
+    const client = getSupabase();
+    if (!client) throw new Error('Database connection unavailable.');
+    try {
+      const { data: record, error: fetchError } = await client.from('documents').select('status, storage_path').eq('id', id).single();
+      if (fetchError || !record) throw new Error("Could not find record.");
+      
+      // If it's a pending initial upload, we delete it entirely.
+      if (record.status === 'pending') {
+        await this.deleteFile(id, record.storage_path);
+      } else {
+        // If it's an approved file with a pending update, we just reject the update.
+        await this.rejectUpdate(id);
+      }
+    } catch (e: any) {
+      throw new Error(`Rejection failed: ${e.message}`);
     }
   }
 
