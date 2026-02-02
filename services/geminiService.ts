@@ -3,33 +3,28 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { ResumeAnalysisResult, Flashcard } from "../types.ts";
 
 /**
- * Ensures process.env.API_KEY is available even if the global shim in index.tsx 
- * was bypassed due to ESM hoisting.
+ * Utility to ensure process.env.API_KEY is populated from Vite's environment.
+ * We use literal paths to ensure the bundler performs static replacement.
  */
-const syncEnv = () => {
+const ensureApiKey = () => {
   if (typeof process !== 'undefined' && !process.env.API_KEY) {
-    try {
-      // @ts-ignore
-      if (typeof import.meta !== 'undefined' && import.meta.env) {
-        // @ts-ignore
-        process.env.API_KEY = import.meta.env.VITE_API_KEY || import.meta.env.API_KEY;
-      }
-    } catch (e) {
-      // Ignore errors during env sync
-    }
+    // @ts-ignore
+    process.env.API_KEY = import.meta.env.VITE_API_KEY || import.meta.env.API_KEY;
+  }
+  
+  if (!process.env.API_KEY) {
+    throw new Error(
+      "Gemini API Key is missing. If you are in production, please ensure VITE_API_KEY is set in Vercel and a new deployment has been triggered."
+    );
   }
 };
-
-// Run immediately on module load
-syncEnv();
 
 /**
  * Module A: The Placement Prefect
  * Analyzes resume against job description.
  */
 export const analyzeResume = async (resumeText: string, jdText: string, deepAnalysis: boolean = false): Promise<ResumeAnalysisResult> => {
-  syncEnv();
-  if (!process.env.API_KEY) throw new Error("Gemini API Key is missing. Please check environment variables.");
+  ensureApiKey();
 
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const modelId = "gemini-3-flash-preview"; 
@@ -98,7 +93,7 @@ export const askAcademicOracle = async (
   contextText: string, 
   chatHistory: { role: string; text: string }[]
 ): Promise<string> => {
-  syncEnv();
+  ensureApiKey();
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const modelId = "gemini-3-flash-preview";
 
@@ -139,7 +134,7 @@ export const askAcademicOracle = async (
 };
 
 export const generateFlashcards = async (contextText: string): Promise<Flashcard[]> => {
-  syncEnv();
+  ensureApiKey();
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const modelId = "gemini-3-flash-preview";
   const prompt = `
@@ -182,7 +177,7 @@ export const generateFlashcards = async (contextText: string): Promise<Flashcard
 }
 
 export const generateFlowchart = async (contextText: string): Promise<string> => {
-  syncEnv();
+  ensureApiKey();
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const modelId = "gemini-3-flash-preview";
   const prompt = `
@@ -208,8 +203,7 @@ export const generateFlowchart = async (contextText: string): Promise<string> =>
 }
 
 export const searchGlobalOpportunities = async (query: string) => {
-  syncEnv();
-  if (!process.env.API_KEY) throw new Error("Gemini API Key is missing.");
+  ensureApiKey();
 
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const modelId = "gemini-3-flash-preview"; 

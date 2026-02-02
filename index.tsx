@@ -1,29 +1,34 @@
 
 /**
- * Environment Shim
- * Must run before any imports that might initialize the Gemini SDK.
- * Vite requires literal 'import.meta.env.VITE_API_KEY' for static replacement.
+ * Global Environment Shim
+ * Bridges Vite's build-time environment variables to process.env.API_KEY.
+ * This MUST run before any other application code.
  */
-(function() {
+(function initializeNexusEnvironment() {
   const g = (typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : ({} as any));
-  g.process = g.process || { env: {} };
   
+  // Initialize process object if missing
+  g.process = g.process || { env: {} };
+  g.process.env = g.process.env || {};
+
   try {
-    // Check for import.meta.env safely
+    /**
+     * VITE STATIC REPLACEMENT:
+     * We must use the literal strings below so Vite can find and replace them 
+     * with the actual values from the Vercel/Local environment at build time.
+     */
     // @ts-ignore
-    if (typeof import.meta !== 'undefined' && import.meta.env) {
-      // @ts-ignore
-      const vKey = import.meta.env.VITE_API_KEY;
-      // @ts-ignore
-      const aKey = import.meta.env.API_KEY;
-      
-      const key = vKey || aKey;
-      if (key) {
-        g.process.env.API_KEY = key;
-      }
+    const vKey = import.meta.env?.VITE_API_KEY;
+    // @ts-ignore
+    const aKey = import.meta.env?.API_KEY;
+    
+    const key = vKey || aKey;
+    
+    if (key) {
+      g.process.env.API_KEY = key;
     }
   } catch (e) {
-    console.warn("Nexus Environment Shim: Unable to access import.meta.env", e);
+    // Silently fail if import.meta is not supported in the current context
   }
 })();
 
