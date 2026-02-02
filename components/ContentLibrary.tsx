@@ -7,8 +7,8 @@ const FolderIcon = ({ type, size = "w-7 h-7" }: { type: 'semester' | 'subject' |
   const colors = {
     root: 'text-slate-400',
     semester: 'text-orange-600',
-    subject: 'text-blue-600',
-    category: 'text-emerald-600'
+    subject: 'text-orange-500', // Changed from blue to orange variant
+    category: 'text-amber-600'  // Changed from emerald to amber/gold
   };
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={`${size} ${colors[type]} mb-2 transition-colors`}>
@@ -287,7 +287,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
                   else if (folder.type === 'category') navigateTo(activeSemester, activeSubject, folder);
                 }} 
                 className={`
-                  group p-5 rounded-[30px] border transition-all cursor-pointer relative overflow-hidden flex flex-col justify-center min-h-[130px]
+                  group p-5 rounded-[30px] border transition-all cursor-pointer relative overflow-hidden flex flex-col justify-center min-h-[140px]
                   ${draggingOverId === folder.id 
                     ? 'border-orange-500 bg-orange-500/10 scale-105 shadow-xl z-10' 
                     : 'border-slate-100 dark:border-white/5 bg-white dark:bg-slate-950/40 hover:border-orange-500/50 hover:shadow-lg'
@@ -296,13 +296,23 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
               >
                 {userProfile?.is_admin && (
                   <div className="absolute top-3 right-3 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                    <button onClick={(e) => { e.stopPropagation(); setFolderToManage(folder); setNewFolderName(folder.name); setShowRenameModal(true); }} className="p-1.5 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-white/10 text-blue-500 hover:bg-blue-50 transition-colors shadow-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-                    <button onClick={(e) => handleDeleteFolder(folder, e)} className="p-1.5 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-white/10 text-red-500 hover:bg-red-50 transition-colors shadow-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setFolderToManage(folder); setNewFolderName(folder.name); setShowRenameModal(true); }} 
+                      className="p-1.5 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-white/10 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition-colors shadow-sm"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                    <button 
+                      onClick={(e) => handleDeleteFolder(folder, e)} 
+                      className="p-1.5 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-white/10 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors shadow-sm"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+                    </button>
                   </div>
                 )}
-                <FolderIcon type={folder.type} size="w-9 h-9" />
+                <FolderIcon type={folder.type} size="w-10 h-10" />
                 <h3 className="text-sm md:text-base font-black text-slate-800 dark:text-white tracking-tight uppercase leading-tight mt-1">{folder.name}</h3>
-                <div className="absolute -right-2 -bottom-2 opacity-5 group-hover:scale-110 transition-transform"><FolderIcon type={folder.type} size="w-20 h-20" /></div>
+                <div className="absolute -right-2 -bottom-2 opacity-5 group-hover:scale-110 transition-transform"><FolderIcon type={folder.type} size="w-24 h-24" /></div>
               </div>
             ))
           )}
@@ -342,17 +352,17 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
         </div>
       )}
 
-      {/* RENAME MODAL */}
+      {/* RENAME MODAL - CHANGED FROM BLUE TO ORANGE/BLACK THEME */}
       {showRenameModal && userProfile?.is_admin && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
           <div className="bg-white dark:bg-slate-950 rounded-[30px] w-full max-w-sm shadow-2xl border border-white/10 overflow-hidden flex flex-col">
-            <div className="bg-blue-900 p-6 text-white flex justify-between items-center">
-              <h3 className="text-lg font-black uppercase tracking-widest">Rename</h3>
+            <div className="bg-slate-900 p-6 text-white flex justify-between items-center">
+              <h3 className="text-lg font-black uppercase tracking-widest leading-none">Rename Node</h3>
               <button onClick={() => setShowRenameModal(false)} className="opacity-50 hover:opacity-100"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             </div>
             <div className="p-6 space-y-4">
-              <input autoFocus value={newFolderName} onChange={e => setNewFolderName(e.target.value)} className="w-full bg-slate-100 dark:bg-black/40 p-4 rounded-xl font-bold border-none text-sm dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
-              <button onClick={handleRenameFolder} disabled={isProcessing} className="w-full bg-blue-600 text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 disabled:opacity-50 transition-all">
+              <input autoFocus value={newFolderName} onChange={e => setNewFolderName(e.target.value)} className="w-full bg-slate-100 dark:bg-black/40 p-4 rounded-xl font-bold border-none text-sm dark:text-white outline-none focus:ring-2 focus:ring-orange-600" />
+              <button onClick={handleRenameFolder} disabled={isProcessing} className="w-full bg-orange-600 text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 disabled:opacity-50 transition-all">
                 {isProcessing ? 'Syncing...' : 'Update Name'}
               </button>
             </div>
@@ -368,7 +378,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
               <h3 className="text-lg font-black uppercase tracking-widest">Registry Sync</h3>
               <button onClick={() => setShowUploadModal(false)} className="opacity-50 hover:opacity-100 transition-opacity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             </div>
-            <div className="p-6 space-y-6 overflow-y-auto no-scrollbar">
+            <div className="p-6 space-y-6 overflow-y-auto no-scrollbar flex-1">
               {processSuccess ? (
                 <div className="text-center py-10 animate-fade-in flex flex-col items-center">
                   <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mb-4 text-green-500 shadow-xl shadow-green-500/10">
@@ -394,22 +404,26 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
                     {metaForm.semester && (
                       <div className="flex flex-wrap gap-2 animate-fade-in">
                         {modalAvailableSubjects.map(sub => (
-                          <button key={sub.id} onClick={() => setMetaForm({...metaForm, subject: sub.name, type: ''})} className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase border transition-all ${metaForm.subject === sub.name ? 'bg-blue-600 text-white shadow-lg border-blue-700' : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-500 hover:border-blue-500'}`}>{sub.name}</button>
+                          <button key={sub.id} onClick={() => setMetaForm({...metaForm, subject: sub.name, type: ''})} className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase border transition-all ${metaForm.subject === sub.name ? 'bg-orange-600/10 border-orange-600/20 text-orange-600' : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-500 hover:border-orange-500'}`}>{sub.name}</button>
                         ))}
                       </div>
                     )}
                     {metaForm.subject && (
                       <div className="flex flex-wrap gap-2 animate-fade-in">
                         {modalAvailableCategories.map(cat => (
-                          <button key={cat.id} onClick={() => setMetaForm({...metaForm, type: cat.name})} className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase border transition-all ${metaForm.type === cat.name ? 'bg-emerald-600 text-white shadow-lg border-emerald-700' : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-500 hover:border-emerald-500'}`}>{cat.name}</button>
+                          <button key={cat.id} onClick={() => setMetaForm({...metaForm, type: cat.name})} className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase border transition-all ${metaForm.type === cat.name ? 'bg-orange-500 text-white shadow-lg border-orange-600' : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-500 hover:border-orange-500'}`}>{cat.name}</button>
                         ))}
                       </div>
                     )}
                   </div>
-                  <button onClick={handleUpload} disabled={isProcessing || !metaForm.name.trim() || !metaForm.semester || !metaForm.subject || !metaForm.type} className="w-full bg-slate-900 dark:bg-white text-white dark:text-black py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl active:scale-95 disabled:opacity-30 transition-all flex items-center justify-center gap-3">{isProcessing ? <div className="w-5 h-5 border-2 border-white dark:border-black border-t-transparent rounded-full animate-spin" /> : 'Deploy to Registry'}</button>
                 </>
               )}
             </div>
+            {!processSuccess && (
+              <div className="p-6 border-t border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-slate-900/50">
+                <button onClick={handleUpload} disabled={isProcessing || !metaForm.name.trim() || !metaForm.semester || !metaForm.subject || !metaForm.type} className="w-full bg-slate-900 dark:bg-white text-white dark:text-black py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl active:scale-95 disabled:opacity-30 transition-all flex items-center justify-center gap-3">{isProcessing ? <div className="w-5 h-5 border-2 border-white dark:border-black border-t-transparent rounded-full animate-spin" /> : 'Deploy to Registry'}</button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -434,7 +448,7 @@ const FileCard: React.FC<{
   const status = statusConfig[file.status] || statusConfig.pending;
 
   return (
-    <div className="group p-5 rounded-[30px] border border-slate-100 dark:border-white/5 bg-white dark:bg-slate-950/40 hover:border-orange-500 hover:shadow-xl transition-all relative overflow-hidden flex flex-col min-h-[150px]">
+    <div className="group p-5 rounded-[30px] border border-slate-100 dark:border-white/5 bg-white dark:bg-slate-950/40 hover:border-orange-500 hover:shadow-xl transition-all relative overflow-hidden flex flex-col min-h-[160px]">
       <div className="flex items-start justify-between mb-2">
         <div className="w-9 h-9 bg-slate-50 dark:bg-white/5 rounded-xl flex items-center justify-center group-hover:text-orange-500 transition-colors">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>

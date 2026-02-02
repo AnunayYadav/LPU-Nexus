@@ -33,9 +33,9 @@ const ShareReport: React.FC = () => {
 
   const academicStanding = useMemo(() => {
     const sgpa = parseFloat(data.sgpa);
-    if (sgpa >= 9.5) return { label: "Elite Scholar", color: "text-purple-500", bg: "bg-purple-500/10" };
-    if (sgpa >= 9.0) return { label: "Exceptional Performer", color: "text-emerald-500", bg: "bg-emerald-500/10" };
-    if (sgpa >= 8.5) return { label: "High Achiever", color: "text-blue-500", bg: "bg-blue-500/10" };
+    if (sgpa >= 9.5) return { label: "Elite Scholar", color: "text-orange-500", bg: "bg-orange-500/10" };
+    if (sgpa >= 9.0) return { label: "Exceptional Performer", color: "text-amber-500", bg: "bg-amber-500/10" };
+    if (sgpa >= 8.5) return { label: "High Achiever", color: "text-orange-600", bg: "bg-orange-600/10" };
     if (sgpa >= 7.5) return { label: "Strong Candidate", color: "text-orange-500", bg: "bg-orange-500/10" };
     return { label: "Academic Explorer", color: "text-slate-500", bg: "bg-slate-500/10" };
   }, [data.sgpa]);
@@ -49,10 +49,10 @@ const ShareReport: React.FC = () => {
   });
 
   return (
-    <div className="max-w-xl mx-auto animate-fade-in py-10">
+    <div className="max-w-xl mx-auto animate-fade-in py-10 px-4">
       <div className="relative glass-panel rounded-[48px] overflow-hidden shadow-2xl border-none p-1 bg-white dark:bg-slate-950">
-        {/* Holographic Border Effect */}
-        <div className="absolute inset-0 bg-gradient-to-tr from-orange-500/20 via-blue-500/10 to-red-600/20 opacity-30 pointer-events-none" />
+        {/* Holographic Border Effect - Nudged to Orange/Red */}
+        <div className="absolute inset-0 bg-gradient-to-tr from-orange-500/20 via-red-500/10 to-orange-600/20 opacity-30 pointer-events-none" />
         
         <div className="relative z-10 p-8 md:p-12 space-y-10">
           <header className="flex items-center justify-between">
@@ -105,7 +105,7 @@ const ShareReport: React.FC = () => {
             <div className="flex flex-col sm:flex-row gap-3">
               <button 
                 onClick={() => window.location.href = '/cgpa'}
-                className="flex-1 bg-slate-900 dark:bg-white text-white dark:text-black py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all hover:scale-105 active:scale-95"
+                className="flex-1 bg-slate-900 dark:bg-white text-white dark:text-black py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all hover:scale-105 active:scale-95 shadow-xl shadow-slate-900/10 dark:shadow-white/5"
               >
                 Create My Report
               </button>
