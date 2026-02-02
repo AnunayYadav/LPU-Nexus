@@ -16,71 +16,6 @@ interface ContentLibraryProps {
   initialView?: 'browse' | 'my-uploads';
 }
 
-const CustomDropdown: React.FC<{
-  label: string;
-  value: string;
-  options: { label: string; value: string }[];
-  onChange: (val: string) => void;
-  className?: string;
-  placeholder?: string;
-  disabled?: boolean;
-}> = ({ label, value, options, onChange, className = "", placeholder = "", disabled = false }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const portalRef = useRef<HTMLDivElement>(null);
-  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0, direction: 'down' as 'up' | 'down' });
-
-  const updateCoords = () => {
-    if (dropdownRef.current) {
-      const rect = dropdownRef.current.getBoundingClientRect();
-      setCoords({ top: rect.bottom + 8, left: rect.left, width: rect.width, direction: 'down' });
-    }
-  };
-
-  useLayoutEffect(() => {
-    if (isOpen) {
-      updateCoords();
-      window.addEventListener('scroll', updateCoords, true);
-    }
-    return () => window.removeEventListener('scroll', updateCoords, true);
-  }, [isOpen]);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (dropdownRef.current && !dropdownRef.current.contains(target) && portalRef.current && !portalRef.current.contains(target)) setIsOpen(false);
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const selectedOption = options.find(opt => opt.value === value);
-  const displayLabel = selectedOption ? selectedOption.label : (placeholder || label);
-
-  return (
-    <div className={`relative ${className}`} ref={dropdownRef}>
-      <button 
-        type="button" 
-        disabled={disabled}
-        onClick={() => setIsOpen(!isOpen)} 
-        className={`flex items-center justify-between w-full px-5 py-3 rounded-2xl border transition-all duration-300 font-black text-[11px] uppercase tracking-widest ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${isOpen ? 'bg-white dark:bg-white/10 border-orange-500 shadow-lg' : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-white/5 text-slate-700 dark:text-white'}`}
-      >
-        <span className="truncate">{displayLabel}</span>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className={`w-3.5 h-3.5 ml-2 transition-transform ${isOpen ? 'rotate-180 text-orange-500' : 'text-slate-400'}`}><polyline points="6 9 12 15 18 9" /></svg>
-      </button>
-      {isOpen && coords.width > 0 && createPortal(
-        <div ref={portalRef} className="fixed z-[999] glass-panel rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-black" style={{ top: coords.top, left: coords.left, width: coords.width }}>
-          <div className="py-1 max-h-48 overflow-y-auto no-scrollbar">
-            {options.map((opt) => (
-              <button key={opt.value} type="button" onClick={() => { onChange(opt.value); setIsOpen(false); }} className={`w-full text-left px-5 py-3 text-[11px] font-black uppercase tracking-widest transition-colors ${value === opt.value ? 'bg-orange-600 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-white/5 hover:text-orange-500'}`}>{opt.label}</button>
-            ))}
-          </div>
-        </div>, document.body
-      )}
-    </div>
-  );
-};
-
 const FolderIcon = ({ type, size = "w-10 h-10" }: { type: 'semester' | 'subject' | 'category' | 'root', size?: string }) => {
   const colors = {
     root: 'text-slate-400',
@@ -89,7 +24,7 @@ const FolderIcon = ({ type, size = "w-10 h-10" }: { type: 'semester' | 'subject'
     category: 'text-emerald-600'
   };
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={`${size} ${colors[type]} mb-4`}>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={`${size} ${colors[type]} mb-4 transition-colors`}>
       <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
     </svg>
   );
@@ -182,7 +117,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
   };
 
   const handleUpload = async () => {
-    if (!pendingFile || !metaForm.name.trim() || !userProfile) return;
+    if (!pendingFile || !metaForm.name.trim() || !userProfile || !metaForm.semester || !metaForm.subject || !metaForm.type) return;
     setIsProcessing(true);
     try {
       await NexusServer.uploadFile(
@@ -200,20 +135,22 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
     } catch (e: any) { alert(e.message); } finally { setIsProcessing(false); }
   };
 
-  const isSearchActive = searchQuery.trim() !== '';
-
-  // Get dynamic options for contribute modal based on hierarchy
-  const availableSemesters = folders.filter(f => f.type === 'semester');
-  const availableSubjects = folders.filter(f => f.type === 'subject' && f.parent_id === availableSemesters.find(s => s.name === metaForm.semester)?.id);
-  const availableCategories = folders.filter(f => f.type === 'category' && f.parent_id === availableSubjects.find(s => s.name === metaForm.subject)?.id);
-
-  // Helper for hierarchical display
+  // Helper for hierarchical display in main view
   const currentFolders = folders.filter(f => {
     if (!activeSemester) return f.type === 'semester';
     if (!activeSubject) return f.type === 'subject' && f.parent_id === activeSemester.id;
     if (!activeCategory) return f.type === 'category' && f.parent_id === activeSubject.id;
     return false;
   });
+
+  // Visual Path Selector Logic for Modal
+  const modalAvailableSemesters = folders.filter(f => f.type === 'semester');
+  const modalSelectedSemester = folders.find(f => f.name === metaForm.semester && f.type === 'semester');
+  
+  const modalAvailableSubjects = folders.filter(f => f.type === 'subject' && f.parent_id === modalSelectedSemester?.id);
+  const modalSelectedSubject = folders.find(f => f.name === metaForm.subject && f.type === 'subject');
+  
+  const modalAvailableCategories = folders.filter(f => f.type === 'category' && f.parent_id === modalSelectedSubject?.id);
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 md:space-y-10 animate-fade-in pb-20 px-4 md:px-0">
@@ -255,22 +192,19 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
       </header>
 
       {viewMode === 'browse' && (
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-          <div className="md:col-span-8 relative">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center mb-8">
+          <div className="md:col-span-12 relative">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-            <input type="text" placeholder="Global search across all folders..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full pl-14 pr-6 py-4 bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-2xl text-[11px] font-black uppercase tracking-widest outline-none focus:ring-2 focus:ring-orange-500" />
-          </div>
-          <div className="md:col-span-4">
-            <CustomDropdown label="Sort" value={sortBy} options={SORT_OPTIONS} onChange={setSortBy} />
+            <input type="text" placeholder="Search library..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full pl-14 pr-6 py-4 bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-2xl text-[11px] font-black uppercase tracking-widest outline-none focus:ring-2 focus:ring-orange-500 transition-all" />
           </div>
         </div>
       )}
 
       {isLoading ? (
-        <div className="col-span-full py-40 text-center animate-pulse text-slate-400 font-black uppercase text-xs">Syncing Registry...</div>
+        <div className="col-span-full py-40 text-center animate-pulse text-slate-400 font-black uppercase text-xs tracking-widest">Syncing Registry...</div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
-          {/* FOLDERS GRID - Only show hierarchical if not searching */}
+          {/* FOLDERS GRID */}
           {!searchQuery && !isAdminView && viewMode === 'browse' && (
             currentFolders.map(folder => (
               <div 
@@ -302,7 +236,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
           ))}
 
           {files.length === 0 && currentFolders.length === 0 && (
-            <div className="col-span-full py-40 text-center text-slate-400 font-black uppercase text-xs">This directory is empty.</div>
+            <div className="col-span-full py-40 text-center text-slate-400 font-black uppercase text-xs tracking-[0.2em] opacity-40">This directory is empty.</div>
           )}
         </div>
       )}
@@ -314,19 +248,19 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
             <div className="bg-slate-900 p-8 text-white relative">
               <button onClick={() => setShowFolderModal(false)} className="absolute top-6 right-6 p-2 opacity-50 hover:opacity-100"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
               <h3 className="text-2xl font-black tracking-tighter uppercase">New Folder</h3>
-              <p className="text-white/40 text-[10px] font-black uppercase tracking-widest">
+              <p className="text-white/40 text-[10px] font-black uppercase tracking-widest mt-1">
                 Create in {activeSubject?.name || activeSemester?.name || 'Root'}
               </p>
             </div>
             <div className="p-8 space-y-4">
               <input 
                 autoFocus
-                placeholder="e.g. Sem 4, CSE310, PYQs..."
+                placeholder="e.g. Sem 4, CSE310..."
                 value={newFolderName}
                 onChange={e => setNewFolderName(e.target.value)}
                 className="w-full bg-slate-100 dark:bg-black/40 p-5 rounded-2xl font-bold border border-transparent focus:ring-2 focus:ring-orange-500 outline-none dark:text-white"
               />
-              <button onClick={handleCreateFolder} disabled={isProcessing} className="w-full bg-orange-600 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl active:scale-95 disabled:opacity-50">
+              <button onClick={handleCreateFolder} disabled={isProcessing} className="w-full bg-orange-600 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl active:scale-95 disabled:opacity-50 transition-all">
                 {isProcessing ? 'Creating...' : 'Create Folder'}
               </button>
             </div>
@@ -334,70 +268,126 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
         </div>
       )}
 
-      {/* UPLOAD MODAL */}
+      {/* ENHANCED UPLOAD MODAL WITH VISUAL SELECTOR */}
       {showUploadModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-          <div className="bg-white dark:bg-slate-950 rounded-[40px] w-full max-w-lg shadow-2xl border border-white/10 overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="bg-white dark:bg-slate-950 rounded-[40px] w-full max-w-2xl shadow-2xl border border-white/10 overflow-hidden flex flex-col max-h-[90vh]">
             <div className="bg-gradient-to-r from-orange-600 to-red-700 p-8 text-white relative flex-shrink-0">
               <button onClick={() => setShowUploadModal(false)} className="absolute top-6 right-6 p-2 opacity-50 hover:opacity-100 transition-opacity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-              <h3 className="text-2xl font-black tracking-tighter uppercase">Contribute</h3>
-              <p className="text-white/60 text-[10px] font-black uppercase tracking-widest mt-1">Registry Entry</p>
+              <h3 className="text-2xl font-black tracking-tighter uppercase leading-none">Contribute</h3>
+              <p className="text-white/60 text-[10px] font-black uppercase tracking-widest mt-2">Document Registry</p>
             </div>
-            <div className="p-8 space-y-6 overflow-y-auto no-scrollbar flex-1">
+            <div className="p-8 space-y-8 overflow-y-auto no-scrollbar flex-1">
               {processSuccess ? (
-                <div className="text-center py-10 animate-fade-in">
+                <div className="text-center py-20 animate-fade-in">
                    <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="w-10 h-10 text-green-500"><polyline points="20 6 9 17 4 12"/></svg>
                    </div>
-                   <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Sync Successful</h3>
-                   <p className="text-xs font-black uppercase tracking-widest text-slate-400 mt-2">File deployed to moderation queue.</p>
+                   <h3 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Sync Successful</h3>
+                   <p className="text-xs font-black uppercase tracking-widest text-slate-400 mt-2">File deployed to moderation.</p>
                 </div>
               ) : (
                 <>
-                  <div><label className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Name</label><input value={metaForm.name} onChange={e => setMetaForm({...metaForm, name: e.target.value})} className="w-full bg-slate-100 dark:bg-black/40 p-4 rounded-2xl font-bold border border-transparent focus:ring-2 focus:ring-orange-500 outline-none dark:text-white" /></div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Semester</label>
-                      <CustomDropdown 
-                        label="Sem" 
-                        value={metaForm.semester} 
-                        options={availableSemesters.map(s => ({ label: s.name.toUpperCase(), value: s.name }))} 
-                        onChange={v => setMetaForm({...metaForm, semester: v, subject: '', type: ''})} 
-                      />
+                  <section className="space-y-4">
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">File Details</h4>
+                    <div><label className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Display Name</label><input value={metaForm.name} onChange={e => setMetaForm({...metaForm, name: e.target.value})} className="w-full bg-slate-100 dark:bg-black/40 p-4 rounded-2xl font-bold border border-transparent focus:ring-2 focus:ring-orange-500 outline-none dark:text-white transition-all" /></div>
+                    <div><label className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Short Description</label><textarea value={metaForm.description} onChange={e => setMetaForm({...metaForm, description: e.target.value})} className="w-full bg-slate-100 dark:bg-black/40 p-4 rounded-2xl font-bold border border-transparent focus:ring-2 focus:ring-orange-500 outline-none dark:text-white transition-all h-24 resize-none" /></div>
+                  </section>
+
+                  <section className="space-y-6">
+                    <header className="flex items-center justify-between">
+                      <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Destination Path</h4>
+                      <div className="flex gap-2">
+                         <div className={`w-2 h-2 rounded-full ${metaForm.semester ? 'bg-orange-500' : 'bg-slate-200'}`} />
+                         <div className={`w-2 h-2 rounded-full ${metaForm.subject ? 'bg-blue-500' : 'bg-slate-200'}`} />
+                         <div className={`w-2 h-2 rounded-full ${metaForm.type ? 'bg-emerald-500' : 'bg-slate-200'}`} />
+                      </div>
+                    </header>
+
+                    {/* Step 1: Semester Selector */}
+                    <div className="space-y-3">
+                      <p className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-2">
+                        1. Select Semester {metaForm.semester && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="w-3 h-3 text-orange-500"><polyline points="20 6 9 17 4 12"/></svg>}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {modalAvailableSemesters.map(sem => (
+                          <button 
+                            key={sem.id} 
+                            onClick={() => setMetaForm({...metaForm, semester: sem.name, subject: '', type: ''})}
+                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${metaForm.semester === sem.name ? 'bg-orange-600 border-orange-700 text-white shadow-lg' : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-500 hover:border-orange-500'}`}
+                          >
+                            {sem.name}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <div>
-                      <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Subject</label>
-                      <CustomDropdown 
-                        label="Sub" 
-                        value={metaForm.subject} 
-                        disabled={!metaForm.semester}
-                        options={availableSubjects.map(s => ({ label: s.name.toUpperCase(), value: s.name }))} 
-                        onChange={v => setMetaForm({...metaForm, subject: v, type: ''})} 
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Category</label>
-                    <CustomDropdown 
-                      label="Cat" 
-                      value={metaForm.type} 
-                      disabled={!metaForm.subject}
-                      options={availableCategories.map(c => ({ label: c.name.toUpperCase(), value: c.name }))} 
-                      onChange={v => setMetaForm({...metaForm, type: v})} 
-                    />
-                  </div>
-                  {folders.length === 0 && (
-                    <div className="p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-orange-600">No Folders Registered</p>
-                      <p className="text-[9px] text-slate-500 mt-1">Admin must create hierarchy folders before uploads can be categorized.</p>
-                    </div>
-                  )}
+
+                    {/* Step 2: Subject Selector */}
+                    {metaForm.semester && (
+                      <div className="space-y-3 animate-fade-in">
+                        <p className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-2">
+                          2. Select Subject {metaForm.subject && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="w-3 h-3 text-blue-500"><polyline points="20 6 9 17 4 12"/></svg>}
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {modalAvailableSubjects.map(sub => (
+                            <button 
+                              key={sub.id} 
+                              onClick={() => setMetaForm({...metaForm, subject: sub.name, type: ''})}
+                              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${metaForm.subject === sub.name ? 'bg-blue-600 border-blue-700 text-white shadow-lg' : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-500 hover:border-blue-500'}`}
+                            >
+                              {sub.name}
+                            </button>
+                          ))}
+                          {modalAvailableSubjects.length === 0 && <p className="text-[9px] font-black text-slate-400 uppercase">No subjects in this semester.</p>}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Step 3: Category Selector */}
+                    {metaForm.subject && (
+                      <div className="space-y-3 animate-fade-in">
+                        <p className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-2">
+                          3. Select Category {metaForm.type && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="w-3 h-3 text-emerald-500"><polyline points="20 6 9 17 4 12"/></svg>}
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {modalAvailableCategories.map(cat => (
+                            <button 
+                              key={cat.id} 
+                              onClick={() => setMetaForm({...metaForm, type: cat.name})}
+                              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${metaForm.type === cat.name ? 'bg-emerald-600 border-emerald-700 text-white shadow-lg' : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-500 hover:border-emerald-500'}`}
+                            >
+                              {cat.name}
+                            </button>
+                          ))}
+                          {modalAvailableCategories.length === 0 && <p className="text-[9px] font-black text-slate-400 uppercase">No categories defined for this subject.</p>}
+                        </div>
+                      </div>
+                    )}
+                  </section>
                 </>
               )}
             </div>
             {!processSuccess && (
-              <div className="p-8 pt-0 flex-shrink-0">
-                <button onClick={handleUpload} disabled={isProcessing || !metaForm.name.trim() || !metaForm.type} className="w-full bg-orange-600 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl active:scale-95 disabled:opacity-50 transition-all">{isProcessing ? 'Syncing...' : 'Deploy'}</button>
+              <div className="p-8 pt-4 border-t border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-slate-900/50">
+                <div className="flex items-center justify-between mb-4">
+                   <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                     Ready to Sync?
+                   </div>
+                   <div className="text-[10px] font-black text-orange-600 uppercase">
+                     {metaForm.semester && metaForm.subject && metaForm.type ? 'Path Validated' : 'Path Incomplete'}
+                   </div>
+                </div>
+                <button 
+                  onClick={handleUpload} 
+                  disabled={isProcessing || !metaForm.name.trim() || !metaForm.semester || !metaForm.subject || !metaForm.type} 
+                  className="w-full bg-slate-900 dark:bg-white text-white dark:text-black py-5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl active:scale-95 disabled:opacity-30 transition-all flex items-center justify-center gap-3"
+                >
+                  {isProcessing ? (
+                    <div className="w-5 h-5 border-2 border-white dark:border-black border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <>Deploy to Registry</>
+                  )}
+                </button>
               </div>
             )}
           </div>
