@@ -27,8 +27,9 @@ const GlobalGateway: React.FC = () => {
       if (data.groundingChunks) {
         setChunks(data.groundingChunks);
       }
-    } catch (e) {
-      setResponse("Error connecting to the Global Gateway.");
+    } catch (e: any) {
+      console.error("Global Gateway Component Error:", e);
+      setResponse(`Error connecting to the Global Gateway: ${e.message || "Unknown error"}. Check console for details.`);
     } finally {
       setLoading(false);
     }

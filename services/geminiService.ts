@@ -3,10 +3,34 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { ResumeAnalysisResult, Flashcard } from "../types.ts";
 
 /**
+ * Ensures process.env.API_KEY is available even if the global shim in index.tsx 
+ * was bypassed due to ESM hoisting.
+ */
+const syncEnv = () => {
+  if (typeof process !== 'undefined' && !process.env.API_KEY) {
+    try {
+      // @ts-ignore
+      if (typeof import.meta !== 'undefined' && import.meta.env) {
+        // @ts-ignore
+        process.env.API_KEY = import.meta.env.VITE_API_KEY || import.meta.env.API_KEY;
+      }
+    } catch (e) {
+      // Ignore errors during env sync
+    }
+  }
+};
+
+// Run immediately on module load
+syncEnv();
+
+/**
  * Module A: The Placement Prefect
  * Analyzes resume against job description.
  */
 export const analyzeResume = async (resumeText: string, jdText: string, deepAnalysis: boolean = false): Promise<ResumeAnalysisResult> => {
+  syncEnv();
+  if (!process.env.API_KEY) throw new Error("Gemini API Key is missing. Please check environment variables.");
+
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const modelId = "gemini-3-flash-preview"; 
 
@@ -34,7 +58,6 @@ export const analyzeResume = async (resumeText: string, jdText: string, deepAnal
     5. summary (string, overall verdict)
   `;
 
-  // Use plain object for schema as per @google/genai best practices
   const schema = {
     type: Type.OBJECT,
     properties: {
@@ -75,6 +98,7 @@ export const askAcademicOracle = async (
   contextText: string, 
   chatHistory: { role: string; text: string }[]
 ): Promise<string> => {
+  syncEnv();
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const modelId = "gemini-3-flash-preview";
 
@@ -115,6 +139,7 @@ export const askAcademicOracle = async (
 };
 
 export const generateFlashcards = async (contextText: string): Promise<Flashcard[]> => {
+  syncEnv();
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const modelId = "gemini-3-flash-preview";
   const prompt = `
@@ -127,7 +152,6 @@ export const generateFlashcards = async (contextText: string): Promise<Flashcard
     Output strictly in JSON format as an array of objects with "front" and "back" keys.
   `;
 
-  // Use plain object for schema
   const schema = {
     type: Type.ARRAY,
     items: {
@@ -158,6 +182,7 @@ export const generateFlashcards = async (contextText: string): Promise<Flashcard
 }
 
 export const generateFlowchart = async (contextText: string): Promise<string> => {
+  syncEnv();
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const modelId = "gemini-3-flash-preview";
   const prompt = `
@@ -174,7 +199,6 @@ export const generateFlowchart = async (contextText: string): Promise<string> =>
       contents: prompt,
     });
     let text = response.text || "";
-    // Clean up mermaid syntax from potential AI markdown output
     text = text.replace(/```mermaid/g, '').replace(/```/g, '').trim();
     return text;
   } catch (e) {
@@ -184,6 +208,9 @@ export const generateFlowchart = async (contextText: string): Promise<string> =>
 }
 
 export const searchGlobalOpportunities = async (query: string) => {
+  syncEnv();
+  if (!process.env.API_KEY) throw new Error("Gemini API Key is missing.");
+
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const modelId = "gemini-3-flash-preview"; 
   const contextualQuery = `

@@ -1,28 +1,29 @@
 
 /**
  * Environment Shim
- * Bridges Vite/Vercel environment variables to process.env.API_KEY for the @google/genai SDK.
- * IMPORTANT: Bundlers like Vite require the full literal path 'import.meta.env.VITE_API_KEY'
- * to be present in the source code to perform static string replacement during build.
+ * Must run before any imports that might initialize the Gemini SDK.
+ * Vite requires literal 'import.meta.env.VITE_API_KEY' for static replacement.
  */
 (function() {
   const g = (typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : ({} as any));
   g.process = g.process || { env: {} };
   
   try {
-    // We check for both standard and VITE_ prefixed keys using literal paths for the bundler
+    // Check for import.meta.env safely
     // @ts-ignore
-    const viteKey = import.meta.env.VITE_API_KEY;
-    // @ts-ignore
-    const envKey = import.meta.env.API_KEY;
-    
-    const finalKey = viteKey || envKey;
-    
-    if (finalKey) {
-      g.process.env.API_KEY = finalKey;
+    if (typeof import.meta !== 'undefined' && import.meta.env) {
+      // @ts-ignore
+      const vKey = import.meta.env.VITE_API_KEY;
+      // @ts-ignore
+      const aKey = import.meta.env.API_KEY;
+      
+      const key = vKey || aKey;
+      if (key) {
+        g.process.env.API_KEY = key;
+      }
     }
   } catch (e) {
-    // Fallback for non-Vite environments
+    console.warn("Nexus Environment Shim: Unable to access import.meta.env", e);
   }
 })();
 
