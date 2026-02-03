@@ -41,15 +41,15 @@ const AboutUs: React.FC = () => {
           <div className="space-y-6">
             <div>
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Architect</p>
-              <p className="text-2xl font-black">Anunay Yadav</p>
+              <p className="text-2xl font-black text-white">Anunay Yadav</p>
               <div className="flex gap-10 mt-4">
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Batch</p>
-                  <p className="text-lg font-black text-orange-100">2025-29</p>
+                  <p className="text-lg font-black text-white">2025-29</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Branch</p>
-                  <p className="text-lg font-black text-orange-100">B.Tech CSE</p>
+                  <p className="text-lg font-black text-white">B.Tech CSE</p>
                 </div>
               </div>
             </div>
