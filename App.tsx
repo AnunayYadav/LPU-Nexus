@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar.tsx';
 import PlacementPrefect from './components/PlacementPrefect.tsx';
@@ -80,6 +79,7 @@ const App: React.FC = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
+  // Theme & Auth persistence
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') as 'light' | 'dark';
     if (savedTheme) {
@@ -99,11 +99,20 @@ const App: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
+  // History Sync
   useEffect(() => {
     const handlePopState = () => setCurrentModule(getModuleFromPath(window.location.pathname));
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
+
+  // SCROLL RESET: Fixes the issue where scroll position persists across modules
+  useEffect(() => {
+    const mainArea = document.getElementById('main-content-area');
+    if (mainArea) {
+      mainArea.scrollTo({ top: 0, behavior: 'auto' });
+    }
+  }, [currentModule]);
 
   const navigateToModule = (module: ModuleType) => {
     setCurrentModule(module);

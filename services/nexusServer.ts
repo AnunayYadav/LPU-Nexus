@@ -57,7 +57,7 @@ class NexusServer {
     
     // 1. Double check availability
     const isAvailable = await this.checkUsernameAvailability(username);
-    if (!isAvailable) throw new Error("Handle already claimed by another Verto.");
+    if (!isAvailable) throw new Error("This username is already taken by another Verto.");
 
     // 2. Sign up with metadata
     const { data: authData, error: signUpErr } = await client.auth.signUp({ 
@@ -70,8 +70,6 @@ class NexusServer {
 
     if (signUpErr) throw signUpErr;
 
-    // 3. The trigger in Supabase should handle the profile creation, 
-    // but we can manually update it to be safe or if the trigger isn't using metadata yet.
     if (authData.user) {
       await client
         .from('profiles')
@@ -97,7 +95,7 @@ class NexusServer {
         .maybeSingle();
       
       if (profileErr || !profile) {
-        throw new Error("No Verto found with this handle.");
+        throw new Error("No Verto found with this username.");
       }
       email = profile.email;
     }
@@ -141,7 +139,7 @@ class NexusServer {
       .eq('id', userId);
     if (error) {
       if (error.message.includes('unique')) {
-        throw new Error("Handle already taken.");
+        throw new Error("This username is already taken.");
       }
       throw error;
     }

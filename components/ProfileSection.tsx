@@ -33,7 +33,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ userProfile, setUserPro
     try {
       await NexusServer.updateUsername(userProfile.id, username.trim());
       setUserProfile({ ...userProfile, username: username.trim() });
-      setMessage({ text: "Profile identity established successfully.", type: 'success' });
+      setMessage({ text: "Username updated successfully.", type: 'success' });
       // Clear message after 3 seconds
       setTimeout(() => setMessage(null), 3000);
     } catch (e: any) {
@@ -72,7 +72,6 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ userProfile, setUserPro
           <span className="relative z-10 drop-shadow-lg">
             {userProfile.username ? userProfile.username[0].toUpperCase() : userProfile.email[0].toUpperCase()}
           </span>
-          {/* Rank Badge */}
           <div className="absolute -bottom-1 -right-1 bg-orange-600 w-8 h-8 rounded-full border-4 border-white dark:border-black flex items-center justify-center">
             <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" className="w-3 h-3"><polyline points="20 6 9 17 4 12"/></svg>
           </div>
@@ -92,7 +91,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ userProfile, setUserPro
         <header className="flex items-center justify-between mb-8">
           <div>
             <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-600 dark:text-orange-500 mb-1">Identity Terminal</h3>
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Protocol: Username Management</p>
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Protocol: Account Management</p>
           </div>
           <div className="bg-slate-100 dark:bg-black px-3 py-1.5 rounded-xl border border-slate-200 dark:border-white/5 flex items-center gap-2">
             <div className={`w-1.5 h-1.5 rounded-full ${userProfile.is_admin ? 'bg-emerald-500 shadow-[0_0_8px_emerald]' : 'bg-blue-500 shadow-[0_0_8px_blue]'}`} />
@@ -103,7 +102,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ userProfile, setUserPro
         <div className="space-y-6">
           <div className="relative">
             <div className="flex justify-between items-center mb-2 px-1">
-              <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Global Handle</label>
+              <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Username</label>
               <span className={`text-[9px] font-black tracking-widest ${username.length > 15 || isTooShort ? 'text-red-500' : 'text-slate-500'}`}>
                 {username.length}/15
               </span>
@@ -117,7 +116,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ userProfile, setUserPro
                   const val = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '');
                   if (val.length <= 15) setUsername(val);
                 }}
-                placeholder="set_your_handle"
+                placeholder="new_username"
                 className="w-full bg-slate-100 dark:bg-black p-5 rounded-2xl font-black text-sm dark:text-white outline-none focus:ring-4 focus:ring-orange-600/10 shadow-inner transition-all placeholder:text-slate-300 dark:placeholder:text-slate-800"
               />
               <button 
@@ -131,14 +130,14 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ userProfile, setUserPro
                   }
                 `}
               >
-                {isUpdating ? '...' : 'COMMIT'}
+                {isUpdating ? '...' : 'SAVE CHANGES'}
               </button>
             </div>
             
             <div className="mt-3 flex items-start gap-2 px-1">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3 text-slate-400 mt-0.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
               <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
-                Lowercase alphanumeric & underscores. This handle is your public alias in the Nexus Vault.
+                Lowercase alphanumeric & underscores only. This username is your public identity in the Nexus Hub.
               </p>
             </div>
           </div>

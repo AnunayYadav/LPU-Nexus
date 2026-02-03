@@ -36,13 +36,13 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
 
     try {
       if (isLogin) {
-        if (!identifier.trim()) throw new Error("Please enter your email or handle.");
+        if (!identifier.trim()) throw new Error("Please enter your email or username.");
         const { error: signInErr } = await NexusServer.signIn(identifier, password);
         if (signInErr) throw signInErr;
       } else {
-        if (!email.trim()) throw new Error("Email is required.");
-        if (username.length < 3) throw new Error("Handle must be at least 3 characters.");
-        if (usernameStatus === 'taken') throw new Error("Handle already taken.");
+        if (!email.trim()) throw new Error("Official email is required.");
+        if (username.length < 3) throw new Error("Username must be at least 3 characters.");
+        if (usernameStatus === 'taken') throw new Error("This username is already claimed.");
         
         const { error: signUpErr } = await NexusServer.signUp(email, password, username);
         if (signUpErr) throw signUpErr;
@@ -65,7 +65,6 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
     <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-400/40 dark:bg-black/90 backdrop-blur-xl animate-fade-in overflow-hidden">
       <div className="bg-white dark:bg-slate-950 rounded-[48px] w-full max-w-sm shadow-[0_32px_128px_rgba(0,0,0,0.5)] border border-slate-200 dark:border-white/10 relative overflow-hidden flex flex-col group">
         
-        {/* Decorative background glow */}
         <div className="absolute -top-24 -right-24 w-48 h-48 bg-orange-600/10 blur-[64px] rounded-full pointer-events-none group-focus-within:bg-orange-600/20 transition-colors" />
 
         <div className="bg-black p-8 text-white text-center relative rounded-t-[48px]">
@@ -94,23 +93,21 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
           
           <div className="space-y-4">
             {isLogin ? (
-              /* LOGIN FIELDS */
               <div>
-                <label className="block text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Email or Handle</label>
+                <label className="block text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Email or Username</label>
                 <div className="relative group">
                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-orange-600 transition-colors"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                    <input 
                     type="text" required value={identifier} onChange={e => setIdentifier(e.target.value)} 
                     className="w-full bg-slate-100 dark:bg-black/60 pl-11 pr-4 py-4 rounded-2xl text-sm font-bold outline-none border border-transparent focus:ring-4 focus:ring-orange-600/10 shadow-inner dark:text-white transition-all" 
-                    placeholder="email@lpu.in or handle"
+                    placeholder="email@lpu.in or username"
                   />
                 </div>
               </div>
             ) : (
-              /* SIGNUP FIELDS */
               <>
                 <div>
-                  <label className="block text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Global Handle (Unique)</label>
+                  <label className="block text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Choose Username</label>
                   <div className="relative group">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-black text-sm group-focus-within:text-orange-600">@</span>
                     <input 
@@ -119,7 +116,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
                         usernameStatus === 'available' ? 'border-emerald-500/50' : 
                         usernameStatus === 'taken' ? 'border-red-500/50' : 'border-transparent focus:ring-4 focus:ring-orange-600/10'
                       }`} 
-                      placeholder="choose_handle"
+                      placeholder="verto_username"
                     />
                     <div className="absolute right-4 top-1/2 -translate-y-1/2">
                       {usernameStatus === 'checking' && <div className="w-3 h-3 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />}
@@ -136,7 +133,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
                      <input 
                       type="email" required value={email} onChange={e => setEmail(e.target.value)} 
                       className="w-full bg-slate-100 dark:bg-black/60 pl-11 pr-4 py-4 rounded-2xl text-sm font-bold outline-none border border-transparent focus:ring-4 focus:ring-orange-600/10 shadow-inner dark:text-white transition-all" 
-                      placeholder="e.g. user@lpu.in"
+                      placeholder="e.g. name@lpu.in"
                     />
                   </div>
                 </div>
@@ -144,7 +141,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
             )}
 
             <div>
-              <label className="block text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Security Key (Password)</label>
+              <label className="block text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Password</label>
               <div className="relative group">
                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-orange-600 transition-colors"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                  <input 
