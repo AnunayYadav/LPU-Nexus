@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { LibraryFile, UserProfile, Folder } from '../types.ts';
 import NexusServer from '../services/nexusServer.ts';
 
@@ -31,11 +30,10 @@ interface ContentLibraryProps {
 }
 
 const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialView = 'browse' }) => {
-  const [files, setFiles] = useState<LibraryFile[]>([]);
+  const [allFiles, setAllFiles] = useState<LibraryFile[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [viewMode, setViewMode] = useState<'browse' | 'my-uploads'>(initialView);
   const [isLoading, setIsLoading] = useState(true);
-  const [isNavigating, setIsNavigating] = useState(false);
   
   // Navigation State
   const [searchQuery, setSearchQuery] = useState('');
@@ -69,10 +67,11 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
     if (initialView) setViewMode(initialView);
   }, [initialView]);
 
-  const fetchRegistry = useCallback(async (isSilent = false) => {
-    if (!isSilent) setIsLoading(true);
+  // Decoupled fetcher: Only runs on mount, search, viewMode change, or manual refresh
+  const fetchFromSource = useCallback(async (showSkeleton = true) => {
+    if (showSkeleton) setIsLoading(true);
     try {
-      const [folderList, allFiles] = await Promise.all([
+      const [folderList, filesFromDb] = await Promise.all([
         NexusServer.fetchFolders(),
         isAdminView 
           ? NexusServer.fetchPendingFiles() 
@@ -82,59 +81,75 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
       ]);
 
       setFolders(folderList);
-
-      let data = [...allFiles];
-      
-      const isHierarchicalView = !searchQuery && !isAdminView && viewMode === 'browse';
-      
-      if (isHierarchicalView) {
-        if (activeCategory) {
-          data = data.filter(f => 
-            f.semester === activeSemester?.name && 
-            f.subject === activeSubject?.name && 
-            f.type === activeCategory.name
-          );
-        } else if (activeSubject) {
-          data = data.filter(f => 
-            f.semester === activeSemester?.name && 
-            f.subject === activeSubject.name && 
-            (!f.type || f.type === '' || f.type === 'All')
-          );
-        } else if (activeSemester) {
-          data = data.filter(f => 
-            f.semester === activeSemester.name && 
-            (!f.subject || f.subject === '' || f.subject === 'All')
-          );
-        } else {
-          data = []; 
-        }
-      }
-
-      data.sort((a, b) => {
-        if (sortBy === 'newest') return b.uploadDate - a.uploadDate;
-        if (sortBy === 'oldest') return a.uploadDate - b.uploadDate;
-        if (sortBy === 'az') return a.name.localeCompare(b.name);
-        return 0;
-      });
-      setFiles(data);
+      setAllFiles(filesFromDb);
     } catch (e: any) { 
       console.error("Registry load error:", e);
     } finally { 
       setIsLoading(false);
-      setIsNavigating(false);
     }
-  }, [isAdminView, viewMode, userProfile, searchQuery, sortBy, activeSemester, activeSubject, activeCategory]);
+  }, [isAdminView, viewMode, userProfile, searchQuery]);
+
+  // Effect for fetching data
+  useEffect(() => {
+    fetchFromSource(true);
+  }, [fetchFromSource]);
+
+  // Memoized Filtered Content: Instant navigation because it only depends on memory
+  const displayFiles = useMemo(() => {
+    let data = [...allFiles];
+    
+    // If not searching, apply hierarchical filters
+    if (!searchQuery && !isAdminView && viewMode === 'browse') {
+      if (activeCategory) {
+        data = data.filter(f => 
+          f.semester === activeSemester?.name && 
+          f.subject === activeSubject?.name && 
+          f.type === activeCategory.name
+        );
+      } else if (activeSubject) {
+        data = data.filter(f => 
+          f.semester === activeSemester?.name && 
+          f.subject === activeSubject.name && 
+          (!f.type || f.type === '' || f.type === 'All')
+        );
+      } else if (activeSemester) {
+        data = data.filter(f => 
+          f.semester === activeSemester.name && 
+          (!f.subject || f.subject === '' || f.subject === 'All')
+        );
+      } else {
+        // At root, we only show folders usually
+        data = []; 
+      }
+    }
+
+    // Sorting
+    data.sort((a, b) => {
+      if (sortBy === 'newest') return b.uploadDate - a.uploadDate;
+      if (sortBy === 'oldest') return a.uploadDate - b.uploadDate;
+      if (sortBy === 'az') return a.name.localeCompare(b.name);
+      return 0;
+    });
+
+    return data;
+  }, [allFiles, searchQuery, isAdminView, viewMode, activeSemester, activeSubject, activeCategory, sortBy]);
+
+  // Memoized Current Folder View
+  const currentFolders = useMemo(() => {
+    return folders.filter(f => {
+      if (!activeSemester) return f.type === 'semester';
+      if (!activeSubject) return f.type === 'subject' && f.parent_id === activeSemester.id;
+      if (!activeCategory) return f.type === 'category' && f.parent_id === activeSubject.id;
+      return false;
+    });
+  }, [folders, activeSemester, activeSubject, activeCategory]);
 
   const navigateTo = (sem: Folder | null, subj: Folder | null, cat: Folder | null) => {
-    setIsNavigating(true);
+    // Navigation is now INSTANT local state update
     setActiveSemester(sem);
     setActiveSubject(subj);
     setActiveCategory(cat);
   };
-
-  useEffect(() => { 
-    fetchRegistry(isNavigating); 
-  }, [fetchRegistry, isNavigating]);
 
   const handleCreateFolder = async () => {
     if (!newFolderName.trim() || !userProfile?.is_admin) return;
@@ -147,7 +162,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
       await NexusServer.createFolder(newFolderName, type, parentId);
       setNewFolderName('');
       setShowFolderModal(false);
-      fetchRegistry(true);
+      fetchFromSource(false);
     } catch (e: any) { alert(e.message); } finally { setIsProcessing(false); }
   };
 
@@ -159,7 +174,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
       setNewFolderName('');
       setFolderToManage(null);
       setShowRenameModal(false);
-      fetchRegistry(true);
+      fetchFromSource(false);
     } catch (e: any) { alert(e.message); } finally { setIsProcessing(false); }
   };
 
@@ -170,7 +185,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
     setIsProcessing(true);
     try {
       await NexusServer.deleteFolder(folder.id);
-      fetchRegistry(true);
+      fetchFromSource(false);
     } catch (e: any) { alert(e.message); } finally { setIsProcessing(false); }
   };
 
@@ -184,7 +199,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
         userProfile.id, userProfile?.is_admin || false
       );
       setProcessSuccess(true);
-      setTimeout(() => { setShowUploadModal(false); setProcessSuccess(false); fetchRegistry(true); }, 1500);
+      setTimeout(() => { setShowUploadModal(false); setProcessSuccess(false); fetchFromSource(false); }, 1500);
     } catch (e: any) { alert(e.message); } finally { setIsProcessing(false); }
   };
 
@@ -200,16 +215,9 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
         type: metaForm.type
       }, true);
       setShowEditModal(false);
-      fetchRegistry(true);
+      fetchFromSource(false);
     } catch (e: any) { alert(e.message); } finally { setIsProcessing(false); }
   };
-
-  const currentFolders = folders.filter(f => {
-    if (!activeSemester) return f.type === 'semester';
-    if (!activeSubject) return f.type === 'subject' && f.parent_id === activeSemester.id;
-    if (!activeCategory) return f.type === 'category' && f.parent_id === activeSubject.id;
-    return false;
-  });
 
   const handleDragOver = (e: React.DragEvent, id: string) => {
     if (!userProfile?.is_admin) return;
@@ -307,7 +315,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
             <input type="text" placeholder="Filter registry..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-xl text-[10px] font-black uppercase tracking-widest outline-none focus:ring-2 focus:ring-orange-500 transition-all" />
           </div>
           <button 
-            onClick={() => fetchRegistry(false)}
+            onClick={() => fetchFromSource(true)}
             className="w-12 h-12 flex items-center justify-center bg-black rounded-xl text-slate-400 hover:text-orange-600 transition-colors shadow-sm border-none"
             title="Refresh Registry"
           >
@@ -365,7 +373,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
             ))
           )}
 
-          {files.map(file => (
+          {displayFiles.map(file => (
             <FileCard 
               key={file.id} 
               file={file} 
@@ -375,14 +383,14 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
               onApprove={() => {
                 setIsProcessing(true);
                 NexusServer.approveFile(file.id)
-                  .then(() => fetchRegistry(true))
+                  .then(() => fetchFromSource(false))
                   .finally(() => setIsProcessing(false));
               }}
               onReject={() => {
                 if (confirm("Reject and remove this file?")) {
                   setIsProcessing(true);
                   NexusServer.rejectFile(file.id)
-                    .then(() => fetchRegistry(true))
+                    .then(() => fetchFromSource(false))
                     .finally(() => setIsProcessing(false));
                 }
               }}
@@ -390,7 +398,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
                  if (confirm("Send this file back to pending review?")) {
                   setIsProcessing(true);
                   NexusServer.demoteFile(file.id)
-                    .then(() => fetchRegistry(true))
+                    .then(() => fetchFromSource(false))
                     .finally(() => setIsProcessing(false));
                 }
               }}
@@ -409,7 +417,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
                 if (confirm("Permanently delete this file from registry?")) {
                   setIsProcessing(true);
                   NexusServer.deleteFile(file.id, file.storage_path)
-                    .then(() => fetchRegistry(true))
+                    .then(() => fetchFromSource(false))
                     .finally(() => setIsProcessing(false));
                 }
               }}
@@ -418,7 +426,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
             />
           ))}
 
-          {files.length === 0 && (currentFolders.length === 0 || isAdminView) && !isLoading && (
+          {displayFiles.length === 0 && (currentFolders.length === 0 || isAdminView) && !isLoading && (
             <div className="col-span-full py-20 text-center text-slate-400 font-black uppercase text-[10px] tracking-[0.2em] opacity-40">Empty Protocol.</div>
           )}
         </div>
