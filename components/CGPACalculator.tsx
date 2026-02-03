@@ -115,11 +115,9 @@ const CGPACalculator: React.FC = () => {
     const CREDITS_PER_SEM = 20; 
     const totalSems = 8;
     
-    // 1. Secured Foundation: Data from semesters ALREADY COMPLETED (archived)
     const archivedCredits = Number(prevTotalCredits);
     const archivedPoints = Number(prevCGPA) * Number(prevTotalCredits);
     
-    // 2. Identify semesters that need a plan (current semester through Sem 8)
     const planSemIndices = [];
     for (let i = currentSemester; i <= totalSems; i++) {
       planSemIndices.push(i);
@@ -129,16 +127,12 @@ const CGPACalculator: React.FC = () => {
       return { roadmap: [], summary: "Target goal evaluation complete." };
     }
 
-    // 3. Final credits at the end of the degree
-    // We assume semesters before current were archived, and current+future sems are exactly 20 credits each.
     const plannedCreditsCount = planSemIndices.length * CREDITS_PER_SEM;
     const finalTotalCredits = archivedCredits + plannedCreditsCount;
     
-    // 4. Total points required by end of Sem 8 to hit target
     const totalPointsRequired = targetCGPA * finalTotalCredits;
     let pointGapToFill = totalPointsRequired - archivedPoints;
 
-    // 5. Handle manual adjustments (pinned semesters in the roadmap)
     let manualCount = 0;
     Object.entries(manualAdjustments).forEach(([sem, val]) => {
       const s = parseInt(sem);
@@ -148,7 +142,6 @@ const CGPACalculator: React.FC = () => {
       }
     });
 
-    // 6. Recalculate average needed for the unpinned semesters in the plan
     const unpinnedCount = planSemIndices.length - manualCount;
     const avgNeededForOthers = unpinnedCount > 0 ? pointGapToFill / (unpinnedCount * CREDITS_PER_SEM) : 0;
 
@@ -175,7 +168,23 @@ const CGPACalculator: React.FC = () => {
   };
 
   const handleShare = () => {
-    const data = { sgpa: currentStats.sgpa.toFixed(2), cgpa: overallCGPA, sem: currentSemester, credits: currentStats.totalCredits, grades: currentStats.gradeCounts, ts: Date.now() };
+    // Detailed subject-wise data for the aesthetic report
+    const detailedSubjects = courses.map(c => ({
+      n: c.name || "Untitled",
+      c: c.credits,
+      g: c.grade
+    })).filter(c => c.n !== "Untitled");
+
+    const data = { 
+      sgpa: currentStats.sgpa.toFixed(2), 
+      cgpa: overallCGPA, 
+      sem: currentSemester, 
+      credits: currentStats.totalCredits, 
+      grades: currentStats.gradeCounts, 
+      subjects: detailedSubjects,
+      ts: Date.now() 
+    };
+
     const encoded = btoa(JSON.stringify(data));
     const url = `${window.location.origin}/share-cgpa?d=${encoded}`;
     setShareUrl(url);
