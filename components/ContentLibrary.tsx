@@ -59,6 +59,9 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [metaForm, setMetaForm] = useState({ name: '', description: '', semester: '', subject: '', type: '' });
+  const [isCustomSubject, setIsCustomSubject] = useState(false);
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [draggingOverId, setDraggingOverId] = useState<string | null>(null);
@@ -67,7 +70,6 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
     if (initialView) setViewMode(initialView);
   }, [initialView]);
 
-  // Decoupled fetcher: Only runs on mount, search, viewMode change, or manual refresh
   const fetchFromSource = useCallback(async (showSkeleton = true) => {
     if (showSkeleton) setIsLoading(true);
     try {
@@ -89,16 +91,12 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
     }
   }, [isAdminView, viewMode, userProfile, searchQuery]);
 
-  // Effect for fetching data
   useEffect(() => {
     fetchFromSource(true);
   }, [fetchFromSource]);
 
-  // Memoized Filtered Content: Instant navigation because it only depends on memory
   const displayFiles = useMemo(() => {
     let data = [...allFiles];
-    
-    // If not searching, apply hierarchical filters
     if (!searchQuery && !isAdminView && viewMode === 'browse') {
       if (activeCategory) {
         data = data.filter(f => 
@@ -118,23 +116,18 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
           (!f.subject || f.subject === '' || f.subject === 'All')
         );
       } else {
-        // At root, we only show folders usually
         data = []; 
       }
     }
-
-    // Sorting
     data.sort((a, b) => {
       if (sortBy === 'newest') return b.uploadDate - a.uploadDate;
       if (sortBy === 'oldest') return a.uploadDate - b.uploadDate;
       if (sortBy === 'az') return a.name.localeCompare(b.name);
       return 0;
     });
-
     return data;
   }, [allFiles, searchQuery, isAdminView, viewMode, activeSemester, activeSubject, activeCategory, sortBy]);
 
-  // Memoized Current Folder View
   const currentFolders = useMemo(() => {
     return folders.filter(f => {
       if (!activeSemester) return f.type === 'semester';
@@ -145,7 +138,6 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
   }, [folders, activeSemester, activeSubject, activeCategory]);
 
   const navigateTo = (sem: Folder | null, subj: Folder | null, cat: Folder | null) => {
-    // Navigation is now INSTANT local state update
     setActiveSemester(sem);
     setActiveSubject(subj);
     setActiveCategory(cat);
@@ -199,7 +191,13 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
         userProfile.id, userProfile?.is_admin || false
       );
       setProcessSuccess(true);
-      setTimeout(() => { setShowUploadModal(false); setProcessSuccess(false); fetchFromSource(false); }, 1500);
+      setTimeout(() => { 
+        setShowUploadModal(false); 
+        setProcessSuccess(false); 
+        setIsCustomSubject(false);
+        setIsCustomCategory(false);
+        fetchFromSource(false); 
+      }, 1500);
     } catch (e: any) { alert(e.message); } finally { setIsProcessing(false); }
   };
 
@@ -580,23 +578,61 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
                   </div>
                   <div className="space-y-4">
                     <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Path Configuration</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {modalAvailableSemesters.map(sem => (
-                        <button key={sem.id} onClick={() => setMetaForm({...metaForm, semester: sem.name, subject: '', type: ''})} className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all border-none ${metaForm.semester === sem.name ? 'bg-orange-600 text-white shadow-lg' : 'bg-black text-slate-500 hover:text-orange-500'}`}>{sem.name}</button>
-                      ))}
-                    </div>
-                    {metaForm.semester && (
-                      <div className="flex flex-wrap gap-2 animate-fade-in">
-                        {modalAvailableSubjects.map(sub => (
-                          <button key={sub.id} onClick={() => setMetaForm({...metaForm, subject: sub.name, type: ''})} className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all border-none ${metaForm.subject === sub.name ? 'bg-orange-600/20 text-orange-600' : 'bg-black text-slate-500 hover:text-orange-500'}`}>{sub.name}</button>
+                    
+                    <div className="space-y-2">
+                      <p className="text-[8px] font-black text-slate-500 uppercase ml-1">Semester</p>
+                      <div className="flex flex-wrap gap-2">
+                        {modalAvailableSemesters.map(sem => (
+                          <button key={sem.id} onClick={() => { setMetaForm({...metaForm, semester: sem.name, subject: '', type: ''}); setIsCustomSubject(false); setIsCustomCategory(false); }} className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all border-none ${metaForm.semester === sem.name ? 'bg-orange-600 text-white shadow-lg' : 'bg-black text-slate-500 hover:text-orange-500'}`}>{sem.name}</button>
                         ))}
                       </div>
+                    </div>
+
+                    {metaForm.semester && (
+                      <div className="space-y-2 animate-fade-in">
+                        <div className="flex items-center justify-between px-1">
+                          <p className="text-[8px] font-black text-slate-500 uppercase">Subject</p>
+                          <button 
+                            onClick={() => { setIsCustomSubject(!isCustomSubject); setMetaForm({...metaForm, subject: '', type: ''}); }} 
+                            className={`p-1 rounded-md transition-all ${isCustomSubject ? 'bg-orange-600 text-white' : 'bg-black text-orange-600'}`}
+                            title="Suggest New Subject"
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="w-3 h-3"><path d="M12 5v14M5 12h14"/></svg>
+                          </button>
+                        </div>
+                        {isCustomSubject ? (
+                          <input autoFocus placeholder="Enter New Subject Name..." value={metaForm.subject} onChange={e => setMetaForm({...metaForm, subject: e.target.value})} className="w-full bg-slate-100 dark:bg-black p-3 rounded-xl font-bold border-none text-xs dark:text-white outline-none focus:ring-2 focus:ring-orange-500" />
+                        ) : (
+                          <div className="flex flex-wrap gap-2">
+                            {modalAvailableSubjects.map(sub => (
+                              <button key={sub.id} onClick={() => { setMetaForm({...metaForm, subject: sub.name, type: ''}); setIsCustomCategory(false); }} className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all border-none ${metaForm.subject === sub.name ? 'bg-orange-600/20 text-orange-600' : 'bg-black text-slate-500 hover:text-orange-500'}`}>{sub.name}</button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     )}
+
                     {metaForm.subject && (
-                      <div className="flex flex-wrap gap-2 animate-fade-in">
-                        {modalAvailableCategories.map(cat => (
-                          <button key={cat.id} onClick={() => setMetaForm({...metaForm, type: cat.name})} className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all border-none ${metaForm.type === cat.name ? 'bg-orange-600 text-white shadow-lg' : 'bg-black text-slate-500 hover:text-orange-500'}`}>{cat.name}</button>
-                        ))}
+                      <div className="space-y-2 animate-fade-in">
+                        <div className="flex items-center justify-between px-1">
+                          <p className="text-[8px] font-black text-slate-500 uppercase">Category</p>
+                          <button 
+                            onClick={() => { setIsCustomCategory(!isCustomCategory); setMetaForm({...metaForm, type: ''}); }} 
+                            className={`p-1 rounded-md transition-all ${isCustomCategory ? 'bg-orange-600 text-white' : 'bg-black text-orange-600'}`}
+                            title="Suggest New Category"
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="w-3 h-3"><path d="M12 5v14M5 12h14"/></svg>
+                          </button>
+                        </div>
+                        {isCustomCategory ? (
+                          <input autoFocus placeholder="Enter New Category Name..." value={metaForm.type} onChange={e => setMetaForm({...metaForm, type: e.target.value})} className="w-full bg-slate-100 dark:bg-black p-3 rounded-xl font-bold border-none text-xs dark:text-white outline-none focus:ring-2 focus:ring-orange-500" />
+                        ) : (
+                          <div className="flex flex-wrap gap-2">
+                            {modalAvailableCategories.map(cat => (
+                              <button key={cat.id} onClick={() => setMetaForm({...metaForm, type: cat.name})} className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all border-none ${metaForm.type === cat.name ? 'bg-orange-600 text-white shadow-lg' : 'bg-black text-slate-500 hover:text-orange-500'}`}>{cat.name}</button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

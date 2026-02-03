@@ -326,22 +326,52 @@ class NexusServer {
     const client = getSupabase();
     if (!client) throw new Error('Database connection unavailable.');
     try {
-      const { data: record, error: fetchError } = await client.from('documents').select('status, pending_update').eq('id', id).single();
+      // 1. Fetch current file metadata
+      const { data: record, error: fetchError } = await client.from('documents').select('*').eq('id', id).single();
       if (fetchError || !record) throw new Error("Could not find document record.");
-      if (record.pending_update) {
-        const { error } = await client.from('documents').update({
-          name: record.pending_update.name,
-          description: record.pending_update.description,
-          subject: record.pending_update.subject,
-          semester: record.pending_update.semester,
-          type: record.pending_update.type,
-          pending_update: null
-        }).eq('id', id);
-        if (error) throw error;
-      } else {
-        const { error } = await client.from('documents').update({ status: 'approved' }).eq('id', id);
-        if (error) throw error;
+
+      const finalData = record.pending_update || {
+        name: record.name,
+        description: record.description,
+        subject: record.subject,
+        semester: record.semester,
+        type: record.type
+      };
+
+      // 2. Folder Reconciliation Engine:
+      // Ensure the semester folder exists
+      let { data: semFolder } = await client.from('folders').select('id').eq('type', 'semester').eq('name', finalData.semester).maybeSingle();
+      if (!semFolder) {
+        const { data: newSem } = await client.from('folders').insert({ type: 'semester', name: finalData.semester, parent_id: null }).select().single();
+        semFolder = newSem;
       }
+
+      // Ensure the subject folder exists under this semester
+      let { data: subFolder } = await client.from('folders').select('id').eq('type', 'subject').eq('name', finalData.subject).eq('parent_id', semFolder!.id).maybeSingle();
+      if (!subFolder) {
+        const { data: newSub } = await client.from('folders').insert({ type: 'subject', name: finalData.subject, parent_id: semFolder!.id }).select().single();
+        subFolder = newSub;
+      }
+
+      // Ensure the category folder exists under this subject
+      let { data: catFolder } = await client.from('folders').select('id').eq('type', 'category').eq('name', finalData.type).eq('parent_id', subFolder!.id).maybeSingle();
+      if (!catFolder) {
+        const { data: newCat } = await client.from('folders').insert({ type: 'category', name: finalData.type, parent_id: subFolder!.id }).select().single();
+        catFolder = newCat;
+      }
+
+      // 3. Finalize approval
+      const { error } = await client.from('documents').update({
+        name: finalData.name,
+        description: finalData.description,
+        subject: finalData.subject,
+        semester: finalData.semester,
+        type: finalData.type,
+        status: 'approved',
+        pending_update: null
+      }).eq('id', id);
+
+      if (error) throw error;
     } catch (e: any) {
       throw new Error(`Approval failed: ${e.message}`);
     }
