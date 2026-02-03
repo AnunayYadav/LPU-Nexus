@@ -414,7 +414,7 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
           <div className="glass-panel p-10 rounded-[56px] text-center shadow-2xl bg-gradient-to-br from-orange-600 to-red-700 text-white border-none relative overflow-hidden group">
             <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[radial-gradient(circle_at_50%_120%,rgba(255,255,255,0.5),transparent)]" />
             <h3 className="text-[10px] font-black uppercase tracking-[0.4em] opacity-80 mb-4 relative z-10">Current SGPA</h3>
-            <p className="text-8xl font-black tracking-tighter mb-6 relative z-10">{currentStats.sgpa.toFixed(2)}</p>
+            <p className="text-6xl font-black tracking-tighter mb-6 relative z-10">{currentStats.sgpa.toFixed(2)}</p>
             <div className="h-2.5 bg-white/20 rounded-full overflow-hidden mb-6 relative z-10">
               <div className="h-full bg-white shadow-[0_0_20px_white] transition-all duration-1000 ease-out" style={{ width: `${(currentStats.sgpa / 10) * 100}%` }} />
             </div>
@@ -423,7 +423,7 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
 
           <div className="glass-panel p-10 rounded-[56px] text-center shadow-2xl bg-gradient-to-br from-slate-800 to-slate-950 text-white border-none relative overflow-hidden group">
             <h3 className="text-[10px] font-black uppercase tracking-[0.4em] opacity-80 mb-4 relative z-10">Cumulative CGPA</h3>
-            <p className="text-8xl font-black tracking-tighter mb-6 relative z-10">{overallCGPA}</p>
+            <p className="text-6xl font-black tracking-tighter mb-6 relative z-10">{overallCGPA}</p>
             <div className="h-2.5 bg-white/20 rounded-full overflow-hidden mb-6 relative z-10">
               <div className="h-full bg-orange-600 shadow-[0_0_20px_rgba(234,88,12,0.8)] transition-all duration-1000 ease-out" style={{ width: `${(parseFloat(overallCGPA) / 10) * 100}%` }} />
             </div>
@@ -456,7 +456,7 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
       {isShareModalOpen && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
           <div ref={shareModalRef} className="bg-white dark:bg-slate-950 rounded-[48px] p-12 w-full max-w-lg shadow-[0_40px_100px_-20px_rgba(0,0,0,0.5)] border border-white/10 relative text-center">
-            <button onClick={() => setIsShareModalOpen(false)} className="absolute top-10 right-10 text-slate-400 hover:text-slate-900 transition-all border-none bg-transparent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+            <button onClick={() => setIsShareModalOpen(false)} className="absolute top-10 right-10 text-slate-400 hover:text-slate-900 transition-all border-none bg-transparent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             <div className="w-24 h-24 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-8"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-12 h-12 text-emerald-500"><polyline points="20 6 9 17 4 12"/></svg></div>
             <h3 className="text-3xl font-black dark:text-white mb-4 uppercase tracking-tighter">Academic ID Ready</h3>
             <p className="text-slate-500 dark:text-slate-400 text-sm mb-10 leading-relaxed font-medium">Credential protocol synthesized for secure sharing.</p>
