@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { UserProfile, ModuleType } from '../types.ts';
 import NexusServer from '../services/nexusServer.ts';
 
@@ -12,17 +12,50 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ userProfile, setUserPro
   const [username, setUsername] = useState(userProfile?.username || '');
   const [isUpdating, setIsUpdating] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const [changeHistory, setChangeHistory] = useState<any[]>([]);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(true);
+
+  const fetchHistory = async () => {
+    if (!userProfile) return;
+    try {
+      const records = await NexusServer.fetchRecords(userProfile.id, 'username_change');
+      setChangeHistory(records);
+    } catch (e) {
+      console.error("Failed to load identity history");
+    } finally {
+      setIsHistoryLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (userProfile?.username) {
       setUsername(userProfile.username);
     }
+    fetchHistory();
   }, [userProfile]);
+
+  const recentChanges = useMemo(() => {
+    const now = Date.now();
+    const TWO_WEEKS = 14 * 24 * 60 * 60 * 1000;
+    return changeHistory.filter(h => (now - new Date(h.created_at).getTime()) < TWO_WEEKS);
+  }, [changeHistory]);
+
+  const nextAvailableAt = useMemo(() => {
+    if (recentChanges.length < 2) return null;
+    // Sort oldest first and add 2 weeks
+    const sorted = [...recentChanges].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    const oldest = new Date(sorted[0].created_at).getTime();
+    return new Date(oldest + 14 * 24 * 60 * 60 * 1000);
+  }, [recentChanges]);
 
   const handleUpdateUsername = async () => {
     if (!userProfile || !username.trim() || username === userProfile.username) return;
     
-    // Simple validation
+    if (recentChanges.length >= 2) {
+      setMessage({ text: "Identity change limit reached (2 changes/14 days).", type: 'error' });
+      return;
+    }
+
     if (username.length < 3 || username.length > 15) {
       setMessage({ text: "Username must be 3-15 characters.", type: 'error' });
       return;
@@ -33,11 +66,11 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ userProfile, setUserPro
     try {
       await NexusServer.updateUsername(userProfile.id, username.trim());
       setUserProfile({ ...userProfile, username: username.trim() });
-      setMessage({ text: "Username updated successfully.", type: 'success' });
-      // Clear message after 3 seconds
+      setMessage({ text: "Identity synthesized successfully.", type: 'success' });
+      await fetchHistory();
       setTimeout(() => setMessage(null), 3000);
     } catch (e: any) {
-      setMessage({ text: e.message || "Failed to update username.", type: 'error' });
+      setMessage({ text: e.message || "Failed to update identity protocol.", type: 'error' });
     } finally {
       setIsUpdating(false);
     }
@@ -63,6 +96,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ userProfile, setUserPro
 
   const isChanged = username.trim() !== '' && username !== userProfile.username;
   const isTooShort = username.length > 0 && username.length < 3;
+  const isLocked = recentChanges.length >= 2;
 
   return (
     <div className="max-w-2xl mx-auto space-y-8 animate-fade-in pb-20 px-4 md:px-0">
@@ -102,7 +136,14 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ userProfile, setUserPro
         <div className="space-y-6">
           <div className="relative">
             <div className="flex justify-between items-center mb-2 px-1">
-              <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Username</label>
+              <div className="flex items-center gap-2">
+                <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Username</label>
+                {!isHistoryLoading && (
+                  <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-md ${isLocked ? 'bg-red-500/10 text-red-500' : 'bg-orange-600/10 text-orange-600'}`}>
+                    {recentChanges.length}/2 Changes used
+                  </span>
+                )}
+              </div>
               <span className={`text-[9px] font-black tracking-widest ${username.length > 15 || isTooShort ? 'text-red-500' : 'text-slate-500'}`}>
                 {username.length}/15
               </span>
@@ -112,19 +153,20 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ userProfile, setUserPro
               <input 
                 type="text" 
                 value={username}
+                disabled={isLocked}
                 onChange={(e) => {
                   const val = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '');
                   if (val.length <= 15) setUsername(val);
                 }}
                 placeholder="new_username"
-                className="w-full bg-slate-100 dark:bg-black p-5 rounded-2xl font-black text-sm dark:text-white outline-none focus:ring-4 focus:ring-orange-600/10 shadow-inner transition-all placeholder:text-slate-300 dark:placeholder:text-slate-800"
+                className={`w-full bg-slate-100 dark:bg-black/60 pl-11 pr-4 py-4 rounded-2xl text-sm font-bold outline-none border border-transparent focus:ring-4 focus:ring-orange-600/10 shadow-inner transition-all placeholder:text-slate-300 dark:placeholder:text-slate-800 dark:text-white ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
               />
               <button 
                 onClick={handleUpdateUsername}
-                disabled={isUpdating || !isChanged || isTooShort}
+                disabled={isUpdating || !isChanged || isTooShort || isLocked}
                 className={`
                   absolute right-3 px-6 py-2.5 rounded-xl font-black text-[9px] uppercase tracking-[0.2em] transition-all
-                  ${!isChanged || isTooShort 
+                  ${!isChanged || isTooShort || isLocked
                     ? 'bg-slate-200 dark:bg-white/5 text-slate-400 cursor-not-allowed' 
                     : 'bg-orange-600 text-white shadow-xl shadow-orange-600/20 hover:scale-105 active:scale-95'
                   }
@@ -134,11 +176,22 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ userProfile, setUserPro
               </button>
             </div>
             
-            <div className="mt-3 flex items-start gap-2 px-1">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3 text-slate-400 mt-0.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
-                Lowercase alphanumeric & underscores only. This username is your public identity in the Nexus Hub.
-              </p>
+            <div className="mt-3 space-y-2 px-1">
+              <div className="flex items-start gap-2">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3 text-slate-400 mt-0.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
+                  Lowercase alphanumeric & underscores only. Limited to 2 changes per 14-day protocol window.
+                </p>
+              </div>
+              
+              {isLocked && nextAvailableAt && (
+                <div className="p-4 bg-orange-600/5 border border-orange-500/20 rounded-2xl animate-fade-in flex items-center gap-3">
+                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4 text-orange-600"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                   <p className="text-[9px] font-black text-orange-600 uppercase tracking-widest">
+                     Cooldown active. Next update available: {nextAvailableAt.toLocaleDateString()} {nextAvailableAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                   </p>
+                </div>
+              )}
             </div>
           </div>
           

@@ -117,10 +117,12 @@ class NexusServer {
       if (error.message.includes('unique')) throw new Error("This username is already taken.");
       throw error;
     }
+    // Log change to enforce limit
+    await this.saveRecord(userId, 'username_change', `Changed to ${username}`, { username });
   }
 
   // --- HISTORY MANAGEMENT ---
-  static async saveRecord(userId: string | null, type: 'resume_audit' | 'cgpa_snapshot', label: string, content: any): Promise<void> {
+  static async saveRecord(userId: string | null, type: 'resume_audit' | 'cgpa_snapshot' | 'username_change', label: string, content: any): Promise<void> {
     const client = getSupabase();
     if (userId && client) {
       const { error } = await client.from('user_history').insert([{ user_id: userId, type, label, content }]);
@@ -134,7 +136,7 @@ class NexusServer {
     }
   }
 
-  static async fetchRecords(userId: string | null, type: 'resume_audit' | 'cgpa_snapshot'): Promise<any[]> {
+  static async fetchRecords(userId: string | null, type: 'resume_audit' | 'cgpa_snapshot' | 'username_change'): Promise<any[]> {
     const client = getSupabase();
     if (userId && client) {
       const { data, error } = await client.from('user_history').select('*').eq('user_id', userId).eq('type', type).order('created_at', { ascending: false });
