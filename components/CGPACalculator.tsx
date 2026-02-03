@@ -103,10 +103,12 @@ const CGPACalculator: React.FC = () => {
 
   const overallCGPA = useMemo(() => {
     if (currentSemester === 1) return currentStats.sgpa.toFixed(2);
+    // Explicitly convert variables to numbers to ensure arithmetic operations are valid
     const prevPoints = Number(prevCGPA) * Number(prevTotalCredits);
     const combinedPoints = prevPoints + Number(currentStats.totalPoints);
     const combinedCredits = Number(prevTotalCredits) + Number(currentStats.totalCredits);
-    return combinedCredits === 0 ? "0.00" : (combinedPoints / combinedCredits).toFixed(2);
+    // Fixed: Wrapped division in Number() conversion to satisfy arithmetic type constraints on line 130
+    return combinedCredits === 0 ? "0.00" : (Number(combinedPoints) / Number(combinedCredits)).toFixed(2);
   }, [currentSemester, prevCGPA, prevTotalCredits, currentStats]);
 
   const roadmap = useMemo(() => {
@@ -116,9 +118,9 @@ const CGPACalculator: React.FC = () => {
     const CREDITS_PER_SEM = 20;
     const totalSems = 8;
     
-    const finishedCredits = prevTotalCredits;
-    const finishedPoints = prevCGPA * finishedCredits;
-    const totalPointsNeeded = targetCGPA * TOTAL_DEGREE_CREDITS;
+    const finishedCredits = Number(prevTotalCredits);
+    const finishedPoints = Number(prevCGPA) * finishedCredits;
+    const totalPointsNeeded = Number(targetCGPA) * TOTAL_DEGREE_CREDITS;
     
     let remainingPointsNeeded = totalPointsNeeded - finishedPoints;
     const futureSems = Array.from({ length: totalSems - currentSemester + 1 }, (_, i) => currentSemester + i);
@@ -127,7 +129,7 @@ const CGPACalculator: React.FC = () => {
     Object.entries(manualAdjustments).forEach(([sem, val]) => {
       const semNum = parseInt(sem);
       if (futureSems.includes(semNum)) {
-        remainingPointsNeeded -= (val * CREDITS_PER_SEM);
+        remainingPointsNeeded -= (Number(val) * CREDITS_PER_SEM);
         adjustedSemsCount++;
       }
     });

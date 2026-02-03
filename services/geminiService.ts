@@ -2,35 +2,14 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { ResumeAnalysisResult, Flashcard } from "../types.ts";
 
 /**
- * Internal utility to retrieve the API key with maximum redundancy.
- */
-const getApiKey = (): string => {
-  // 1. Try process.env (populated by our shim)
-  let key = (typeof process !== 'undefined' && process.env.API_KEY) ? process.env.API_KEY : undefined;
-  
-  // 2. Try direct literal access (triggers Vite static replacement in this module)
-  if (!key) {
-    try {
-      // @ts-ignore
-      key = import.meta.env.VITE_API_KEY || import.meta.env.API_KEY;
-    } catch (e) {}
-  }
-  
-  if (!key) {
-    throw new Error("Gemini API Key is missing. Check your environment variables (VITE_API_KEY).");
-  }
-  
-  return key;
-};
-
-/**
  * Module A: The Placement Prefect
  * Analyzes resume against job description or industry trends.
  */
 export const analyzeResume = async (resumeText: string, jdText: string, deepAnalysis: boolean = false): Promise<ResumeAnalysisResult> => {
-  const apiKey = getApiKey();
-  const ai = new GoogleGenAI({ apiKey });
-  const modelId = "gemini-3-flash-preview"; 
+  // Use process.env.API_KEY directly as required by guidelines
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+  // Selecting gemini-3-pro-preview for complex reasoning task (ATS analysis and deep scrutiny)
+  const modelId = "gemini-3-pro-preview"; 
 
   const analysisType = deepAnalysis ? "DEEP CRITICAL ANALYSIS (STRICT)" : "STANDARD ATS SCAN";
   const depthInstruction = deepAnalysis 
@@ -100,8 +79,7 @@ export const askAcademicOracle = async (
   contextText: string, 
   chatHistory: { role: string; text: string }[]
 ): Promise<string> => {
-  const apiKey = getApiKey();
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
   const modelId = "gemini-3-flash-preview";
 
   const systemInstruction = `
@@ -141,8 +119,7 @@ export const askAcademicOracle = async (
 };
 
 export const generateFlashcards = async (contextText: string): Promise<Flashcard[]> => {
-  const apiKey = getApiKey();
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
   const modelId = "gemini-3-flash-preview";
   const prompt = `
     Create 5 high-quality flashcards based on the following text.
@@ -184,8 +161,7 @@ export const generateFlashcards = async (contextText: string): Promise<Flashcard
 }
 
 export const generateFlowchart = async (contextText: string): Promise<string> => {
-  const apiKey = getApiKey();
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
   const modelId = "gemini-3-flash-preview";
   const prompt = `
     Create a Mermaid.js flowchart syntax based on the key processes or concepts in the following text.
@@ -210,9 +186,8 @@ export const generateFlowchart = async (contextText: string): Promise<string> =>
 }
 
 export const searchGlobalOpportunities = async (query: string) => {
-  const apiKey = getApiKey();
-  const ai = new GoogleGenAI({ apiKey });
-  const modelId = "gemini-3-flash-preview"; // Optimized for search grounding
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+  const modelId = "gemini-3-flash-preview"; // Using gemini-3-flash-preview for real-time web search task
   
   const systemInstruction = `
     You are the "LPU Global Gateway", a specialized counselor helping students at Lovely Professional University (LPU), India, find international academic and professional opportunities.

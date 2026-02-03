@@ -1,4 +1,3 @@
-
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
 import { LibraryFile, UserProfile, Folder } from '../types.ts';
 
@@ -41,15 +40,68 @@ const getSupabase = () => {
 const BUCKET_NAME = 'nexus-documents';
 
 class NexusServer {
-  static async signUp(email: string, pass: string) {
+  static async checkUsernameAvailability(username: string): Promise<boolean> {
     const client = getSupabase();
-    if (!client) throw new Error("Supabase connection not established.");
-    return await client.auth.signUp({ email, password: pass });
+    if (!client) return true;
+    const { data, error } = await client
+      .from('profiles')
+      .select('username')
+      .eq('username', username.toLowerCase())
+      .maybeSingle();
+    return !data;
   }
 
-  static async signIn(email: string, pass: string) {
+  static async signUp(email: string, pass: string, username: string) {
     const client = getSupabase();
     if (!client) throw new Error("Supabase connection not established.");
+    
+    // 1. Double check availability
+    const isAvailable = await this.checkUsernameAvailability(username);
+    if (!isAvailable) throw new Error("Handle already claimed by another Verto.");
+
+    // 2. Sign up with metadata
+    const { data: authData, error: signUpErr } = await client.auth.signUp({ 
+      email, 
+      password: pass,
+      options: {
+        data: { username: username.toLowerCase() }
+      }
+    });
+
+    if (signUpErr) throw signUpErr;
+
+    // 3. The trigger in Supabase should handle the profile creation, 
+    // but we can manually update it to be safe or if the trigger isn't using metadata yet.
+    if (authData.user) {
+      await client
+        .from('profiles')
+        .update({ username: username.toLowerCase() })
+        .eq('id', authData.user.id);
+    }
+
+    return { data: authData, error: null };
+  }
+
+  static async signIn(identifier: string, pass: string) {
+    const client = getSupabase();
+    if (!client) throw new Error("Supabase connection not established.");
+    
+    let email = identifier;
+
+    // If identifier doesn't look like an email, assume it's a username
+    if (!identifier.includes('@')) {
+      const { data: profile, error: profileErr } = await client
+        .from('profiles')
+        .select('email')
+        .eq('username', identifier.toLowerCase())
+        .maybeSingle();
+      
+      if (profileErr || !profile) {
+        throw new Error("No Verto found with this handle.");
+      }
+      email = profile.email;
+    }
+
     return await client.auth.signInWithPassword({ email, password: pass });
   }
 
@@ -85,11 +137,11 @@ class NexusServer {
     if (!client) throw new Error("Database connection unavailable.");
     const { error } = await client
       .from('profiles')
-      .update({ username })
+      .update({ username: username.toLowerCase() })
       .eq('id', userId);
     if (error) {
       if (error.message.includes('unique')) {
-        throw new Error("Username already taken.");
+        throw new Error("Handle already taken.");
       }
       throw error;
     }
