@@ -91,6 +91,9 @@ const App: React.FC = () => {
   }, [showAuthModal]);
 
   useEffect(() => {
+    // RECORD AUTHENTIC VISIT
+    NexusServer.recordVisit();
+
     const savedTheme = localStorage.getItem('theme') as 'light' | 'dark';
     if (savedTheme) {
       setTheme(savedTheme);
