@@ -56,8 +56,8 @@ const AboutUs: React.FC = () => {
         <div className="absolute top-0 right-0 w-96 h-96 bg-orange-600/10 blur-[120px] rounded-full -mr-32 -mt-32"></div>
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-600/5 blur-[100px] rounded-full -ml-32 -mb-32"></div>
 
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-12">
-          {/* Main Content */}
+        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          {/* Main Content (Left) */}
           <div className="lg:col-span-7 space-y-10">
             <div>
               <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-orange-500 mb-6">Architect & Heritage</h3>
@@ -72,7 +72,7 @@ const AboutUs: React.FC = () => {
                 <p className="text-4xl font-black text-white tracking-tight">Anunay Yadav</p>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-4">
+              <div className="flex gap-12 pt-4">
                 <div>
                   <p className="text-[8px] font-black uppercase tracking-widest text-slate-500 mb-1">Batch</p>
                   <p className="text-lg font-black text-white">2025-29</p>
@@ -80,19 +80,6 @@ const AboutUs: React.FC = () => {
                 <div>
                   <p className="text-[8px] font-black uppercase tracking-widest text-slate-500 mb-1">Branch</p>
                   <p className="text-lg font-black text-white">CSE</p>
-                </div>
-                {/* Integrated Impact Metrics */}
-                <div className="group">
-                  <p className="text-[8px] font-black uppercase tracking-widest text-orange-500 mb-1">Registered</p>
-                  <p className="text-xl font-black text-white group-hover:text-orange-500 transition-colors">
-                    {loading ? "---" : stats?.registered.toLocaleString()}
-                  </p>
-                </div>
-                <div className="group">
-                  <p className="text-[8px] font-black uppercase tracking-widest text-blue-400 mb-1">Visitors</p>
-                  <p className="text-xl font-black text-white group-hover:text-blue-400 transition-colors">
-                    {loading ? "---" : `+${stats?.visitors.toLocaleString()}`}
-                  </p>
                 </div>
               </div>
             </div>
@@ -118,21 +105,22 @@ const AboutUs: React.FC = () => {
             </div>
           </div>
 
-          {/* Graphical Representation / Second Column */}
-          <div className="lg:col-span-5 hidden lg:flex items-center justify-center">
-            <div className="relative w-full aspect-square max-w-[300px]">
-              <div className="absolute inset-0 bg-orange-600/20 rounded-full animate-pulse blur-3xl"></div>
-              <div className="relative w-full h-full rounded-[60px] border border-white/10 bg-white/5 flex items-center justify-center p-8 backdrop-blur-xl">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="w-full h-full text-white/10">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                  <path d="M12 8v4l3 3"/>
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
-                  <p className="text-[10px] font-black uppercase tracking-[0.4em] text-orange-500 mb-1">Nexus Core</p>
-                  <p className="text-3xl font-black text-white tracking-tighter">AUTHENTIC</p>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Intelligence Layer</p>
-                </div>
-              </div>
+          {/* Integrated Impact Metrics (Right) */}
+          <div className="lg:col-span-5 flex flex-col justify-center space-y-12 pl-0 lg:pl-12 border-t lg:border-t-0 lg:border-l border-white/10 pt-10 lg:pt-0">
+            <div className="space-y-1">
+              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-orange-500 opacity-80">Verified Community</p>
+              <h4 className="text-5xl md:text-6xl font-black text-white tracking-tighter leading-none">
+                {loading ? "---" : stats?.registered.toLocaleString()}
+              </h4>
+              <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-2">Registered Website Users</p>
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-400 opacity-80">Global Reach</p>
+              <h4 className="text-5xl md:text-6xl font-black text-white tracking-tighter leading-none">
+                {loading ? "---" : `${stats?.visitors.toLocaleString()}+`}
+              </h4>
+              <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-2">Total Platform Visitors</p>
             </div>
           </div>
         </div>
