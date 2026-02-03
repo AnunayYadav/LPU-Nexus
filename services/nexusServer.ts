@@ -43,7 +43,7 @@ class NexusServer {
   static async checkUsernameAvailability(username: string): Promise<boolean> {
     const client = getSupabase();
     if (!client) return true;
-    const { data, error } = await client
+    const { data } = await client
       .from('profiles')
       .select('username')
       .eq('username', username.toLowerCase())
@@ -54,52 +54,35 @@ class NexusServer {
   static async signUp(email: string, pass: string, username: string) {
     const client = getSupabase();
     if (!client) throw new Error("Supabase connection not established.");
-    
-    // 1. Double check availability
     const isAvailable = await this.checkUsernameAvailability(username);
     if (!isAvailable) throw new Error("This username is already taken by another Verto.");
 
-    // 2. Sign up with metadata
     const { data: authData, error: signUpErr } = await client.auth.signUp({ 
       email, 
       password: pass,
-      options: {
-        data: { username: username.toLowerCase() }
-      }
+      options: { data: { username: username.toLowerCase() } }
     });
 
     if (signUpErr) throw signUpErr;
-
     if (authData.user) {
-      await client
-        .from('profiles')
-        .update({ username: username.toLowerCase() })
-        .eq('id', authData.user.id);
+      await client.from('profiles').update({ username: username.toLowerCase() }).eq('id', authData.user.id);
     }
-
     return { data: authData, error: null };
   }
 
   static async signIn(identifier: string, pass: string) {
     const client = getSupabase();
     if (!client) throw new Error("Supabase connection not established.");
-    
     let email = identifier;
-
-    // If identifier doesn't look like an email, assume it's a username
     if (!identifier.includes('@')) {
       const { data: profile, error: profileErr } = await client
         .from('profiles')
         .select('email')
         .eq('username', identifier.toLowerCase())
         .maybeSingle();
-      
-      if (profileErr || !profile) {
-        throw new Error("No Verto found with this username.");
-      }
+      if (profileErr || !profile) throw new Error("No Verto found with this username.");
       email = profile.email;
     }
-
     return await client.auth.signInWithPassword({ email, password: pass });
   }
 
@@ -121,11 +104,7 @@ class NexusServer {
   static async getProfile(userId: string): Promise<UserProfile | null> {
     const client = getSupabase();
     if (!client) return null;
-    const { data, error } = await client
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
+    const { data, error } = await client.from('profiles').select('*').eq('id', userId).single();
     if (error) return null;
     return data;
   }
@@ -133,32 +112,59 @@ class NexusServer {
   static async updateUsername(userId: string, username: string): Promise<void> {
     const client = getSupabase();
     if (!client) throw new Error("Database connection unavailable.");
-    const { error } = await client
-      .from('profiles')
-      .update({ username: username.toLowerCase() })
-      .eq('id', userId);
+    const { error } = await client.from('profiles').update({ username: username.toLowerCase() }).eq('id', userId);
     if (error) {
-      if (error.message.includes('unique')) {
-        throw new Error("This username is already taken.");
-      }
+      if (error.message.includes('unique')) throw new Error("This username is already taken.");
       throw error;
     }
   }
 
+  // --- HISTORY MANAGEMENT ---
+  static async saveRecord(userId: string | null, type: 'resume_audit' | 'cgpa_snapshot', label: string, content: any): Promise<void> {
+    const client = getSupabase();
+    if (userId && client) {
+      const { error } = await client.from('user_history').insert([{ user_id: userId, type, label, content }]);
+      if (error) throw error;
+    } else {
+      // Local Storage Fallback
+      const key = `nexus_history_${type}`;
+      const existing = JSON.parse(localStorage.getItem(key) || '[]');
+      const newRecord = { id: Math.random().toString(36).substr(2, 9), type, label, content, created_at: new Date().toISOString() };
+      localStorage.setItem(key, JSON.stringify([newRecord, ...existing].slice(0, 10)));
+    }
+  }
+
+  static async fetchRecords(userId: string | null, type: 'resume_audit' | 'cgpa_snapshot'): Promise<any[]> {
+    const client = getSupabase();
+    if (userId && client) {
+      const { data, error } = await client.from('user_history').select('*').eq('user_id', userId).eq('type', type).order('created_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    } else {
+      return JSON.parse(localStorage.getItem(`nexus_history_${type}`) || '[]');
+    }
+  }
+
+  static async deleteRecord(id: string, type: string, userId: string | null): Promise<void> {
+    const client = getSupabase();
+    if (userId && client) {
+      await client.from('user_history').delete().eq('id', id);
+    } else {
+      const key = `nexus_history_${type}`;
+      const existing = JSON.parse(localStorage.getItem(key) || '[]');
+      localStorage.setItem(key, JSON.stringify(existing.filter((r: any) => r.id !== id)));
+    }
+  }
+
+  // --- LIBRARY & FEEDBACK ---
   static async fetchFolders(): Promise<Folder[]> {
     const client = getSupabase();
     if (!client) return [];
     try {
-      const { data, error } = await client
-        .from('folders')
-        .select('*')
-        .order('name', { ascending: true });
+      const { data, error } = await client.from('folders').select('*').order('name', { ascending: true });
       if (error) throw error;
       return data as Folder[];
-    } catch (e) {
-      console.warn("Folders fetch error:", e);
-      return [];
-    }
+    } catch (e) { return []; }
   }
 
   static async createFolder(name: string, type: 'semester' | 'subject' | 'category', parentId: string | null): Promise<Folder> {
@@ -186,9 +192,7 @@ class NexusServer {
   static async submitFeedback(text: string, userId?: string, email?: string) {
     const client = getSupabase();
     if (!client) throw new Error("Database connection unavailable.");
-    const { error } = await client
-      .from('feedback')
-      .insert([{ text, user_id: userId || null, user_email: email || null }]);
+    const { error } = await client.from('feedback').insert([{ text, user_id: userId || null, user_email: email || null }]);
     if (error) throw error;
   }
 
@@ -215,53 +219,23 @@ class NexusServer {
   static async fetchFiles(query?: string, subject?: string): Promise<LibraryFile[]> {
     const client = getSupabase();
     if (!client) throw new Error("Database connection unavailable.");
-    
-    let result = await client
-      .from('documents')
-      .select('*, profiles(username, email)')
-      .eq('status', 'approved')
-      .order('created_at', { ascending: false });
-
-    if (result.error) {
-      result = await client
-        .from('documents')
-        .select('*')
-        .eq('status', 'approved')
-        .order('created_at', { ascending: false });
-    }
-
+    let result = await client.from('documents').select('*, profiles(username, email)').eq('status', 'approved').order('created_at', { ascending: false });
+    if (result.error) result = await client.from('documents').select('*').eq('status', 'approved').order('created_at', { ascending: false });
     if (result.error) throw result.error;
     let data = result.data || [];
-
-    if (subject && subject !== 'All') {
-      data = data.filter(d => d.subject === subject);
-    }
+    if (subject && subject !== 'All') data = data.filter(d => d.subject === subject);
     if (query) {
       const q = query.toLowerCase();
       data = data.filter(d => d.name.toLowerCase().includes(q));
     }
-
     return data.map(this.mapFileResult);
   }
 
   static async fetchUserFiles(userId: string): Promise<LibraryFile[]> {
     const client = getSupabase();
     if (!client) throw new Error("Database connection unavailable.");
-    
-    let result = await client
-      .from('documents')
-      .select('*, profiles(username, email)')
-      .eq('uploader_id', userId)
-      .order('created_at', { ascending: false });
-
-    if (result.error) {
-      result = await client
-        .from('documents')
-        .select('*')
-        .eq('uploader_id', userId)
-        .order('created_at', { ascending: false });
-    }
-
+    let result = await client.from('documents').select('*, profiles(username, email)').eq('uploader_id', userId).order('created_at', { ascending: false });
+    if (result.error) result = await client.from('documents').select('*').eq('uploader_id', userId).order('created_at', { ascending: false });
     if (result.error) throw result.error;
     return (result.data || []).map(this.mapFileResult);
   }
@@ -269,21 +243,8 @@ class NexusServer {
   static async fetchPendingFiles(): Promise<LibraryFile[]> {
     const client = getSupabase();
     if (!client) throw new Error("Database connection unavailable.");
-    
-    let result = await client
-      .from('documents')
-      .select('*, profiles(username, email)')
-      .or('status.eq.pending,pending_update.not.is.null')
-      .order('created_at', { ascending: true });
-
-    if (result.error) {
-      result = await client
-        .from('documents')
-        .select('*')
-        .or('status.eq.pending,pending_update.not.is.null')
-        .order('created_at', { ascending: true });
-    }
-
+    let result = await client.from('documents').select('*, profiles(username, email)').or('status.eq.pending,pending_update.not.is.null').order('created_at', { ascending: true });
+    if (result.error) result = await client.from('documents').select('*').or('status.eq.pending,pending_update.not.is.null').order('created_at', { ascending: true });
     if (result.error) throw result.error;
     return (result.data || []).map(this.mapFileResult);
   }
@@ -317,64 +278,36 @@ class NexusServer {
         const { error } = await client.from('documents').update({ pending_update: metadata }).eq('id', id);
         if (error) throw error;
       }
-    } catch (e: any) {
-      throw new Error(`Update request failed: ${e.message}`);
-    }
+    } catch (e: any) { throw new Error(`Update request failed: ${e.message}`); }
   }
 
   static async approveFile(id: string): Promise<void> {
     const client = getSupabase();
     if (!client) throw new Error('Database connection unavailable.');
     try {
-      // 1. Fetch current file metadata
       const { data: record, error: fetchError } = await client.from('documents').select('*').eq('id', id).single();
       if (fetchError || !record) throw new Error("Could not find document record.");
-
-      const finalData = record.pending_update || {
-        name: record.name,
-        description: record.description,
-        subject: record.subject,
-        semester: record.semester,
-        type: record.type
-      };
-
-      // 2. Folder Reconciliation Engine:
-      // Ensure the semester folder exists
+      const finalData = record.pending_update || { name: record.name, description: record.description, subject: record.subject, semester: record.semester, type: record.type };
       let { data: semFolder } = await client.from('folders').select('id').eq('type', 'semester').eq('name', finalData.semester).maybeSingle();
       if (!semFolder) {
         const { data: newSem } = await client.from('folders').insert({ type: 'semester', name: finalData.semester, parent_id: null }).select().single();
         semFolder = newSem;
       }
-
-      // Ensure the subject folder exists under this semester
       let { data: subFolder } = await client.from('folders').select('id').eq('type', 'subject').eq('name', finalData.subject).eq('parent_id', semFolder!.id).maybeSingle();
       if (!subFolder) {
         const { data: newSub } = await client.from('folders').insert({ type: 'subject', name: finalData.subject, parent_id: semFolder!.id }).select().single();
         subFolder = newSub;
       }
-
-      // Ensure the category folder exists under this subject
       let { data: catFolder } = await client.from('folders').select('id').eq('type', 'category').eq('name', finalData.type).eq('parent_id', subFolder!.id).maybeSingle();
       if (!catFolder) {
         const { data: newCat } = await client.from('folders').insert({ type: 'category', name: finalData.type, parent_id: subFolder!.id }).select().single();
         catFolder = newCat;
       }
-
-      // 3. Finalize approval
       const { error } = await client.from('documents').update({
-        name: finalData.name,
-        description: finalData.description,
-        subject: finalData.subject,
-        semester: finalData.semester,
-        type: finalData.type,
-        status: 'approved',
-        pending_update: null
+        name: finalData.name, description: finalData.description, subject: finalData.subject, semester: finalData.semester, type: finalData.type, status: 'approved', pending_update: null
       }).eq('id', id);
-
       if (error) throw error;
-    } catch (e: any) {
-      throw new Error(`Approval failed: ${e.message}`);
-    }
+    } catch (e: any) { throw new Error(`Approval failed: ${e.message}`); }
   }
 
   static async demoteFile(id: string): Promise<void> {
@@ -383,9 +316,7 @@ class NexusServer {
     try {
       const { error } = await client.from('documents').update({ status: 'pending' }).eq('id', id);
       if (error) throw error;
-    } catch (e: any) {
-      throw new Error(`Demotion failed: ${e.message}`);
-    }
+    } catch (e: any) { throw new Error(`Demotion failed: ${e.message}`); }
   }
 
   static async rejectFile(id: string): Promise<void> {
@@ -394,15 +325,9 @@ class NexusServer {
     try {
       const { data: record, error: fetchError } = await client.from('documents').select('status, storage_path').eq('id', id).single();
       if (fetchError || !record) throw new Error("Could not find record.");
-      
-      if (record.status === 'pending') {
-        await this.deleteFile(id, record.storage_path);
-      } else {
-        await this.rejectUpdate(id);
-      }
-    } catch (e: any) {
-      throw new Error(`Rejection failed: ${e.message}`);
-    }
+      if (record.status === 'pending') await this.deleteFile(id, record.storage_path);
+      else await this.rejectUpdate(id);
+    } catch (e: any) { throw new Error(`Rejection failed: ${e.message}`); }
   }
 
   static async rejectUpdate(id: string): Promise<void> {
@@ -411,9 +336,7 @@ class NexusServer {
     try {
       const { error } = await client.from('documents').update({ pending_update: null }).eq('id', id);
       if (error) throw error;
-    } catch (e: any) {
-      throw new Error(`Rejection failed: ${e.message}`);
-    }
+    } catch (e: any) { throw new Error(`Rejection failed: ${e.message}`); }
   }
 
   static async getFileUrl(path: string): Promise<string> {
@@ -431,9 +354,7 @@ class NexusServer {
       if (dbError) throw dbError;
       const { error: storageError } = await client.storage.from(BUCKET_NAME).remove([storagePath]);
       if (storageError) console.warn("Storage removal failed:", storageError.message);
-    } catch (e: any) {
-      throw new Error(`Deletion failed: ${e.message}`);
-    }
+    } catch (e: any) { throw new Error(`Deletion failed: ${e.message}`); }
   }
 }
 
