@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Sidebar from './components/Sidebar.tsx';
 import PlacementPrefect from './components/PlacementPrefect.tsx';
 import ContentLibrary from './components/ContentLibrary.tsx';
@@ -80,10 +79,13 @@ const App: React.FC = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
+  const authModalRef = useRef<HTMLDivElement>(null);
+
   // Auto-scroll logic for authentication gateway
   useEffect(() => {
     if (showAuthModal) {
-      document.getElementById('main-content-area')?.scrollTo({ top: 0, behavior: 'smooth' });
+      // Focus the modal in the center of the scroll view
+      authModalRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   }, [showAuthModal]);
 
@@ -160,7 +162,11 @@ const App: React.FC = () => {
         <div id="main-content-area" className="flex-1 overflow-y-auto p-4 md:p-8 relative scroll-smooth">
            <div className="fixed top-0 left-1/4 w-96 h-96 bg-orange-500/5 rounded-full blur-3xl pointer-events-none"></div>
            <div className="relative z-0 max-w-7xl mx-auto">{renderModule()}</div>
-           {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
+           {showAuthModal && (
+             <div ref={authModalRef} className="z-50 relative">
+               <AuthModal onClose={() => setShowAuthModal(false)} />
+             </div>
+           )}
         </div>
       </main>
       <Analytics />

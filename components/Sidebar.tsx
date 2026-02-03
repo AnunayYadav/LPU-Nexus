@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ModuleType, UserProfile } from '../types';
 import NexusServer from '../services/nexusServer.ts';
 
@@ -17,10 +16,12 @@ const Sidebar: React.FC<SidebarProps> = ({ currentModule, setModule, isMobileMen
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
-  // Auto-scroll logic for modals
+  const feedbackModalRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll logic to center feedback modal
   useEffect(() => {
     if (showFeedbackModal) {
-      document.getElementById('main-content-area')?.scrollTo({ top: 0, behavior: 'smooth' });
+      feedbackModalRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   }, [showFeedbackModal]);
 
@@ -111,7 +112,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentModule, setModule, isMobileMen
 
       {showFeedbackModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-          <div className="bg-white dark:bg-slate-950 rounded-3xl p-8 w-full max-w-md shadow-2xl animate-fade-in border border-white/5 relative overflow-hidden">
+          <div ref={feedbackModalRef} className="bg-white dark:bg-slate-950 rounded-3xl p-8 w-full max-w-md shadow-2xl animate-fade-in border border-white/5 relative overflow-hidden">
             {submitSuccess ? (
               <div className="text-center py-10 space-y-4 animate-fade-in">
                 <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto text-green-500">

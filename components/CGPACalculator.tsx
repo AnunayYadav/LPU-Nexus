@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { UserProfile } from '../types.ts';
 import NexusServer from '../services/nexusServer.ts';
@@ -52,13 +51,21 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
 
   const semDropdownRef = useRef<HTMLDivElement>(null);
   const modeDropdownRef = useRef<HTMLDivElement>(null);
+  const shareModalRef = useRef<HTMLDivElement>(null);
+  const historyPanelRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll logic for modals
+  // Auto-scroll logic for modals to center them
   useEffect(() => {
-    if (isShareModalOpen || isHistoryOpen) {
-      document.getElementById('main-content-area')?.scrollTo({ top: 0, behavior: 'smooth' });
+    if (isShareModalOpen) {
+      shareModalRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
-  }, [isShareModalOpen, isHistoryOpen]);
+  }, [isShareModalOpen]);
+
+  useEffect(() => {
+    if (isHistoryOpen) {
+      historyPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [isHistoryOpen]);
 
   useEffect(() => {
     loadHistory();
@@ -238,7 +245,7 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
       </header>
 
       {isHistoryOpen && (
-        <div className="glass-panel p-6 rounded-[32px] border border-orange-500/20 bg-orange-500/[0.03] animate-fade-in mb-8">
+        <div ref={historyPanelRef} className="glass-panel p-6 rounded-[32px] border border-orange-500/20 bg-orange-500/[0.03] animate-fade-in mb-8">
            <div className="flex items-center justify-between mb-6">
               <h3 className="text-[10px] font-black text-orange-600 uppercase tracking-widest flex items-center gap-2">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
@@ -448,7 +455,7 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
 
       {isShareModalOpen && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
-          <div className="bg-white dark:bg-slate-950 rounded-[48px] p-12 w-full max-w-lg shadow-[0_40px_100px_-20px_rgba(0,0,0,0.5)] border border-white/10 relative text-center">
+          <div ref={shareModalRef} className="bg-white dark:bg-slate-950 rounded-[48px] p-12 w-full max-w-lg shadow-[0_40px_100px_-20px_rgba(0,0,0,0.5)] border border-white/10 relative text-center">
             <button onClick={() => setIsShareModalOpen(false)} className="absolute top-10 right-10 text-slate-400 hover:text-slate-900 transition-all border-none bg-transparent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             <div className="w-24 h-24 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-8"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-12 h-12 text-emerald-500"><polyline points="20 6 9 17 4 12"/></svg></div>
             <h3 className="text-3xl font-black dark:text-white mb-4 uppercase tracking-tighter">Academic ID Ready</h3>

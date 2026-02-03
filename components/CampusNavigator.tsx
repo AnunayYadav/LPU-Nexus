@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 
 const IconMess = () => (
@@ -79,8 +78,9 @@ const CampusNavigator: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'mess' | 'map'>('mess');
   const [isInitializing, setIsInitializing] = useState(true);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const reportModalRef = useRef<HTMLDivElement>(null);
 
-  // Reference logic: Treat Today (Feb 27, 2025) as Thursday, Week 2.
+  // Reference logic: Today (Feb 27, 2025) as Thursday, Week 2.
   const REF_SUNDAY = new Date('2025-02-23T00:00:00Z').getTime();
   const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000;
   
@@ -107,6 +107,13 @@ const CampusNavigator: React.FC = () => {
     const timer = setTimeout(() => setIsInitializing(false), 800);
     return () => clearTimeout(timer);
   }, []);
+
+  // Auto-scroll logic for mess report modal
+  useEffect(() => {
+    if (isReportModalOpen) {
+      reportModalRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [isReportModalOpen]);
 
   useEffect(() => {
     // Auto-scroll to today button
@@ -330,7 +337,7 @@ const CampusNavigator: React.FC = () => {
 
       {isReportModalOpen && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
-          <div className="bg-white dark:bg-slate-950 rounded-[32px] p-8 w-full max-w-lg shadow-2xl border border-white/5 relative">
+          <div ref={reportModalRef} className="bg-white dark:bg-slate-950 rounded-[32px] p-8 w-full max-w-lg shadow-2xl border border-white/5 relative">
             <button 
               onClick={() => setIsReportModalOpen(false)}
               className="absolute top-6 right-6 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"

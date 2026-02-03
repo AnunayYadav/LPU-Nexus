@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { LibraryFile, UserProfile, Folder } from '../types.ts';
 import NexusServer from '../services/nexusServer.ts';
@@ -64,10 +63,12 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [draggingOverId, setDraggingOverId] = useState<string | null>(null);
 
-  // Auto-scroll logic for modals
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll logic to center modals in viewport
   useEffect(() => {
     if (showFolderModal || showRenameModal || showDetailsModal || showEditModal || showUploadModal) {
-      document.getElementById('main-content-area')?.scrollTo({ top: 0, behavior: 'smooth' });
+      modalRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   }, [showFolderModal, showRenameModal, showDetailsModal, showEditModal, showUploadModal]);
 
@@ -437,7 +438,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
 
       {showFolderModal && userProfile?.is_admin && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-          <div className="bg-white dark:bg-slate-950 rounded-[30px] w-full max-w-sm shadow-2xl border border-white/10 overflow-hidden flex flex-col">
+          <div ref={modalRef} className="bg-white dark:bg-slate-950 rounded-[30px] w-full max-w-sm shadow-2xl border border-white/10 overflow-hidden flex flex-col">
             <div className="bg-black p-6 text-white flex justify-between items-center">
               <h3 className="text-lg font-black uppercase tracking-widest">New Node</h3>
               <button onClick={() => setShowFolderModal(false)} className="opacity-50 hover:opacity-100 transition-opacity border-none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
@@ -454,7 +455,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
 
       {showRenameModal && userProfile?.is_admin && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-          <div className="bg-white dark:bg-slate-950 rounded-[30px] w-full max-w-sm shadow-2xl border border-white/10 overflow-hidden flex flex-col">
+          <div ref={modalRef} className="bg-white dark:bg-slate-950 rounded-[30px] w-full max-w-sm shadow-2xl border border-white/10 overflow-hidden flex flex-col">
             <div className="bg-black p-6 text-white flex justify-between items-center">
               <h3 className="text-lg font-black uppercase tracking-widest leading-none">Rename Node</h3>
               <button onClick={() => setShowRenameModal(false)} className="opacity-50 hover:opacity-100 transition-opacity border-none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
@@ -471,7 +472,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
 
       {showEditModal && selectedFile && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-          <div className="bg-white dark:bg-slate-950 rounded-[40px] w-full max-w-md shadow-2xl border border-white/10 overflow-hidden flex flex-col max-h-[90vh]">
+          <div ref={modalRef} className="bg-white dark:bg-slate-950 rounded-[40px] w-full max-w-md shadow-2xl border border-white/10 overflow-hidden flex flex-col max-h-[90vh]">
             <div className="bg-black p-6 text-white flex justify-between items-center">
               <h3 className="text-lg font-black uppercase tracking-widest">Edit Entry</h3>
               <button onClick={() => setShowEditModal(false)} className="opacity-50 hover:opacity-100 transition-opacity border-none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
@@ -506,7 +507,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
 
       {showDetailsModal && selectedFile && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-          <div className="bg-white dark:bg-slate-950 rounded-[40px] w-full max-w-md shadow-2xl border border-white/10 overflow-hidden flex flex-col relative">
+          <div ref={modalRef} className="bg-white dark:bg-slate-950 rounded-[40px] w-full max-w-md shadow-2xl border border-white/10 overflow-hidden flex flex-col relative">
             <div className="bg-black p-8 text-white flex justify-between items-start">
               <div>
                 <h3 className="text-2xl font-black uppercase tracking-tighter leading-none">{selectedFile.name}</h3>
@@ -555,7 +556,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
 
       {showUploadModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-          <div className="bg-white dark:bg-slate-950 rounded-[40px] w-full max-w-md shadow-2xl border border-white/10 overflow-hidden flex flex-col max-h-[90vh]">
+          <div ref={modalRef} className="bg-white dark:bg-slate-950 rounded-[40px] w-full max-w-md shadow-2xl border border-white/10 overflow-hidden flex flex-col max-h-[90vh]">
             <div className="bg-gradient-to-r from-orange-600 to-red-700 p-6 text-white flex justify-between items-center">
               <h3 className="text-lg font-black uppercase tracking-widest">Registry Sync</h3>
               <button onClick={() => setShowUploadModal(false)} className="opacity-50 hover:opacity-100 transition-opacity border-none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>

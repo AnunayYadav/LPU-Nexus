@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 interface Subject {
   id: string;
@@ -71,10 +70,12 @@ const AttendanceTracker: React.FC = () => {
     goal: '75'
   });
 
-  // Auto-scroll logic for modals
+  const editModalRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll logic for modals to center them
   useEffect(() => {
     if (isEditModalOpen) {
-      document.getElementById('main-content-area')?.scrollTo({ top: 0, behavior: 'smooth' });
+      editModalRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   }, [isEditModalOpen]);
 
@@ -471,7 +472,7 @@ const AttendanceTracker: React.FC = () => {
 
       {isEditModalOpen && editingSubject && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in overflow-hidden">
-          <div className="bg-white dark:bg-slate-950 rounded-[32px] md:rounded-[40px] w-full max-w-md shadow-2xl border border-slate-200 dark:border-white/10 relative overflow-hidden flex flex-col">
+          <div ref={editModalRef} className="bg-white dark:bg-slate-950 rounded-[32px] md:rounded-[40px] w-full max-w-md shadow-2xl border border-slate-200 dark:border-white/10 relative overflow-hidden flex flex-col">
             <div className="bg-black p-6 md:p-8 text-white relative rounded-t-[32px] md:rounded-t-[40px] flex-shrink-0">
               <button onClick={() => setIsEditModalOpen(false)} className="absolute top-5 right-5 md:top-6 md:right-6 p-2 text-white/50 hover:text-white transition-colors">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><path d="M18 6L6 18M6 6l12 12"/></svg>
