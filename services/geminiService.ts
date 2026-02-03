@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { ResumeAnalysisResult, Flashcard } from "../types.ts";
 
@@ -6,9 +7,7 @@ import { ResumeAnalysisResult, Flashcard } from "../types.ts";
  * Analyzes resume against job description or industry trends.
  */
 export const analyzeResume = async (resumeText: string, jdText: string, deepAnalysis: boolean = false): Promise<ResumeAnalysisResult> => {
-  // Use process.env.API_KEY directly as required by guidelines
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
-  // Selecting gemini-3-pro-preview for complex reasoning task (ATS analysis and deep scrutiny)
   const modelId = "gemini-3-pro-preview"; 
 
   const analysisType = deepAnalysis ? "DEEP CRITICAL ANALYSIS (STRICT)" : "STANDARD ATS SCAN";
@@ -187,7 +186,7 @@ export const generateFlowchart = async (contextText: string): Promise<string> =>
 
 export const searchGlobalOpportunities = async (query: string) => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
-  const modelId = "gemini-3-flash-preview"; // Using gemini-3-flash-preview for real-time web search task
+  const modelId = "gemini-3-flash-preview"; 
   
   const systemInstruction = `
     You are the "LPU Global Gateway", a specialized counselor helping students at Lovely Professional University (LPU), India, find international academic and professional opportunities.
@@ -216,7 +215,7 @@ export const searchGlobalOpportunities = async (query: string) => {
       config: {
         systemInstruction,
         tools: [{ googleSearch: {} }],
-        temperature: 0.2, // Lower temperature for more factual search results
+        temperature: 0.2, 
       },
     });
 
@@ -226,6 +225,52 @@ export const searchGlobalOpportunities = async (query: string) => {
     };
   } catch (error) {
     console.error("Global Gateway Error:", error);
+    throw error;
+  }
+};
+
+/**
+ * Module C: LPU Pulse News Scout
+ * Fetches latest campus news and announcements using Google Search grounding.
+ */
+export const fetchCampusNews = async (query: string) => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+  const modelId = "gemini-3-flash-preview"; 
+  
+  const systemInstruction = `
+    You are the "LPU Pulse Scout", a specialized news aggregator for Lovely Professional University (LPU), India.
+    
+    Your goal is to provide up-to-date, live web information on:
+    - Recent LPU announcements, circulars, and official notices (e.g., from UMS).
+    - Campus events, cultural fests (One India, One World, Youth Vibe), and technical symposiums.
+    - Placement drives and companies visiting the campus.
+    - Sports achievements and trials.
+    - Infrastructure updates (new blocks, labs, etc.).
+    
+    STRICT RULES:
+    1. Focus on results from 2024-2025.
+    2. Be concise and use Markdown for formatting.
+    3. Always prioritize official university sources or reputable news outlets.
+    4. If information is based on rumors or unverified sources, state it clearly.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: modelId,
+      contents: query,
+      config: {
+        systemInstruction,
+        tools: [{ googleSearch: {} }],
+        temperature: 0.1, 
+      },
+    });
+
+    return {
+      text: response.text,
+      groundingChunks: response.candidates?.[0]?.groundingMetadata?.groundingChunks
+    };
+  } catch (error) {
+    console.error("Campus News Error:", error);
     throw error;
   }
 };

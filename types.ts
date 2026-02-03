@@ -83,6 +83,10 @@ export interface Flashcard {
 }
 
 declare global {
+  /**
+   * Corrected global interface declaration to properly extend the Window object.
+   * Using 'Window' (capitalized) is required by TypeScript to merge with the existing global Window interface.
+   */
   interface Window {
     pdfjsLib: any;
     mermaid: any;

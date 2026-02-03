@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import Sidebar from './components/Sidebar.tsx';
 import PlacementPrefect from './components/PlacementPrefect.tsx';
@@ -65,7 +66,7 @@ const Dashboard: React.FC<{ setModule: (m: ModuleType) => void }> = ({ setModule
       <div onClick={() => setModule(ModuleType.PLACEMENT)} className="group relative p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/50 hover:border-orange-500/50 transition-all cursor-pointer hover:shadow-2xl overflow-hidden min-h-[160px]"><h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Placement Prefect</h3><p className="text-slate-600 dark:text-slate-400 text-sm">Resume ATS matching & optimization tailored for campus drives.</p></div>
       <div onClick={() => setModule(ModuleType.LIBRARY)} className="group relative p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/50 hover:border-orange-500/50 transition-all cursor-pointer hover:shadow-2xl overflow-hidden min-h-[160px]"><h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Content Library</h3><p className="text-slate-600 dark:text-slate-400 text-sm">Centralized hub for all your lectures, question banks and notes.</p></div>
       <div onClick={() => setModule(ModuleType.CAMPUS)} className="group relative p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/50 hover:border-indigo-500/50 transition-all cursor-pointer hover:shadow-2xl overflow-hidden min-h-[160px]"><h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Campus Navigator</h3><p className="text-slate-600 dark:text-slate-400 text-sm">Mess menu checker and interactive 3D map.</p></div>
-      <div onClick={() => setModule(ModuleType.GLOBAL)} className="group relative p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/5 hover:border-emerald-500/50 transition-all cursor-pointer hover:shadow-2xl overflow-hidden min-h-[160px]"><h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Global Gateway</h3><p className="text-slate-600 dark:text-slate-400 text-sm">Real-time study abroad info using Google Search Grounding.</p></div>
+      <div onClick={() => setModule(ModuleType.GLOBAL)} className="group relative p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/50 hover:border-emerald-500/50 transition-all cursor-pointer hover:shadow-2xl overflow-hidden min-h-[160px]"><h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Global Gateway</h3><p className="text-slate-600 dark:text-slate-400 text-sm">Real-time international university and visa scouting.</p></div>
     </div>
   </div>
 );
