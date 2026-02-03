@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { LibraryFile, UserProfile, Folder } from '../types.ts';
 import NexusServer from '../services/nexusServer.ts';
@@ -35,7 +36,6 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
   const [viewMode, setViewMode] = useState<'browse' | 'my-uploads'>(initialView);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Navigation State
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('newest');
   
@@ -47,7 +47,6 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
   const [isProcessing, setIsProcessing] = useState(false);
   const [processSuccess, setProcessSuccess] = useState(false);
   
-  // Modals
   const [showFolderModal, setShowFolderModal] = useState(false);
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -63,8 +62,14 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
   const [isCustomCategory, setIsCustomCategory] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-
   const [draggingOverId, setDraggingOverId] = useState<string | null>(null);
+
+  // Auto-scroll logic for modals
+  useEffect(() => {
+    if (showFolderModal || showRenameModal || showDetailsModal || showEditModal || showUploadModal) {
+      document.getElementById('main-content-area')?.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [showFolderModal, showRenameModal, showDetailsModal, showEditModal, showUploadModal]);
 
   useEffect(() => {
     if (initialView) setViewMode(initialView);
@@ -358,7 +363,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
                     </button>
                     <button 
                       onClick={(e) => handleDeleteFolder(folder, e)} 
-                      className="p-1.5 bg-black rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-slate-900 transition-colors shadow-sm border-none"
+                      className="p-1.5 bg-black rounded-lg text-red-500 hover:bg-red dark:hover:bg-slate-900 transition-colors shadow-sm border-none"
                     >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
                     </button>
@@ -430,7 +435,6 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
         </div>
       )}
 
-      {/* CREATE FOLDER MODAL */}
       {showFolderModal && userProfile?.is_admin && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
           <div className="bg-white dark:bg-slate-950 rounded-[30px] w-full max-w-sm shadow-2xl border border-white/10 overflow-hidden flex flex-col">
@@ -448,7 +452,6 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
         </div>
       )}
 
-      {/* RENAME FOLDER MODAL */}
       {showRenameModal && userProfile?.is_admin && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
           <div className="bg-white dark:bg-slate-950 rounded-[30px] w-full max-w-sm shadow-2xl border border-white/10 overflow-hidden flex flex-col">
@@ -466,7 +469,6 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
         </div>
       )}
 
-      {/* ADMIN EDIT FILE MODAL */}
       {showEditModal && selectedFile && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
           <div className="bg-white dark:bg-slate-950 rounded-[40px] w-full max-w-md shadow-2xl border border-white/10 overflow-hidden flex flex-col max-h-[90vh]">
@@ -502,7 +504,6 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
         </div>
       )}
 
-      {/* FILE DETAILS MODAL */}
       {showDetailsModal && selectedFile && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
           <div className="bg-white dark:bg-slate-950 rounded-[40px] w-full max-w-md shadow-2xl border border-white/10 overflow-hidden flex flex-col relative">
@@ -552,7 +553,6 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
         </div>
       )}
 
-      {/* UPLOAD MODAL */}
       {showUploadModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
           <div className="bg-white dark:bg-slate-950 rounded-[40px] w-full max-w-md shadow-2xl border border-white/10 overflow-hidden flex flex-col max-h-[90vh]">

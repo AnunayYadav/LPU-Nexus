@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { UserProfile } from '../types.ts';
 import NexusServer from '../services/nexusServer.ts';
@@ -51,6 +52,13 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
 
   const semDropdownRef = useRef<HTMLDivElement>(null);
   const modeDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll logic for modals
+  useEffect(() => {
+    if (isShareModalOpen || isHistoryOpen) {
+      document.getElementById('main-content-area')?.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [isShareModalOpen, isHistoryOpen]);
 
   useEffect(() => {
     loadHistory();
@@ -139,11 +147,9 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
     const CREDITS_PER_SEM = 20; 
     const totalSems = 8;
     
-    // archivedCredits are semesters strictly BEFORE currentSemester
     const archivedCredits = Number(prevTotalCredits);
     const archivedPoints = Number(prevCGPA) * Number(prevTotalCredits);
     
-    // We include current semester and all future ones in the roadmap
     const planSemIndices = [];
     for (let i = currentSemester; i <= totalSems; i++) {
       planSemIndices.push(i);
@@ -201,11 +207,11 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
           <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">LPU Precision Forecasting & Ledger</p>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <button 
             onClick={() => setIsHistoryOpen(!isHistoryOpen)} 
             title="Registry Vault" 
-            className={`p-3 rounded-2xl transition-all border-none bg-transparent ${isHistoryOpen ? 'text-orange-600' : 'text-slate-400 hover:text-orange-500'}`}
+            className={`p-3 rounded-2xl transition-all border-none bg-transparent flex items-center justify-center ${isHistoryOpen ? 'text-orange-600' : 'text-slate-400 hover:text-orange-500'}`}
           >
              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-6 h-6"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/></svg>
           </button>
@@ -214,7 +220,7 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
             onClick={saveSnapshot} 
             disabled={isSaving} 
             title="Create Academic Snapshot" 
-            className="p-3 rounded-2xl text-slate-400 hover:text-emerald-500 transition-all border-none bg-transparent disabled:opacity-30"
+            className="p-3 rounded-2xl text-slate-400 hover:text-emerald-500 transition-all border-none bg-transparent flex items-center justify-center disabled:opacity-30"
           >
             {isSaving ? <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" /> : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-6 h-6"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>}
           </button>
@@ -258,12 +264,12 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
 
       <div className="flex flex-wrap items-center gap-4 mb-8">
          <div className="relative" ref={semDropdownRef}>
-            <button onClick={() => setIsSemDropdownOpen(!isSemDropdownOpen)} className={`flex items-center justify-between min-w-[160px] px-6 py-3 rounded-2xl border transition-all duration-300 font-black text-[10px] uppercase tracking-widest ${isSemDropdownOpen ? 'bg-white dark:bg-white/10 border-orange-500 shadow-xl' : 'bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-700 dark:text-white'}`}>
+            <button onClick={() => setIsSemDropdownOpen(!isSemDropdownOpen)} className={`flex items-center justify-between min-w-[160px] px-6 py-3 rounded-2xl border transition-all duration-300 font-black text-[10px] uppercase tracking-widest ${isSemDropdownOpen ? 'bg-white dark:bg-slate-950 border-orange-500 shadow-xl' : 'bg-slate-100 dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-700 dark:text-white'}`}>
               <span>Semester {currentSemester}</span>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className={`w-3 h-3 ml-2 transition-transform ${isSemDropdownOpen ? 'rotate-180' : ''}`}><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             {isSemDropdownOpen && (
-              <div className="absolute top-full left-0 mt-2 w-full z-[100] glass-panel rounded-2xl overflow-hidden shadow-2xl border dark:border-white/10 bg-white dark:bg-slate-900">
+              <div className="absolute top-full left-0 mt-2 w-full z-[100] glass-panel rounded-2xl overflow-hidden shadow-2xl border dark:border-white/10 bg-white dark:bg-slate-950">
                 <div className="py-1 max-h-60 overflow-y-auto no-scrollbar">
                   {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
                     <button key={sem} onClick={() => { setCurrentSemester(sem); setIsSemDropdownOpen(false); setManualAdjustments({}); }} className={`w-full text-left px-6 py-3.5 text-[10px] font-black uppercase tracking-widest transition-colors border-none ${currentSemester === sem ? 'bg-orange-600 text-white' : 'hover:bg-orange-500/10 dark:text-white'}`}>Semester {sem}</button>
@@ -273,15 +279,15 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
             )}
          </div>
          <div className="relative" ref={modeDropdownRef}>
-          <button onClick={() => setIsModeDropdownOpen(!isModeDropdownOpen)} className={`flex items-center justify-between min-w-[160px] px-6 py-3 rounded-2xl border transition-all duration-300 font-black text-[10px] uppercase tracking-widest ${isModeDropdownOpen ? 'bg-white dark:bg-white/10 border-orange-500 shadow-xl' : 'bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-700 dark:text-white'}`}>
+          <button onClick={() => setIsModeDropdownOpen(!isModeDropdownOpen)} className={`flex items-center justify-between min-w-[160px] px-6 py-3 rounded-2xl border transition-all duration-300 font-black text-[10px] uppercase tracking-widest ${isModeDropdownOpen ? 'bg-white dark:bg-slate-950 border-orange-500 shadow-xl' : 'bg-slate-100 dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-700 dark:text-white'}`}>
             <span>Input: {inputMode === 'marks' ? 'Marks' : 'Grades'}</span>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className={`w-3 h-3 ml-2 transition-transform ${isModeDropdownOpen ? 'rotate-180' : ''}`}><polyline points="6 9 12 15 18 9"/></svg>
           </button>
           {isModeDropdownOpen && (
-            <div className="absolute top-full left-0 mt-2 w-full z-[100] glass-panel rounded-2xl overflow-hidden shadow-2xl border dark:border-white/10 bg-white dark:bg-slate-900">
+            <div className="absolute top-full left-0 mt-2 w-full z-[100] glass-panel rounded-2xl overflow-hidden shadow-2xl border dark:border-white/10 bg-white dark:bg-slate-950">
               <div className="py-1">
-                <button onClick={() => { setInputMode('marks'); setIsModeDropdownOpen(false); }} className="w-full text-left px-6 py-3.5 text-[10px] font-black uppercase tracking-widest hover:bg-orange-500/10 dark:text-white transition-colors border-none">By Marks</button>
-                <button onClick={() => { setInputMode('grades'); setIsModeDropdownOpen(false); }} className="w-full text-left px-6 py-3.5 text-[10px] font-black uppercase tracking-widest hover:bg-orange-500/10 dark:text-white transition-colors border-none">By Grades</button>
+                <button onClick={() => { setInputMode('marks'); setIsModeDropdownOpen(false); }} className={`w-full text-left px-6 py-3.5 text-[10px] font-black uppercase tracking-widest transition-colors border-none ${inputMode === 'marks' ? 'bg-orange-600 text-white' : 'hover:bg-orange-500/10 dark:text-white'}`}>By Marks</button>
+                <button onClick={() => { setInputMode('grades'); setIsModeDropdownOpen(false); }} className={`w-full text-left px-6 py-3.5 text-[10px] font-black uppercase tracking-widest transition-colors border-none ${inputMode === 'grades' ? 'bg-orange-600 text-white' : 'hover:bg-orange-500/10 dark:text-white'}`}>By Grades</button>
               </div>
             </div>
           )}
@@ -293,7 +299,7 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
           <div className="glass-panel p-8 rounded-[40px] space-y-6 shadow-sm border dark:border-white/5 bg-white dark:bg-slate-950/50 relative overflow-hidden">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Semester Ledger</h3>
-              <button onClick={addCourse} className="text-[10px] font-black uppercase tracking-widest text-orange-600 bg-orange-600/5 hover:bg-orange-600/10 px-6 py-2.5 rounded-xl border border-orange-600/20 transition-all">+ Add Course</button>
+              <button onClick={addCourse} className="text-[10px] font-black uppercase tracking-widest text-orange-600 bg-orange-600/5 hover:bg-orange-600/10 px-6 py-2.5 rounded-xl border border-orange-600/20 transition-all border-none">+ Add Course</button>
             </div>
             {courses.length === 0 ? <div className="py-16 text-center border-4 border-dashed border-slate-100 dark:border-white/5 rounded-[40px]"><p className="text-[10px] font-black uppercase tracking-widest text-slate-400 opacity-40">Terminal ready... awaiting data entries.</p></div> : (
               <div className="space-y-4">{courses.map((c) => (
@@ -332,11 +338,11 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                   Trajectory Architect
                 </h3>
-                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1 opacity-60">Simulate remaining path to graduation</p>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1 opacity-60">Establish degree target and simulate performance</p>
               </div>
               <div className="flex items-center gap-4">
                 {Object.keys(manualAdjustments).length > 0 && (
-                  <button onClick={clearPins} className="text-[8px] font-black uppercase text-slate-400 hover:text-blue-600 tracking-[0.2em] transition-colors underline underline-offset-4 border-none bg-transparent">Reset All</button>
+                  <button onClick={clearPins} className="text-[8px] font-black uppercase text-slate-400 hover:text-blue-600 tracking-[0.2em] transition-colors border-none bg-transparent">Reset All</button>
                 )}
                 <div className="text-right">
                   <p className="text-[9px] font-black uppercase text-slate-400 mb-1 tracking-widest">Degree Target</p>
@@ -391,7 +397,7 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
             ) : (
               <div className="py-20 text-center opacity-30">
                 <div className="w-16 h-16 bg-slate-200 dark:bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="w-8 h-8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-                <p className="text-[10px] font-black uppercase tracking-[0.3em]">Launch roadmap simulations</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.3em]">Initialize Target Parameter to Launch Roadmap</p>
               </div>
             )}
           </div>
@@ -432,7 +438,7 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
       </div>
 
       <footer className="pt-10 pb-4 text-center">
-        <div className="inline-flex items-start gap-4 p-6 bg-slate-100 dark:bg-white/5 rounded-[32px] border border-slate-200 dark:border-white/10 max-w-2xl text-left">
+        <div className="inline-flex items-start gap-4 p-6 bg-slate-100 dark:bg-slate-950/50 rounded-[32px] border border-slate-200 dark:border-white/10 max-w-2xl text-left">
            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5 text-orange-500 mt-0.5 flex-shrink-0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
            <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed uppercase tracking-widest">
              Note: LPU follows a relative grading system. This calculator utilizes the standard 10-point scale for estimation protocols. Actual results may vary based on your specific batch trajectory and the relative performance curve.

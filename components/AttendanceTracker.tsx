@@ -50,7 +50,6 @@ const AttendanceTracker: React.FC = () => {
         setSubjects([]);
       }
     }
-    // Artificial delay to show skeleton
     const timer = setTimeout(() => setIsInitializing(false), 600);
     return () => clearTimeout(timer);
   }, []);
@@ -71,6 +70,13 @@ const AttendanceTracker: React.FC = () => {
     total: '0',
     goal: '75'
   });
+
+  // Auto-scroll logic for modals
+  useEffect(() => {
+    if (isEditModalOpen) {
+      document.getElementById('main-content-area')?.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [isEditModalOpen]);
 
   useEffect(() => {
     if (!isInitializing) {
@@ -259,7 +265,6 @@ const AttendanceTracker: React.FC = () => {
         </div>
       </header>
 
-      {/* Input Panel */}
       <div className="glass-panel p-5 md:p-8 rounded-[32px] md:rounded-[40px] bg-white dark:bg-slate-950/50 border border-slate-200 dark:border-white/5 shadow-2xl relative z-0">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-5 items-end">
           <div className="md:col-span-4">
@@ -316,7 +321,6 @@ const AttendanceTracker: React.FC = () => {
         </div>
       </div>
 
-      {/* Grid Display */}
       {isInitializing ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
           <SubjectSkeleton />

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ModuleType, UserProfile } from '../types';
 import NexusServer from '../services/nexusServer.ts';
 
@@ -16,6 +16,13 @@ const Sidebar: React.FC<SidebarProps> = ({ currentModule, setModule, isMobileMen
   const [feedbackText, setFeedbackText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+
+  // Auto-scroll logic for modals
+  useEffect(() => {
+    if (showFeedbackModal) {
+      document.getElementById('main-content-area')?.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [showFeedbackModal]);
 
   const navItems = [
     { 
@@ -95,7 +102,6 @@ const Sidebar: React.FC<SidebarProps> = ({ currentModule, setModule, isMobileMen
 
   return (
     <>
-      {/* Mobile Overlay */}
       {isMobileMenuOpen && (
         <div 
           className="fixed inset-0 bg-black/60 z-20 md:hidden backdrop-blur-md"
@@ -103,7 +109,6 @@ const Sidebar: React.FC<SidebarProps> = ({ currentModule, setModule, isMobileMen
         />
       )}
 
-      {/* Feedback Modal */}
       {showFeedbackModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
           <div className="bg-white dark:bg-slate-950 rounded-3xl p-8 w-full max-w-md shadow-2xl animate-fade-in border border-white/5 relative overflow-hidden">
@@ -130,14 +135,14 @@ const Sidebar: React.FC<SidebarProps> = ({ currentModule, setModule, isMobileMen
                   <button 
                     onClick={() => setShowFeedbackModal(false)}
                     disabled={isSubmitting}
-                    className="px-4 py-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-bold text-sm"
+                    className="px-4 py-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-bold text-sm border-none bg-transparent"
                   >
                     Cancel
                   </button>
                   <button 
                     onClick={submitFeedback}
                     disabled={isSubmitting || !feedbackText.trim()}
-                    className="px-8 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-bold text-sm shadow-lg shadow-orange-600/20 disabled:opacity-50 transition-all flex items-center gap-2"
+                    className="px-8 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-bold text-sm shadow-lg shadow-orange-600/20 disabled:opacity-50 transition-all flex items-center gap-2 border-none"
                   >
                     {isSubmitting && <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
                     <span>{isSubmitting ? 'Sending...' : 'Submit'}</span>
@@ -149,7 +154,6 @@ const Sidebar: React.FC<SidebarProps> = ({ currentModule, setModule, isMobileMen
         </div>
       )}
 
-      {/* Sidebar Container */}
       <aside className={`
         fixed inset-y-0 left-0 z-30 w-64 transform transition-transform duration-300 ease-in-out
         bg-white dark:bg-black border-r border-slate-200 dark:border-white/5
@@ -171,7 +175,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentModule, setModule, isMobileMen
                 setModule(item.id);
                 if (window.innerWidth < 768) toggleMobileMenu();
               }}
-              className={`w-full flex items-center space-x-3 px-4 py-3.5 rounded-2xl transition-all duration-200
+              className={`w-full flex items-center space-x-3 px-4 py-3.5 rounded-2xl transition-all duration-200 border-none text-left
                 ${currentModule === item.id 
                   ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/20' 
                   : 'text-slate-600 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-slate-200'
@@ -187,7 +191,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentModule, setModule, isMobileMen
         <div className="p-6 border-t border-slate-200 dark:border-white/5 space-y-4">
           <button 
             onClick={() => setShowFeedbackModal(true)}
-            className="w-full text-xs flex items-center justify-center space-x-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 py-2 transition-colors font-bold uppercase tracking-widest"
+            className="w-full text-xs flex items-center justify-center space-x-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 py-2 transition-colors font-bold uppercase tracking-widest border-none bg-transparent"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             <span>Feedback</span>
@@ -196,7 +200,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentModule, setModule, isMobileMen
           <div className="bg-gradient-to-br from-orange-600 to-red-700 rounded-2xl p-5 border border-white/10 shadow-xl shadow-orange-600/10">
             <h3 className="text-xs font-black text-white uppercase tracking-widest mb-1">Nexus Pro</h3>
             <p className="text-[10px] text-orange-100 mb-3 font-medium">Unlimited Scans & Deep AI Analysis</p>
-            <button className="w-full text-xs bg-white text-orange-600 py-2.5 rounded-xl font-black transition-transform hover:scale-105 shadow-lg active:scale-95">
+            <button className="w-full text-xs bg-white text-orange-600 py-2.5 rounded-xl font-black transition-transform hover:scale-105 shadow-lg active:scale-95 border-none">
               UPGRADE
             </button>
           </div>
