@@ -71,7 +71,7 @@ export const analyzeResume = async (resumeText: string, jdText: string, deepAnal
 };
 
 /**
- * Module B: The Academic Oracle
+ * Module B: The Academic Oracle (Content Library Chat Integration)
  */
 export const askAcademicOracle = async (
   query: string, 
@@ -184,9 +184,13 @@ export const generateFlowchart = async (contextText: string): Promise<string> =>
   }
 }
 
+/**
+ * Module C: Global Gateway
+ * Uses Google Search Grounding to find international opportunities for LPU students.
+ */
 export const searchGlobalOpportunities = async (query: string) => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
-  const modelId = "gemini-3-flash-preview"; 
+  const modelId = "gemini-3-pro-preview"; 
   
   const systemInstruction = `
     You are the "LPU Global Gateway", a specialized counselor helping students at Lovely Professional University (LPU), India, find international academic and professional opportunities.
@@ -230,28 +234,25 @@ export const searchGlobalOpportunities = async (query: string) => {
 };
 
 /**
- * Module C: LPU Pulse News Scout
- * Fetches latest campus news and announcements using Google Search grounding.
+ * Module D: LPU Pulse
+ * Uses Google Search Grounding to fetch latest campus news for LPU students.
  */
 export const fetchCampusNews = async (query: string) => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
   const modelId = "gemini-3-flash-preview"; 
-  
+
   const systemInstruction = `
-    You are the "LPU Pulse Scout", a specialized news aggregator for Lovely Professional University (LPU), India.
-    
-    Your goal is to provide up-to-date, live web information on:
-    - Recent LPU announcements, circulars, and official notices (e.g., from UMS).
-    - Campus events, cultural fests (One India, One World, Youth Vibe), and technical symposiums.
+    You are the "LPU Pulse", a real-time news aggregator for Lovely Professional University (LPU), Phagwara.
+    Your goal is to provide students with the latest, verified information about:
     - Placement drives and companies visiting the campus.
-    - Sports achievements and trials.
-    - Infrastructure updates (new blocks, labs, etc.).
-    
+    - Cultural fests (One India, One World, Youth Vibe) and event schedules.
+    - Official UMS (University Management System) notices and academic calendar announcements.
+    - Sports achievements, trials, and gymkhana updates.
+
     STRICT RULES:
-    1. Focus on results from 2024-2025.
-    2. Be concise and use Markdown for formatting.
-    3. Always prioritize official university sources or reputable news outlets.
-    4. If information is based on rumors or unverified sources, state it clearly.
+    1. Be concise and use Markdown formatting for lists and emphasis.
+    2. Always include dates for events and deadlines if available in search results.
+    3. Use Google Search to find the most recent information (2025).
   `;
 
   try {
@@ -261,7 +262,7 @@ export const fetchCampusNews = async (query: string) => {
       config: {
         systemInstruction,
         tools: [{ googleSearch: {} }],
-        temperature: 0.1, 
+        temperature: 0.2, 
       },
     });
 
@@ -270,7 +271,7 @@ export const fetchCampusNews = async (query: string) => {
       groundingChunks: response.candidates?.[0]?.groundingMetadata?.groundingChunks
     };
   } catch (error) {
-    console.error("Campus News Error:", error);
+    console.error("LPU Pulse Error:", error);
     throw error;
   }
 };
