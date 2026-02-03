@@ -18,33 +18,50 @@ interface HistoryItem {
   timestamp: number;
 }
 
+const SubjectSkeleton = () => (
+  <div className="glass-panel p-5 md:p-8 rounded-[32px] md:rounded-[40px] border border-slate-200 dark:border-white/5 bg-white dark:bg-slate-950/40 animate-pulse min-h-[160px]">
+    <div className="flex flex-col items-center mb-6">
+      <div className="h-10 w-24 bg-slate-200 dark:bg-white/5 rounded-[22px] mb-3 shimmer" />
+      <div className="h-6 w-32 bg-slate-200 dark:bg-white/5 rounded shimmer" />
+    </div>
+    <div className="h-3 w-full bg-slate-200 dark:bg-white/5 rounded-full mb-8 shimmer" />
+    <div className="grid grid-cols-2 gap-4">
+      <div className="h-12 bg-slate-200 dark:bg-white/5 rounded-[22px] shimmer" />
+      <div className="h-12 bg-slate-200 dark:bg-white/5 rounded-[22px] shimmer" />
+    </div>
+  </div>
+);
+
 const AttendanceTracker: React.FC = () => {
-  const [subjects, setSubjects] = useState<Subject[]>(() => {
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [isInitializing, setIsInitializing] = useState(true);
+
+  useEffect(() => {
     const saved = localStorage.getItem('nexus_attendance');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        return parsed.map((s: any) => ({ 
+        setSubjects(parsed.map((s: any) => ({ 
           ...s, 
           goal: s.goal || 75,
           archived: !!s.archived
-        }));
+        })));
       } catch (e) {
-        return [];
+        setSubjects([]);
       }
     }
-    return [];
-  });
+    // Artificial delay to show skeleton
+    const timer = setTimeout(() => setIsInitializing(false), 600);
+    return () => clearTimeout(timer);
+  }, []);
 
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [showArchived, setShowArchived] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
   
-  // State for Edit Modal
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
 
-  // States for in-UI confirmations
   const [wipingAll, setWipingAll] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -56,8 +73,10 @@ const AttendanceTracker: React.FC = () => {
   });
 
   useEffect(() => {
-    localStorage.setItem('nexus_attendance', JSON.stringify(subjects));
-  }, [subjects]);
+    if (!isInitializing) {
+      localStorage.setItem('nexus_attendance', JSON.stringify(subjects));
+    }
+  }, [subjects, isInitializing]);
 
   const addSubject = () => {
     if (!newSub.name.trim()) {
@@ -298,139 +317,146 @@ const AttendanceTracker: React.FC = () => {
       </div>
 
       {/* Grid Display */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 relative z-0">
-        {filteredSubjects.map((sub) => {
-          const { percentage, needed, skippable, goal } = calculateStats(sub);
-          const isBelowGoal = percentage < goal;
-          const accentColor = isBelowGoal ? 'text-red-500' : 'text-emerald-500';
-          const accentBg = isBelowGoal ? 'bg-red-500/10' : 'bg-emerald-500/10';
-          const hasHistory = history.some(h => h.id === sub.id);
-          const isDeleting = deletingId === sub.id;
+      {isInitializing ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
+          <SubjectSkeleton />
+          <SubjectSkeleton />
+          <SubjectSkeleton />
+          <SubjectSkeleton />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 relative z-0">
+          {filteredSubjects.map((sub) => {
+            const { percentage, needed, skippable, goal } = calculateStats(sub);
+            const isBelowGoal = percentage < goal;
+            const accentColor = isBelowGoal ? 'text-red-500' : 'text-emerald-500';
+            const accentBg = isBelowGoal ? 'bg-red-500/10' : 'bg-emerald-500/10';
+            const hasHistory = history.some(h => h.id === sub.id);
+            const isDeleting = deletingId === sub.id;
 
-          return (
-            <div 
-              key={sub.id} 
-              className={`
-                glass-panel p-5 md:p-8 rounded-[32px] md:rounded-[40px] border transition-all duration-500 group relative overflow-hidden flex flex-col
-                border-slate-200 dark:border-white/5 shadow-sm
-                bg-white dark:bg-slate-950/40 hover:border-orange-500/50
-                ${isDeleting ? 'ring-4 ring-red-500/20 border-red-500 scale-[0.98]' : ''}
-              `}
-            >
-              <div className="flex flex-col items-center text-center mt-2 md:mt-4 mb-5 md:mb-6">
-                <div className={`px-4 md:px-5 py-2 md:py-2.5 rounded-[18px] md:rounded-[22px] ${accentBg} ${accentColor} text-2xl md:text-3xl font-black tracking-tighter shadow-sm mb-2 md:mb-3 transition-transform group-hover:scale-110 duration-500`}>
-                  {percentage.toFixed(1)}<span className="text-xs md:text-sm opacity-50 ml-0.5 md:ml-1">%</span>
+            return (
+              <div 
+                key={sub.id} 
+                className={`
+                  glass-panel p-5 md:p-8 rounded-[32px] md:rounded-[40px] border transition-all duration-500 group relative overflow-hidden flex flex-col
+                  border-slate-200 dark:border-white/5 shadow-sm
+                  bg-white dark:bg-slate-950/40 hover:border-orange-500/50
+                  ${isDeleting ? 'ring-4 ring-red-500/20 border-red-500 scale-[0.98]' : ''}
+                `}
+              >
+                <div className="flex flex-col items-center text-center mt-2 md:mt-4 mb-5 md:mb-6">
+                  <div className={`px-4 md:px-5 py-2 md:py-2.5 rounded-[18px] md:rounded-[22px] ${accentBg} ${accentColor} text-2xl md:text-3xl font-black tracking-tighter shadow-sm mb-2 md:mb-3 transition-transform group-hover:scale-110 duration-500`}>
+                    {percentage.toFixed(1)}<span className="text-xs md:text-sm opacity-50 ml-0.5 md:ml-1">%</span>
+                  </div>
+                  <h3 className="text-lg md:text-xl font-black text-slate-900 dark:text-white tracking-tighter uppercase mb-1 md:mb-1.5 line-clamp-1">{sub.name}</h3>
+                  <div className="flex items-center space-x-2 md:space-x-3 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400">
+                     <span>{sub.present} / {sub.total} Sessions</span>
+                     <span className="opacity-20">|</span>
+                     <span className="text-orange-600">Goal: {sub.goal}%</span>
+                  </div>
                 </div>
-                <h3 className="text-lg md:text-xl font-black text-slate-900 dark:text-white tracking-tighter uppercase mb-1 md:mb-1.5 line-clamp-1">{sub.name}</h3>
-                <div className="flex items-center space-x-2 md:space-x-3 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400">
-                   <span>{sub.present} / {sub.total} Sessions</span>
-                   <span className="opacity-20">|</span>
-                   <span className="text-orange-600">Goal: {sub.goal}%</span>
-                </div>
-              </div>
 
-              {/* Progress Bar */}
-              <div className="h-2.5 md:h-3 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden mb-6 md:mb-8 relative">
-                 <div 
-                    className="absolute top-0 bottom-0 w-0.5 md:w-1 bg-orange-600 z-10 shadow-[0_0_10px_rgba(249,115,22,0.8)]" 
-                    style={{ left: `${goal}%` }} 
-                    title={`Goal: ${goal}%`}
-                 />
-                 <div 
-                   className={`h-full transition-all duration-1000 ease-out ${!isBelowGoal ? 'bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)]'}`}
-                   style={{ width: `${percentage}%` }}
-                 />
-              </div>
-
-              {!showArchived && (
-                <div className="grid grid-cols-2 gap-3 md:gap-4 mb-6 md:mb-8">
-                  <button 
-                    onClick={(e) => updateAttendance(sub.id, 'present', e)}
-                    className="bg-slate-900 dark:bg-white text-white dark:text-black py-3.5 md:py-4 rounded-[18px] md:rounded-[22px] font-black text-[9px] md:text-[10px] uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-md"
-                  >
-                    Present
-                  </button>
-                  <button 
-                    onClick={(e) => updateAttendance(sub.id, 'absent', e)}
-                    className="bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400 py-3.5 md:py-4 rounded-[18px] md:rounded-[22px] font-black text-[9px] md:text-[10px] uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-white/20 hover:scale-[1.02] active:scale-95 transition-all"
-                  >
-                    Absent
-                  </button>
+                <div className="h-2.5 md:h-3 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden mb-6 md:mb-8 relative">
+                   <div 
+                      className="absolute top-0 bottom-0 w-0.5 md:w-1 bg-orange-600 z-10 shadow-[0_0_10px_rgba(249,115,22,0.8)]" 
+                      style={{ left: `${goal}%` }} 
+                      title={`Goal: ${goal}%`}
+                   />
+                   <div 
+                     className={`h-full transition-all duration-1000 ease-out ${!isBelowGoal ? 'bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)]'}`}
+                     style={{ width: `${percentage}%` }}
+                   />
                 </div>
-              )}
 
-              {/* Footer Actions */}
-              <div className="mt-auto flex items-center justify-between pt-4 md:pt-6 border-t border-slate-100 dark:border-white/5">
-                <div className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full text-[8px] md:text-[9px] font-black uppercase tracking-widest ${isBelowGoal ? 'bg-red-500/10 text-red-500' : 'bg-emerald-500/10 text-emerald-500'}`}>
-                  {isBelowGoal ? (
-                    <span>Needs {needed >= 999 ? '∞' : needed} sessions</span>
-                  ) : (
-                    <span>Safe for {skippable >= 999 ? '∞' : skippable} skips</span>
-                  )}
-                </div>
-                
-                <div className="flex items-center space-x-0.5 md:space-x-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                   {isDeleting ? (
-                     <div className="flex items-center gap-1.5 animate-fade-in">
-                       <button 
-                        onClick={(e) => { e.stopPropagation(); setDeletingId(null); }}
-                        className="px-2 py-1.5 bg-slate-100 dark:bg-black text-[8px] font-black uppercase text-slate-500 rounded-lg"
-                       >
-                         No
-                       </button>
-                       <button 
-                        onClick={executeDelete}
-                        className="px-2 py-1.5 bg-red-600 text-[8px] font-black uppercase text-white rounded-lg shadow-lg"
-                       >
-                         Del?
-                       </button>
-                     </div>
-                   ) : (
-                     <>
-                      {hasHistory && (
+                {!showArchived && (
+                  <div className="grid grid-cols-2 gap-3 md:gap-4 mb-6 md:mb-8">
+                    <button 
+                      onClick={(e) => updateAttendance(sub.id, 'present', e)}
+                      className="bg-slate-900 dark:bg-white text-white dark:text-black py-3.5 md:py-4 rounded-[18px] md:rounded-[22px] font-black text-[9px] md:text-[10px] uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-md"
+                    >
+                      Present
+                    </button>
+                    <button 
+                      onClick={(e) => updateAttendance(sub.id, 'absent', e)}
+                      className="bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400 py-3.5 md:py-4 rounded-[18px] md:rounded-[22px] font-black text-[9px] md:text-[10px] uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-white/20 hover:scale-[1.02] active:scale-95 transition-all"
+                    >
+                      Absent
+                    </button>
+                  </div>
+                )}
+
+                <div className="mt-auto flex items-center justify-between pt-4 md:pt-6 border-t border-slate-100 dark:border-white/5">
+                  <div className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full text-[8px] md:text-[9px] font-black uppercase tracking-widest ${isBelowGoal ? 'bg-red-500/10 text-red-500' : 'bg-emerald-500/10 text-emerald-500'}`}>
+                    {isBelowGoal ? (
+                      <span>Needs {needed >= 999 ? '∞' : needed} sessions</span>
+                    ) : (
+                      <span>Safe for {skippable >= 999 ? '∞' : skippable} skips</span>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center space-x-0.5 md:space-x-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                     {isDeleting ? (
+                       <div className="flex items-center gap-1.5 animate-fade-in">
+                         <button 
+                          onClick={(e) => { e.stopPropagation(); setDeletingId(null); }}
+                          className="px-2 py-1.5 bg-slate-100 dark:bg-black text-[8px] font-black uppercase text-slate-500 rounded-lg"
+                         >
+                           No
+                         </button>
+                         <button 
+                          onClick={executeDelete}
+                          className="px-2 py-1.5 bg-red-600 text-[8px] font-black uppercase text-white rounded-lg shadow-lg"
+                         >
+                           Del?
+                         </button>
+                       </div>
+                     ) : (
+                       <>
+                        {hasHistory && (
+                          <button 
+                            onClick={(e) => undoSubjectLastAction(sub.id, e)}
+                            title="Undo Last Action"
+                            className="p-1.5 md:p-2 text-slate-400 hover:text-orange-500 transition-colors"
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 md:w-4 h-3.5 md:h-4"><path d="M3 10h10a5 5 0 0 1 0 10H11"/><polyline points="8 5 3 10 8 15"/></svg>
+                          </button>
+                        )}
                         <button 
-                          onClick={(e) => undoSubjectLastAction(sub.id, e)}
-                          title="Undo Last Action"
+                          onClick={(e) => handleEdit(sub, e)}
+                          title="Edit Metadata"
                           className="p-1.5 md:p-2 text-slate-400 hover:text-orange-500 transition-colors"
                         >
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 md:w-4 h-3.5 md:h-4"><path d="M3 10h10a5 5 0 0 1 0 10H11"/><polyline points="8 5 3 10 8 15"/></svg>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 md:w-4 h-3.5 md:h-4"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                         </button>
-                      )}
-                      <button 
-                        onClick={(e) => handleEdit(sub, e)}
-                        title="Edit Metadata"
-                        className="p-1.5 md:p-2 text-slate-400 hover:text-orange-500 transition-colors"
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 md:w-4 h-3.5 md:h-4"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                      </button>
-                      <button 
-                        onClick={(e) => toggleArchive(sub.id, e)}
-                        title={sub.archived ? "Restore to Active" : "Move to Archive"}
-                        className={`p-1.5 md:p-2 transition-colors ${sub.archived ? 'text-orange-500 hover:text-orange-600' : 'text-slate-400 hover:text-orange-500'}`}
-                      >
-                        {sub.archived ? (
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 md:w-4 h-3.5 md:h-4"><path d="M3 12h18"/><path d="m15 18 6-6-6-6"/><path d="M3 18v-6a9 9 0 0 1 18 0v6"/></svg>
-                        ) : (
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 md:w-4 h-3.5 md:h-4"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-                        )}
-                      </button>
-                      <button 
-                        onClick={(e) => confirmDelete(sub.id, e)}
-                        title="Permanently Delete"
-                        className="p-1.5 md:p-2 text-slate-400 hover:text-red-500 transition-colors"
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 md:w-4 h-3.5 md:h-4"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
-                      </button>
-                     </>
-                   )}
+                        <button 
+                          onClick={(e) => toggleArchive(sub.id, e)}
+                          title={sub.archived ? "Restore to Active" : "Move to Archive"}
+                          className={`p-1.5 md:p-2 transition-colors ${sub.archived ? 'text-orange-500 hover:text-orange-600' : 'text-slate-400 hover:text-orange-500'}`}
+                        >
+                          {sub.archived ? (
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 md:w-4 h-3.5 md:h-4"><path d="M3 12h18"/><path d="m15 18 6-6-6-6"/><path d="M3 18v-6a9 9 0 0 1 18 0v6"/></svg>
+                          ) : (
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 md:w-4 h-3.5 md:h-4"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                          )}
+                        </button>
+                        <button 
+                          onClick={(e) => confirmDelete(sub.id, e)}
+                          title="Permanently Delete"
+                          className="p-1.5 md:p-2 text-slate-400 hover:text-red-500 transition-colors"
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 md:w-4 h-3.5 md:h-4"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+                        </button>
+                       </>
+                     )}
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
-      {filteredSubjects.length === 0 && (
+      {!isInitializing && filteredSubjects.length === 0 && (
         <div className="text-center py-20 md:py-24 bg-slate-50 dark:bg-white/5 rounded-[32px] md:rounded-[48px] border-4 border-dashed border-slate-200 dark:border-white/5">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="w-16 h-16 md:w-20 md:h-20 mx-auto mb-6 text-slate-200 dark:text-slate-800"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
           <p className="font-black text-slate-400 uppercase tracking-[0.3em] text-[10px] md:text-xs">
@@ -439,7 +465,6 @@ const AttendanceTracker: React.FC = () => {
         </div>
       )}
 
-      {/* Edit Modal */}
       {isEditModalOpen && editingSubject && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in overflow-hidden">
           <div className="bg-white dark:bg-slate-950 rounded-[32px] md:rounded-[40px] w-full max-w-md shadow-2xl border border-slate-200 dark:border-white/10 relative overflow-hidden flex flex-col">

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { searchGlobalOpportunities } from '../services/geminiService';
 import { GroundingChunk } from '../types';
@@ -8,6 +9,24 @@ const PRESETS = [
   { id: 3, label: "USA H-1B Trends", query: "Current H-1B visa lottery trends and success rates for tech roles in USA 2025" },
   { id: 4, label: "Full Scholarships", query: "Fully funded scholarships for Indian students for Masters in UK and Europe 2025" },
 ];
+
+const ResultSkeleton = () => (
+  <div className="space-y-8 animate-pulse">
+    <div className="space-y-4">
+      <div className="h-4 w-full bg-slate-200 dark:bg-white/5 rounded shimmer" />
+      <div className="h-4 w-5/6 bg-slate-200 dark:bg-white/5 rounded shimmer" />
+      <div className="h-4 w-4/5 bg-slate-200 dark:bg-white/5 rounded shimmer" />
+      <div className="h-4 w-full bg-slate-200 dark:bg-white/5 rounded shimmer" />
+    </div>
+    <div className="pt-8 border-t border-slate-100 dark:border-white/5">
+      <div className="h-3 w-32 bg-slate-200 dark:bg-white/5 rounded mb-6 shimmer" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="h-14 bg-slate-200 dark:bg-white/5 rounded-2xl shimmer" />
+        <div className="h-14 bg-slate-200 dark:bg-white/5 rounded-2xl shimmer" />
+      </div>
+    </div>
+  </div>
+);
 
 const GlobalGateway: React.FC = () => {
   const [query, setQuery] = useState('');
@@ -95,15 +114,15 @@ const GlobalGateway: React.FC = () => {
       {(response || loading) && (
         <div className="glass-panel p-6 md:p-10 rounded-[40px] min-h-[400px] border dark:border-white/5 shadow-2xl bg-white dark:bg-black/60 relative overflow-hidden">
           {loading ? (
-            <div className="flex flex-col items-center justify-center h-full py-20 space-y-6">
-              <div className="w-16 h-16 relative">
-                <div className="absolute inset-0 border-4 border-emerald-500/10 rounded-full"></div>
-                <div className="absolute inset-0 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+            <div className="flex flex-col h-full space-y-8">
+              <div className="flex flex-col items-center justify-center py-6 space-y-4">
+                <div className="w-12 h-12 relative">
+                  <div className="absolute inset-0 border-2 border-emerald-500/10 rounded-full"></div>
+                  <div className="absolute inset-0 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+                <p className="text-[9px] font-black uppercase tracking-[0.3em] text-emerald-500 animate-pulse">{loadingPhase}</p>
               </div>
-              <div className="text-center">
-                <p className="text-xs font-black uppercase tracking-[0.3em] text-emerald-500 animate-pulse">{loadingPhase}</p>
-                <p className="text-[10px] text-slate-400 font-bold mt-2">Checking official embassies & university portals...</p>
-              </div>
+              <ResultSkeleton />
             </div>
           ) : (
             <div className="space-y-8 animate-fade-in">
@@ -139,7 +158,6 @@ const GlobalGateway: React.FC = () => {
                )}
             </div>
           )}
-          {/* Subtle decoration */}
           <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-emerald-500/5 blur-[60px] rounded-full pointer-events-none"></div>
         </div>
       )}

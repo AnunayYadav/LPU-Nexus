@@ -17,6 +17,14 @@ const FolderIcon = ({ type, size = "w-7 h-7" }: { type: 'semester' | 'subject' |
   );
 };
 
+const SkeletonCard = () => (
+  <div className="group p-5 rounded-[30px] border border-slate-100 dark:border-white/5 bg-white dark:bg-slate-950/40 relative overflow-hidden flex flex-col min-h-[140px] animate-pulse">
+    <div className="w-10 h-10 bg-slate-200 dark:bg-white/5 rounded-xl mb-4 shimmer" />
+    <div className="h-4 w-3/4 bg-slate-200 dark:bg-white/5 rounded-md mb-2 shimmer" />
+    <div className="h-3 w-1/2 bg-slate-200 dark:bg-white/5 rounded-md shimmer" />
+  </div>
+);
+
 interface ContentLibraryProps {
   userProfile: UserProfile | null;
   initialView?: 'browse' | 'my-uploads';
@@ -55,7 +63,6 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
   const [metaForm, setMetaForm] = useState({ name: '', description: '', semester: '', subject: '', type: '' });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Drag and Drop State for OS file uploads
   const [draggingOverId, setDraggingOverId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -78,7 +85,6 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
 
       let data = [...allFiles];
       
-      // Hierarchy logic only applies if Browsing Live Library
       const isHierarchicalView = !searchQuery && !isAdminView && viewMode === 'browse';
       
       if (isHierarchicalView) {
@@ -310,8 +316,10 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
         </div>
       )}
 
-      {isLoading && folders.length === 0 ? (
-        <div className="col-span-full py-40 text-center animate-pulse text-slate-400 font-black uppercase text-[10px] tracking-[0.2em]">Accessing Node...</div>
+      {isLoading ? (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
+          {Array.from({ length: 10 }).map((_, i) => <SkeletonCard key={i} />)}
+        </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
           {!searchQuery && !isAdminView && viewMode === 'browse' && (
@@ -443,7 +451,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
               <button onClick={() => setShowRenameModal(false)} className="opacity-50 hover:opacity-100 transition-opacity border-none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             </div>
             <div className="p-6 space-y-4">
-              <input autoFocus value={newFolderName} onChange={e => setNewFolderName(e.target.value)} className="w-full bg-slate-100 dark:bg-black p-4 rounded-xl font-bold border-none text-sm dark:text-white outline-none focus:ring-2 focus:ring-orange-600" />
+              <input autoFocus value={newFolderName} onChange={e => setNewFolderName(e.target.value)} className="w-full bg-slate-100 dark:bg-black p-4 rounded-xl font-bold border-none text-sm dark:text-white outline-none focus:ring-2 focus:ring-orange-500" />
               <button onClick={handleRenameFolder} disabled={isProcessing} className="w-full bg-orange-600 text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 disabled:opacity-50 transition-all border-none">
                 {isProcessing ? 'Syncing...' : 'Update Name'}
               </button>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 
 const IconMess = () => (
@@ -36,6 +37,16 @@ const IconAlert = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 mr-2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
 );
 
+const MealSkeleton = () => (
+  <div className="glass-panel rounded-2xl overflow-hidden border dark:border-white/5 bg-white dark:bg-white/5 p-5 flex items-center space-x-4 animate-pulse">
+    <div className="w-12 h-12 rounded-2xl bg-slate-200 dark:bg-white/10 shimmer" />
+    <div className="flex-1 space-y-2">
+      <div className="h-3 w-1/4 bg-slate-200 dark:bg-white/10 rounded shimmer" />
+      <div className="h-4 w-1/2 bg-slate-200 dark:bg-white/10 rounded shimmer" />
+    </div>
+  </div>
+);
+
 type MealCategories = { [key: string]: string; };
 type MealPlan = { breakfast: MealCategories; lunch: MealCategories; snacks: MealCategories; dinner: MealCategories; };
 type DayMenu = { day: string; meals: MealPlan; };
@@ -66,6 +77,7 @@ const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 
 
 const CampusNavigator: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'mess' | 'map'>('mess');
+  const [isInitializing, setIsInitializing] = useState(true);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Reference logic: Treat Today (Feb 27, 2025) as Thursday, Week 2.
@@ -91,8 +103,14 @@ const CampusNavigator: React.FC = () => {
   });
 
   useEffect(() => {
+    // Simulate initial data loading for skeleton UI
+    const timer = setTimeout(() => setIsInitializing(false), 800);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
     // Auto-scroll to today button
-    if (activeTab === 'mess') {
+    if (activeTab === 'mess' && !isInitializing) {
       const timer = setTimeout(() => {
         if (scrollContainerRef.current) {
           const todayElement = scrollContainerRef.current.querySelector(`[data-day="${actualToday}"]`);
@@ -103,22 +121,20 @@ const CampusNavigator: React.FC = () => {
       }, 400);
       return () => clearTimeout(timer);
     }
-  }, [activeTab, actualToday]);
+  }, [activeTab, actualToday, isInitializing]);
 
-  // Monitor scroll on the main app container with higher frequency and check
+  // Monitor scroll on the main app container
   useEffect(() => {
     const mainArea = document.getElementById('main-content-area');
     
     const handleScroll = () => {
       if (mainArea) {
-        // More sensitive trigger for the button
         setShowScrollTop(mainArea.scrollTop > 200);
       }
     };
     
     if (mainArea) {
       mainArea.addEventListener('scroll', handleScroll, { passive: true });
-      // Run once to initialize state
       handleScroll();
       return () => mainArea.removeEventListener('scroll', handleScroll);
     }
@@ -253,7 +269,14 @@ const CampusNavigator: React.FC = () => {
             })}
           </div>
 
-          {selectedMeals ? (
+          {isInitializing ? (
+            <div className="space-y-4">
+              <MealSkeleton />
+              <MealSkeleton />
+              <MealSkeleton />
+              <MealSkeleton />
+            </div>
+          ) : selectedMeals ? (
             <div className="space-y-4 animate-fade-in">
               <div className="flex items-center justify-between mb-4 px-2">
                 <h3 className="text-xl font-black text-slate-800 dark:text-white tracking-tighter uppercase">{selectedDay} Menu</h3>
@@ -271,7 +294,6 @@ const CampusNavigator: React.FC = () => {
             </div>
           )}
 
-          {/* Report Issue Trigger */}
           <div className="pt-10 flex justify-center pb-20">
             <button 
               onClick={() => setIsReportModalOpen(true)}
@@ -296,7 +318,6 @@ const CampusNavigator: React.FC = () => {
         </div>
       )}
 
-      {/* Floating Scroll To Top Button - Ensure high z-index and fixed positioning */}
       {showScrollTop && (
         <button 
           onClick={scrollToTop}
@@ -307,7 +328,6 @@ const CampusNavigator: React.FC = () => {
         </button>
       )}
 
-      {/* Report Modal */}
       {isReportModalOpen && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
           <div className="bg-white dark:bg-slate-950 rounded-[32px] p-8 w-full max-w-lg shadow-2xl border border-white/5 relative">

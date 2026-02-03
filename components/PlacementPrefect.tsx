@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { extractTextFromPdf } from '../services/pdfUtils';
 import { analyzeResume } from '../services/geminiService';
@@ -13,6 +14,33 @@ const IconTarget = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-16 h-16 opacity-20 mb-4">
     <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
   </svg>
+);
+
+const AuditSkeleton = () => (
+  <div className="space-y-6 animate-pulse">
+    <div className="glass-panel p-8 rounded-[40px] flex items-center justify-between bg-white dark:bg-slate-950/40 border dark:border-white/5">
+      <div className="space-y-3">
+        <div className="h-3 w-20 bg-slate-200 dark:bg-white/5 rounded shimmer" />
+        <div className="h-12 w-24 bg-slate-200 dark:bg-white/5 rounded shimmer" />
+      </div>
+      <div className="h-10 w-40 bg-slate-200 dark:bg-white/5 rounded shimmer" />
+    </div>
+    <div className="glass-panel p-6 rounded-[32px] bg-white dark:bg-slate-950/40 border dark:border-white/5">
+      <div className="h-3 w-32 bg-slate-200 dark:bg-white/5 rounded mb-4 shimmer" />
+      <div className="flex flex-wrap gap-2">
+        <div className="h-8 w-16 bg-slate-200 dark:bg-white/5 rounded-xl shimmer" />
+        <div className="h-8 w-24 bg-slate-200 dark:bg-white/5 rounded-xl shimmer" />
+        <div className="h-8 w-20 bg-slate-200 dark:bg-white/5 rounded-xl shimmer" />
+      </div>
+    </div>
+    <div className="glass-panel p-6 rounded-[32px] bg-white dark:bg-slate-950/40 border dark:border-white/5">
+      <div className="h-3 w-40 bg-slate-200 dark:bg-white/5 rounded mb-4 shimmer" />
+      <div className="space-y-3">
+        <div className="h-4 w-full bg-slate-200 dark:bg-white/5 rounded shimmer" />
+        <div className="h-4 w-5/6 bg-slate-200 dark:bg-white/5 rounded shimmer" />
+      </div>
+    </div>
+  </div>
 );
 
 const INDUSTRY_ROLES = [
@@ -184,14 +212,9 @@ const PlacementPrefect: React.FC = () => {
             </div>
           )}
 
-          {loading && (
-            <div className="h-full min-h-[400px] flex flex-col items-center justify-center glass-panel rounded-[40px] p-10 border dark:border-white/5">
-              <div className="w-16 h-16 border-4 border-orange-500/20 border-t-orange-500 rounded-full animate-spin mb-6"></div>
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 animate-pulse">Running Neural Scan...</p>
-            </div>
-          )}
+          {loading && <AuditSkeleton />}
 
-          {result && (
+          {result && !loading && (
             <div className="animate-fade-in space-y-6">
               {/* Score Card */}
               <div className="glass-panel p-8 rounded-[40px] flex items-center justify-between relative overflow-hidden shadow-2xl border-none">
@@ -206,7 +229,6 @@ const PlacementPrefect: React.FC = () => {
                 <div className="z-10 text-right max-w-[55%]">
                   <p className="text-xs text-slate-600 dark:text-slate-300 font-bold leading-relaxed">"{result.summary}"</p>
                 </div>
-                {/* Background Decor */}
                 <div className={`absolute right-0 top-0 w-40 h-40 blur-[80px] opacity-10 rounded-full ${
                     result.matchScore > 75 ? 'bg-green-500' : 'bg-red-500'
                 }`}></div>
