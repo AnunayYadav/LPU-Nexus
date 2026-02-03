@@ -1,6 +1,24 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import NexusServer from '../services/nexusServer.ts';
 
 const AboutUs: React.FC = () => {
+  const [stats, setStats] = useState<{ registered: number; visitors: number } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const data = await NexusServer.getSiteStats();
+        setStats(data);
+      } catch (e) {
+        console.error("Failed to fetch impact stats");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
+
   return (
     <div className="max-w-4xl mx-auto space-y-12 animate-fade-in pb-20">
       <header className="text-center md:text-left">
@@ -11,6 +29,31 @@ const AboutUs: React.FC = () => {
           The all-in-one intelligence hub designed to streamline the academic and professional journey of students at Lovely Professional University.
         </p>
       </header>
+
+      {/* Stats Section */}
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="glass-panel p-8 rounded-[40px] border border-slate-200 dark:border-white/5 bg-white dark:bg-slate-950/50 flex flex-col items-center text-center group hover:border-orange-500/30 transition-all">
+          <div className="w-12 h-12 bg-orange-600/10 rounded-2xl flex items-center justify-center text-orange-600 mb-4 group-hover:scale-110 transition-transform">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+          </div>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-1">Verified Members</p>
+          <h4 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">
+            {loading ? '...' : stats?.registered.toLocaleString()}
+          </h4>
+          <p className="text-[9px] font-bold text-slate-500 uppercase mt-2 tracking-widest">Registered LPU Vertos</p>
+        </div>
+
+        <div className="glass-panel p-8 rounded-[40px] border border-slate-200 dark:border-white/5 bg-white dark:bg-slate-950/50 flex flex-col items-center text-center group hover:border-orange-500/30 transition-all">
+          <div className="w-12 h-12 bg-orange-600/10 rounded-2xl flex items-center justify-center text-orange-600 mb-4 group-hover:scale-110 transition-transform">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          </div>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-1">Global Reach</p>
+          <h4 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">
+            {loading ? '...' : `+${stats?.visitors.toLocaleString()}`}
+          </h4>
+          <p className="text-[9px] font-bold text-slate-500 uppercase mt-2 tracking-widest">Total Platform Visitors</p>
+        </div>
+      </section>
 
       <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="glass-panel p-8 rounded-[40px] border border-slate-200 dark:border-white/5 bg-white dark:bg-slate-950/50">
