@@ -83,10 +83,10 @@ const ShareReport: React.FC = () => {
           <div className="text-center py-2 relative">
             <p className="text-slate-400 text-[8px] font-black uppercase tracking-[0.3em] mb-2">Semester {data.sem} standing</p>
             <div className="relative inline-block">
-              <p className="text-7xl md:text-8xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-slate-900 to-slate-600 dark:from-white dark:to-slate-700 leading-none">
+              <p className="text-8xl md:text-9xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-slate-900 to-slate-600 dark:from-white dark:to-slate-700 leading-none">
                 {data.sgpa}
               </p>
-              <div className="absolute -top-2 -right-6 px-3 py-1 bg-orange-600 text-white rounded-xl font-black text-[7px] uppercase tracking-widest shadow-lg rotate-12">
+              <div className="absolute -top-2 -right-8 px-3 py-1 bg-orange-600 text-white rounded-xl font-black text-[7px] uppercase tracking-widest shadow-lg rotate-12">
                 SGPA
               </div>
             </div>
