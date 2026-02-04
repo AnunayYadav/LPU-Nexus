@@ -64,12 +64,12 @@ const Dashboard: React.FC<{ setModule: (m: ModuleType) => void }> = ({ setModule
     </div>
 
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div onClick={() => setModule(ModuleType.SOCIAL)} className="group relative p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/50 hover:border-orange-500/50 transition-all cursor-pointer hover:shadow-2xl overflow-hidden min-h-[160px]"><h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Social Hub</h3><p className="text-slate-600 dark:text-slate-400 text-sm">Verto global chat and student directory for cross-batch collaboration.</p></div>
       <div onClick={() => setModule(ModuleType.CGPA)} className="group relative p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/50 hover:border-orange-500/50 transition-all cursor-pointer hover:shadow-2xl overflow-hidden min-h-[160px]"><h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">CGPA Calculator</h3><p className="text-slate-600 dark:text-slate-400 text-sm">Calculate your SGPA and CGPA based on LPU grading standards.</p></div>
       <div onClick={() => setModule(ModuleType.ATTENDANCE)} className="group relative p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/50 hover:border-green-500/50 transition-all cursor-pointer hover:shadow-2xl overflow-hidden min-h-[160px]"><h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Attendance Tracker</h3><p className="text-slate-600 dark:text-slate-400 text-sm">Monitor your attendance and hit that 75% threshold with ease.</p></div>
       <div onClick={() => setModule(ModuleType.PLACEMENT)} className="group relative p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/50 hover:border-orange-500/50 transition-all cursor-pointer hover:shadow-2xl overflow-hidden min-h-[160px]"><h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Placement Prefect</h3><p className="text-slate-600 dark:text-slate-400 text-sm">Resume ATS matching & optimization tailored for campus drives.</p></div>
       <div onClick={() => setModule(ModuleType.LIBRARY)} className="group relative p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/50 hover:border-orange-500/50 transition-all cursor-pointer hover:shadow-2xl overflow-hidden min-h-[160px]"><h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Content Library</h3><p className="text-slate-600 dark:text-slate-400 text-sm">Centralized hub for all your lectures, question banks and notes.</p></div>
       <div onClick={() => setModule(ModuleType.CAMPUS)} className="group relative p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/50 hover:border-indigo-500/50 transition-all cursor-pointer hover:shadow-2xl overflow-hidden min-h-[160px]"><h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Campus Navigator</h3><p className="text-slate-600 dark:text-slate-400 text-sm">Mess menu checker and interactive 3D map.</p></div>
+      <div onClick={() => setModule(ModuleType.GLOBAL)} className="group relative p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/50 hover:border-emerald-500/50 transition-all cursor-pointer hover:shadow-2xl overflow-hidden min-h-[160px]"><h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Global Gateway</h3><p className="text-slate-600 dark:text-slate-400 text-sm">Real-time university data and international opportunities scout.</p></div>
     </div>
   </div>
 );
@@ -119,7 +119,9 @@ const App: React.FC = () => {
 
   const renderModule = () => {
     switch (currentModule) {
-      case ModuleType.SOCIAL: return <SocialHub userProfile={userProfile} />;
+      case ModuleType.SOCIAL: 
+        if (!userProfile?.is_admin) return <Dashboard setModule={navigateToModule} />;
+        return <SocialHub userProfile={userProfile} />;
       case ModuleType.PLACEMENT: return <PlacementPrefect userProfile={userProfile} />;
       case ModuleType.LIBRARY: return <ContentLibrary userProfile={userProfile} />;
       case ModuleType.CAMPUS: return <CampusNavigator />;
