@@ -1,6 +1,6 @@
 
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
-import { LibraryFile, UserProfile, Folder, ChatMessage } from '../types.ts';
+import { LibraryFile, UserProfile, Folder, ChatMessage, FriendRequest } from '../types.ts';
 
 const getEnvVar = (name: string): string => {
   try {
@@ -72,7 +72,6 @@ class NexusServer {
     
     let email = identifier.trim();
     
-    // Resolve username to email if identifier is not an email format
     if (!identifier.includes('@')) {
       try {
         const { data, error } = await client
@@ -90,7 +89,6 @@ class NexusServer {
         }
       } catch (e: any) {
         if (e.message.includes("No Verto found")) throw e;
-        // If it's a DB error, we can't resolve, so we must stop.
         throw new Error("Terminal connection failed. Please use your official email.");
       }
     }
@@ -102,15 +100,27 @@ class NexusServer {
     const client = getSupabase();
     if (!client) throw new Error("Registry is offline.");
     
-    // Signup process
-    return await client.auth.signUp({ 
+    const cleanUsername = username.toLowerCase().trim();
+    const response = await client.auth.signUp({ 
       email: email.trim(), 
       password: pass, 
       options: { 
-        data: { username: username.toLowerCase().trim() },
+        data: { username: cleanUsername },
         emailRedirectTo: window.location.origin 
       }
     });
+
+    if (response.data.user) {
+      try {
+        await client.from('profiles')
+          .update({ username: cleanUsername })
+          .eq('id', response.data.user.id);
+      } catch (e) {
+        console.warn("Manual profile update failed, relying on trigger:", e);
+      }
+    }
+
+    return response;
   }
 
   static async signOut() {
@@ -133,10 +143,7 @@ class NexusServer {
     if (!client) return null;
     try {
       const { data, error } = await client.from('profiles').select('*').eq('id', userId).maybeSingle();
-      if (error) {
-        console.error("Profile fetch error:", error);
-        return null;
-      }
+      if (error) return null;
       return data;
     } catch (e) {
       return null;
@@ -153,10 +160,10 @@ class NexusServer {
     const client = getSupabase();
     if (!client || !query.trim()) return [];
     try {
+      // Search all profiles but UI will handle privacy redaction
       const { data, error } = await client
         .from('profiles')
         .select('*')
-        .eq('is_public', true)
         .ilike('username', `%${query.trim()}%`)
         .limit(20);
       
@@ -175,7 +182,48 @@ class NexusServer {
     return data || [];
   }
 
-  // Social & Realtime
+  // Friend Request System
+  static async sendFriendRequest(senderId: string, receiverId: string) {
+    const client = getSupabase();
+    if (!client) return;
+    return await client.from('friend_requests').insert([{ sender_id: senderId, receiver_id: receiverId, status: 'pending' }]);
+  }
+
+  static async getFriendRequests(userId: string): Promise<FriendRequest[]> {
+    const client = getSupabase();
+    if (!client) return [];
+    const { data } = await client
+      .from('friend_requests')
+      .select('*, sender:profiles!sender_id(*), receiver:profiles!receiver_id(*)')
+      .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`);
+    return data || [];
+  }
+
+  static async updateFriendRequest(requestId: string, status: 'accepted' | 'declined') {
+    const client = getSupabase();
+    if (!client) return;
+    return await client.from('friend_requests').update({ status }).eq('id', requestId);
+  }
+
+  static async getFriends(userId: string): Promise<UserProfile[]> {
+    const client = getSupabase();
+    if (!client) return [];
+    const { data } = await client
+      .from('friend_requests')
+      .select('sender:profiles!sender_id(*), receiver:profiles!receiver_id(*)')
+      .eq('status', 'accepted')
+      .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`);
+    
+    if (!data) return [];
+    
+    return data.map(item => {
+      // Return the profile that ISN'T the current user
+      const s = item.sender as any as UserProfile;
+      const r = item.receiver as any as UserProfile;
+      return s.id === userId ? r : s;
+    });
+  }
+
   static async sendSocialMessage(senderId: string, senderName: string, text: string) {
     const client = getSupabase();
     if (!client) return;
@@ -200,7 +248,6 @@ class NexusServer {
     return () => client.removeChannel(channel);
   }
 
-  // Folders & History
   static async checkUsernameAvailability(username: string): Promise<boolean> {
     const client = getSupabase();
     if (!client) return true;
@@ -231,7 +278,6 @@ class NexusServer {
     if (userId && client) await client.from('user_history').delete().eq('id', id);
   }
 
-  // Conversation Methods
   static async fetchConversations(userId: string) {
     const client = getSupabase();
     if (!client) return [];
@@ -279,7 +325,6 @@ class NexusServer {
     return () => client.removeChannel(channel);
   }
 
-  // Content Library
   static async fetchFolders(): Promise<Folder[]> {
     const client = getSupabase();
     if (!client) return [];

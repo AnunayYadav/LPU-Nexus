@@ -26,6 +26,16 @@ export interface UserProfile {
   is_public?: boolean;
 }
 
+export interface FriendRequest {
+  id: string;
+  sender_id: string;
+  receiver_id: string;
+  status: 'pending' | 'accepted' | 'declined';
+  created_at: string;
+  sender?: UserProfile;
+  receiver?: UserProfile;
+}
+
 export interface ChatMessage {
   id?: string;
   role: 'user' | 'model' | 'system';

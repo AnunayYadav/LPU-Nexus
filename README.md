@@ -3,7 +3,7 @@
 
 **LPU-Nexus** is a comprehensive, AI-powered student utility platform designed specifically for the students of Lovely Professional University.
 
-![Version](https://img.shields.io/badge/version-1.2.1-orange)
+![Version](https://img.shields.io/badge/version-1.3.0-orange)
 ![AI](https://img.shields.io/badge/Powered%20By-Gemini%203-red)
 ![Cloud](https://img.shields.io/badge/Database-Supabase-emerald)
 
@@ -11,9 +11,9 @@
 
 ## ⚙️ Database Fix & Setup (Supabase)
 
-If you are seeing a "column not found" error, run this script in your **Supabase SQL Editor**:
+If you are seeing a "column not found" error or usernames are not appearing, run this script in your **Supabase SQL Editor**:
 
-### 1. Fix Missing Columns & Setup Tables
+### 1. Unified Setup (Run This First)
 ```sql
 -- Fix: Add missing columns to 'documents' if they don't exist
 DO $$ 
@@ -31,49 +31,47 @@ BEGIN
     END IF;
 END $$;
 
--- Create 'profiles' table (Crucial for Admin & Auth)
+-- Create 'profiles' table with all required fields
 CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
     email TEXT,
+    username TEXT UNIQUE,
     is_admin BOOLEAN DEFAULT false,
-    created_at TIMESTAMPTZ DEFAULT now()
+    program TEXT,
+    batch TEXT,
+    bio TEXT,
+    is_public BOOLEAN DEFAULT false,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Create 'folders' table for the File Manager
-CREATE TABLE IF NOT EXISTS public.folders (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    name TEXT NOT NULL,
-    type TEXT NOT NULL, -- 'semester', 'subject', 'category'
-    parent_id UUID REFERENCES public.folders(id) ON DELETE CASCADE,
-    created_at TIMESTAMPTZ DEFAULT now()
-);
-
--- Enable RLS
-ALTER TABLE public.documents ENABLE ROW LEVEL SECURITY;
+-- Ensure RLS is enabled
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.folders ENABLE ROW LEVEL SECURITY;
-
--- Basic Policies
-CREATE POLICY "Public Read Docs" ON public.documents FOR SELECT USING (true);
-CREATE POLICY "Public Read Folders" ON public.folders FOR SELECT USING (true);
-CREATE POLICY "Profiles Read" ON public.profiles FOR SELECT USING (true);
-CREATE POLICY "Docs Insert" ON public.documents FOR INSERT WITH CHECK (true);
-CREATE POLICY "Admin Folders" ON public.folders FOR ALL USING (true);
+DROP POLICY IF EXISTS "Public Profiles Access" ON public.profiles;
+CREATE POLICY "Public Profiles Access" ON public.profiles FOR SELECT USING (is_public = true OR auth.uid() = id);
+CREATE POLICY "Users update own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
 ```
 
-### 2. Auto-Profile Creation (Recommended)
-Run this to automatically create a profile record when a new user signs up:
+### 2. Correct Auto-Profile Trigger
+This script ensures that when a user signs up via the app, their `username` (sent in the metadata) is automatically pulled into the `profiles` table.
 ```sql
 CREATE OR REPLACE FUNCTION public.handle_new_user() 
 RETURNS trigger AS $$
 BEGIN
-  INSERT INTO public.profiles (id, email, is_admin)
-  VALUES (new.id, new.email, false);
+  INSERT INTO public.profiles (id, email, username, is_admin)
+  VALUES (
+    new.id, 
+    new.email, 
+    new.raw_user_meta_data->>'username', -- Extracts from app signup options
+    false
+  );
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE OR REPLACE TRIGGER on_auth_user_created
+-- Recreate trigger to ensure it uses the latest function
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
 ```
@@ -89,6 +87,10 @@ CREATE OR REPLACE TRIGGER on_auth_user_created
 ### 📂 Nexus FS Registry (Content Library)
 - **Hierarchical File Manager:** Semester -> Subject -> Category structure.
 - **Drag & Drop:** Admins can drag files directly into folders to pre-set upload paths.
+
+### 💬 Verto Social Hub
+- **Lounge:** Real-time campus-wide chat.
+- **Squads:** Encrypted group messaging for sections or study groups.
 
 ---
 

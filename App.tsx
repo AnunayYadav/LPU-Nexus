@@ -70,7 +70,6 @@ const Dashboard: React.FC<{ setModule: (m: ModuleType) => void }> = ({ setModule
         { id: ModuleType.PLACEMENT, title: "Placement Prefect", desc: "Resume ATS matching & optimization tailored for campus drives.", color: "hover:border-orange-500/50" },
         { id: ModuleType.LIBRARY, title: "Content Library", desc: "Centralized hub for all your lectures, question banks and notes.", color: "hover:border-orange-500/50" },
         { id: ModuleType.CAMPUS, title: "Campus Navigator", desc: "Mess menu checker and interactive 3D map.", color: "hover:border-indigo-500/50" },
-        { id: ModuleType.GLOBAL, title: "Global Gateway", desc: "Real-time university data and international opportunities scout.", color: "hover:border-emerald-500/50" },
         { id: ModuleType.SOCIAL, title: "Social Hub", desc: "Connect with fellow Vertos, join squads, and chat in the lounge.", color: "hover:border-orange-500/50" }
       ].map(card => (
         <div key={card.id} onClick={() => setModule(card.id)} className={`group relative p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/50 ${card.color} transition-all cursor-pointer hover:shadow-2xl overflow-hidden min-h-[160px]`}>
