@@ -52,31 +52,32 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
   useEffect(() => {
     let unsubscribe: () => void = () => {};
     
-    const handlePayload = async (payload: any) => {
+    const handlePayload = (payload: any) => {
       const { eventType, new: newRecord, old: oldRecord } = payload;
       
       if (eventType === 'INSERT') {
-        let senderName = newRecord.sender_name;
-        if (!senderName && newRecord.sender_id) {
-           const profile = await NexusServer.getProfile(newRecord.sender_id);
-           senderName = profile?.username || 'User';
-        }
         const newMsg: ChatMessage = { 
           id: newRecord.id, 
           role: 'user', 
           text: newRecord.text, 
           timestamp: new Date(newRecord.created_at).getTime(), 
           sender_id: newRecord.sender_id, 
-          sender_name: senderName || 'User'
+          sender_name: newRecord.sender_name || 'User'
         };
         setMessages(prev => {
           if (prev.some(m => m.id === newMsg.id)) return prev;
           return [...prev, newMsg];
         });
       } else if (eventType === 'DELETE') {
-        setMessages(prev => prev.filter(m => m.id !== oldRecord.id));
+        const deletedId = oldRecord?.id;
+        if (deletedId) {
+          setMessages(prev => prev.filter(m => m.id !== deletedId));
+        }
       } else if (eventType === 'UPDATE') {
-        setMessages(prev => prev.map(m => m.id === newRecord.id ? { ...m, text: newRecord.text } : m));
+        const updatedId = newRecord?.id;
+        if (updatedId) {
+          setMessages(prev => prev.map(m => m.id === updatedId ? { ...m, text: newRecord.text } : m));
+        }
       }
     };
 
@@ -88,7 +89,6 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
     return () => unsubscribe();
   }, [activeView, activeConversation]);
 
-  // Robust Auto-scroll logic
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
     if (scrollRef.current) {
       const { scrollHeight, clientHeight } = scrollRef.current;
@@ -198,21 +198,35 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
 
   const handleEditMessage = async (msgId: string) => {
     if (!editValue.trim() || !userProfile) return;
+    const originalText = messages.find(m => m.id === msgId)?.text;
+    const filtered = activeView === 'lounge' ? filterProfanity(editValue) : editValue;
+    
+    // Optimistic Update
+    setMessages(prev => prev.map(m => m.id === msgId ? { ...m, text: filtered } : m));
+    setEditingMessageId(null);
+
     try {
-      const filtered = activeView === 'lounge' ? filterProfanity(editValue) : editValue;
       if (activeView === 'lounge') {
         await NexusServer.updateSocialMessage(msgId, userProfile.id, filtered);
       } else {
         await NexusServer.updateMessage(msgId, userProfile.id, filtered);
       }
-      setEditingMessageId(null);
     } catch (e) {
-      alert("Failed to edit message. You can only edit your own messages.");
+      // Revert if failed (likely RLS blocking it)
+      if (originalText) {
+        setMessages(prev => prev.map(m => m.id === msgId ? { ...m, text: originalText } : m));
+      }
+      alert("Permission denied. Ensure you updated your Supabase SQL policies for UPDATE.");
     }
   };
 
   const handleDeleteMessage = async (msgId: string) => {
-    if (!userProfile || !confirm("Permanently remove this message?")) return;
+    if (!userProfile || !confirm("Delete this message permanently?")) return;
+    
+    const originalMessages = [...messages];
+    // Optimistic Update
+    setMessages(prev => prev.filter(m => m.id !== msgId));
+
     try {
       if (activeView === 'lounge') {
         await NexusServer.deleteSocialMessage(msgId, userProfile.id);
@@ -220,7 +234,9 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
         await NexusServer.deleteMessage(msgId, userProfile.id);
       }
     } catch (e) {
-      alert("Failed to delete message. You can only delete your own messages.");
+      // Revert if failed (likely RLS blocking it)
+      setMessages(originalMessages);
+      alert("Could not delete message. Ensure you updated your Supabase SQL policies for DELETE.");
     }
   };
 
@@ -313,7 +329,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
         <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 dark:text-white">
           {activeView === 'dms' ? 'Messages' : 'Groups'}
         </h3>
-        <button onClick={loadConversations} className="p-1.5 hover:text-orange-500 transition-colors">
+        <button onClick={loadConversations} className="p-1.5 hover:text-orange-500 transition-colors bg-transparent border-none">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
         </button>
       </div>
@@ -330,7 +346,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
           <button 
             key={convo.id} 
             onClick={() => selectConversation(convo)}
-            className={`w-full p-4 rounded-3xl text-left transition-all flex items-center gap-3 ${activeConversation?.id === convo.id ? 'bg-orange-600 text-white shadow-xl' : 'hover:bg-slate-100 dark:hover:bg-white/5 text-slate-600 dark:text-slate-400'}`}
+            className={`w-full p-4 rounded-3xl text-left transition-all flex items-center gap-3 border-none bg-transparent ${activeConversation?.id === convo.id ? 'bg-orange-600 text-white shadow-xl' : 'hover:bg-slate-100 dark:hover:bg-white/5 text-slate-600 dark:text-slate-400'}`}
           >
             <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black ${activeConversation?.id === convo.id ? 'bg-white/20' : 'bg-black text-orange-500'}`}>
                {convo.is_group ? (convo.name?.[0]?.toUpperCase() || 'G') : (convo.display_name?.[0]?.toUpperCase() || 'U')}
@@ -374,7 +390,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
           <button 
             key={item.id} 
             onClick={() => handleViewChange(item.id as SocialView)}
-            className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${activeView === item.id ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/30 scale-110' : 'text-slate-400 hover:text-orange-500 hover:bg-orange-500/5'}`}
+            className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all bg-transparent border-none ${activeView === item.id ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/30 scale-110' : 'text-slate-400 hover:text-orange-500 hover:bg-orange-500/5'}`}
             title={item.label}
           >
             {item.icon}
@@ -483,13 +499,13 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                        </span>
                     </div>
                     <div className={`flex items-center gap-2 ${isMe ? 'flex-row-reverse' : ''} max-w-[85%] md:max-w-[70%]`}>
-                      <div className={`relative px-5 py-3 rounded-[24px] text-sm font-medium shadow-sm transition-all ${isMe ? 'bg-orange-600 text-white rounded-tr-none' : 'bg-slate-100 dark:bg-[#111111] text-slate-800 dark:text-slate-200 border dark:border-white/5 rounded-tl-none'}`}>
+                      <div className={`relative px-5 py-3 rounded-[24px] text-sm font-medium shadow-sm transition-all ${isMe ? 'bg-orange-600 text-white rounded-tr-none' : 'bg-slate-100 dark:bg-[#111111] text-slate-800 dark:text-slate-200 border border-transparent dark:border-white/5 rounded-tl-none'}`}>
                         {isEditing ? (
                           <div className="flex flex-col gap-2 min-w-[200px]">
                             <textarea value={editValue} onChange={(e) => setEditValue(e.target.value)} className="w-full bg-black/20 text-white border-none rounded-lg p-2 text-xs outline-none resize-none" rows={2} autoFocus />
                             <div className="flex justify-end gap-2">
-                              <button onClick={() => setEditingMessageId(null)} className="text-[8px] uppercase font-black opacity-60 border-none bg-transparent text-white">Undo</button>
-                              <button onClick={() => handleEditMessage(msg.id!)} className="text-[8px] uppercase font-black border-none bg-transparent text-white">Save</button>
+                              <button onClick={() => setEditingMessageId(null)} className="text-[8px] uppercase font-black opacity-60 border-none bg-transparent text-white p-0">Undo</button>
+                              <button onClick={() => handleEditMessage(msg.id!)} className="text-[8px] uppercase font-black border-none bg-transparent text-white p-0">Save</button>
                             </div>
                           </div>
                         ) : <span>{msg.text}</span>}
@@ -519,7 +535,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                 />
                 <button 
                   type="submit" disabled={!userProfile || isSending || !inputText.trim()}
-                  className="bg-orange-600 hover:bg-orange-700 text-white w-12 h-12 rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-all disabled:opacity-50"
+                  className="bg-orange-600 hover:bg-orange-700 text-white w-12 h-12 rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-all disabled:opacity-50 border-none"
                 >
                   {isSending ? <div className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin" /> : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>}
                 </button>
@@ -540,17 +556,17 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
 
       {/* Group Modal */}
       {showGroupModal && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-fade-in">
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
           <div className="bg-white dark:bg-[#0a0a0a] rounded-[48px] w-full max-w-md shadow-2xl border border-white/10 p-10 flex flex-col">
             <header className="mb-8 flex justify-between items-center">
               <h3 className="text-2xl font-black uppercase tracking-tighter dark:text-white">Squad Deployment</h3>
-              <button onClick={() => setShowGroupModal(false)} className="text-slate-400 hover:text-white border-none bg-transparent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+              <button onClick={() => setShowGroupModal(false)} className="text-slate-400 hover:text-white border-none bg-transparent p-0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             </header>
             <div className="space-y-6">
               <input type="text" placeholder="Squad Name..." value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} className="w-full bg-slate-100 dark:bg-black rounded-2xl p-4 text-sm font-bold dark:text-white border-none outline-none focus:ring-2 focus:ring-orange-600" />
               <div className="max-h-40 overflow-y-auto no-scrollbar space-y-2 p-1">
                 {friends.map(p => (
-                  <button key={p.id} onClick={() => setSelectedUsers(prev => prev.includes(p.id) ? prev.filter(uid => uid !== p.id) : [...prev, p.id])} className={`w-full p-3 rounded-xl flex items-center justify-between transition-all ${selectedUsers.includes(p.id) ? 'bg-orange-600 text-white' : 'bg-slate-100 dark:bg-white/5 text-slate-500'}`}>
+                  <button key={p.id} onClick={() => setSelectedUsers(prev => prev.includes(p.id) ? prev.filter(uid => uid !== p.id) : [...prev, p.id])} className={`w-full p-3 rounded-xl flex items-center justify-between transition-all border-none ${selectedUsers.includes(p.id) ? 'bg-orange-600 text-white' : 'bg-slate-100 dark:bg-white/5 text-slate-500'}`}>
                     <span className="text-[10px] font-black uppercase">@{p.username}</span>
                     {selectedUsers.includes(p.id) && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="w-3 h-3"><polyline points="20 6 9 17 4 12"/></svg>}
                   </button>
