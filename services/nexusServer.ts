@@ -160,7 +160,6 @@ class NexusServer {
     const client = getSupabase();
     if (!client || !query.trim()) return [];
     try {
-      // Search all profiles but UI will handle privacy redaction
       const { data, error } = await client
         .from('profiles')
         .select('*')
@@ -175,14 +174,6 @@ class NexusServer {
     }
   }
 
-  static async fetchPublicProfiles(): Promise<UserProfile[]> {
-    const client = getSupabase();
-    if (!client) return [];
-    const { data } = await client.from('profiles').select('*').eq('is_public', true).order('username').limit(20);
-    return data || [];
-  }
-
-  // Friend Request System
   static async sendFriendRequest(senderId: string, receiverId: string) {
     const client = getSupabase();
     if (!client) return;
@@ -217,7 +208,6 @@ class NexusServer {
     if (!data) return [];
     
     return data.map(item => {
-      // Return the profile that ISN'T the current user
       const s = item.sender as any as UserProfile;
       const r = item.receiver as any as UserProfile;
       return s.id === userId ? r : s;
@@ -281,11 +271,62 @@ class NexusServer {
   static async fetchConversations(userId: string) {
     const client = getSupabase();
     if (!client) return [];
-    const { data } = await client
+    
+    // Fetch conversations including participant info for DMs
+    const { data, error } = await client
       .from('conversation_members')
-      .select('conversation_id, conversations(*)')
+      .select('conversation_id, conversations(*), user_id')
       .eq('user_id', userId);
-    return data?.map(d => d.conversations) || [];
+
+    if (error) return [];
+
+    const conversations = [];
+    for (const item of data) {
+      const convo = item.conversations;
+      if (!convo.is_group) {
+        // Find the other participant's profile
+        const { data: otherMember } = await client
+          .from('conversation_members')
+          .select('profiles(id, username)')
+          .eq('conversation_id', convo.id)
+          .neq('user_id', userId)
+          .single();
+        
+        convo.display_name = (otherMember?.profiles as any)?.username || "Verto Peer";
+        convo.other_user_id = (otherMember?.profiles as any)?.id;
+      } else {
+        convo.display_name = convo.name || "Squad Channel";
+      }
+      conversations.push(convo);
+    }
+    return conversations;
+  }
+
+  static async findExistingDM(userId1: string, userId2: string) {
+    const client = getSupabase();
+    if (!client) return null;
+    
+    // Complex query to find a conversation shared by exactly these two users that is not a group
+    const { data } = await client.rpc('get_dm_between_users', { user1: userId1, user2: userId2 });
+    
+    // If RPC isn't available, we fallback to a simpler but slower manual check
+    if (!data) {
+       const { data: user1Convos } = await client.from('conversation_members').select('conversation_id').eq('user_id', userId1);
+       const { data: user2Convos } = await client.from('conversation_members').select('conversation_id').eq('user_id', userId2);
+       
+       if (!user1Convos || !user2Convos) return null;
+       
+       const commonIds = user1Convos
+        .filter(c1 => user2Convos.some(c2 => c2.conversation_id === c1.conversation_id))
+        .map(c => c.conversation_id);
+       
+       if (commonIds.length === 0) return null;
+       
+       const { data: convos } = await client.from('conversations').select('*').in('id', commonIds).eq('is_group', false).limit(1);
+       return convos?.[0] || null;
+    }
+
+    return data[0] || null;
   }
 
   static async createConversation(userId: string, name: string | null, isGroup: boolean, participants: string[]) {
@@ -373,9 +414,12 @@ class NexusServer {
     }));
   }
 
+  /**
+   * Fetches files that are pending moderation.
+   */
   static async fetchPendingFiles(): Promise<LibraryFile[]> {
     const client = getSupabase();
-    if (!client) return [];
+    if (!client) throw new Error("Database offline.");
     const { data } = await client.from('documents').select('*, profiles(username, email)').eq('status', 'pending').order('created_at', { ascending: false });
     return (data || []).map(item => ({
       id: item.id, name: item.name, description: item.description, subject: item.subject, semester: item.semester || 'Other',
@@ -385,9 +429,12 @@ class NexusServer {
     }));
   }
 
+  /**
+   * Fetches files uploaded by a specific user.
+   */
   static async fetchUserFiles(userId: string): Promise<LibraryFile[]> {
     const client = getSupabase();
-    if (!client) return [];
+    if (!client) throw new Error("Database offline.");
     const { data } = await client.from('documents').select('*, profiles(username, email)').eq('uploader_id', userId).order('created_at', { ascending: false });
     return (data || []).map(item => ({
       id: item.id, name: item.name, description: item.description, subject: item.subject, semester: item.semester || 'Other',

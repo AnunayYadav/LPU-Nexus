@@ -182,18 +182,27 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
       return;
     }
 
-    const existing = conversations.find(c => !c.is_group && c.id === otherUser.id); // Simpler logic for prototype
-    if (existing) {
-      selectConversation(existing);
-      setActiveView('dms');
-    } else {
-      setIsLoading(true);
-      const convo = await NexusServer.createConversation(userProfile.id, null, false, [otherUser.id]);
-      if (convo) {
-        await loadConversations();
-        selectConversation(convo);
+    setIsLoading(true);
+    try {
+      // Look for existing DM in server
+      const existing = await NexusServer.findExistingDM(userProfile.id, otherUser.id);
+      if (existing) {
+        // We need to inject the display name manually if it's missing from the fresh server lookup
+        existing.display_name = otherUser.username || "Verto Peer";
+        selectConversation(existing);
         setActiveView('dms');
+      } else {
+        const convo = await NexusServer.createConversation(userProfile.id, null, false, [otherUser.id]);
+        if (convo) {
+          await loadConversations();
+          convo.display_name = otherUser.username || "Verto Peer";
+          selectConversation(convo);
+          setActiveView('dms');
+        }
       }
+    } catch (e) {
+      console.error("DM Protocol failure:", e);
+    } finally {
       setIsLoading(false);
     }
   };
@@ -277,10 +286,10 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                 className={`w-full p-4 rounded-3xl text-left transition-all flex items-center gap-3 ${activeConversation?.id === convo.id ? 'bg-orange-600 text-white shadow-xl' : 'hover:bg-slate-100 dark:hover:bg-white/5 text-slate-600 dark:text-slate-400'}`}
               >
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black ${activeConversation?.id === convo.id ? 'bg-white/20' : 'bg-black text-orange-500'}`}>
-                  {convo.is_group ? (convo.name?.[0]?.toUpperCase() || 'G') : (convo.name?.[0]?.toUpperCase() || 'U')}
+                   {convo.is_group ? (convo.name?.[0]?.toUpperCase() || 'G') : (convo.display_name?.[0]?.toUpperCase() || 'U')}
                 </div>
                 <div className="flex-1 truncate">
-                  <p className="text-xs font-black uppercase tracking-tight">{convo.name || "Verto Link"}</p>
+                  <p className="text-xs font-black uppercase tracking-tight">{convo.display_name || "Verto Peer"}</p>
                   <p className={`text-[8px] font-bold uppercase tracking-widest opacity-60 ${activeConversation?.id === convo.id ? 'text-white' : ''}`}>{convo.is_group ? 'Active Squad' : 'Direct Signal'}</p>
                 </div>
               </button>
@@ -446,11 +455,11 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                   {activeView === 'lounge' ? (
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                   ) : (
-                    <span className="font-black">{activeConversation?.name?.[0]?.toUpperCase() || 'E'}</span>
+                    <span className="font-black">{activeConversation?.display_name?.[0]?.toUpperCase() || 'E'}</span>
                   )}
                 </div>
                 <div>
-                  <h3 className="text-sm font-black uppercase tracking-widest dark:text-white">{activeView === 'lounge' ? 'The Lounge' : (activeConversation?.name || 'Encrypted Channel')}</h3>
+                  <h3 className="text-sm font-black uppercase tracking-widest dark:text-white">{activeView === 'lounge' ? 'The Lounge' : (activeConversation?.display_name || 'Encrypted Channel')}</h3>
                   <div className="flex items-center gap-1.5">
                     <span className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse" />
                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Protocol Active</span>
