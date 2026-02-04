@@ -43,34 +43,41 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
     setError(null);
 
     // Timeout safety to prevent infinite loading state if networking hangs
+    const controller = new AbortController();
     const timeoutId = setTimeout(() => {
-      if (loading) {
-        setLoading(false);
-        setError("Network signal weak. Please check your connection and retry.");
-      }
-    }, 15000);
+      setError("The server is taking longer than expected to respond. Please check your internet connection.");
+      setLoading(false);
+      controller.abort();
+    }, 20000);
 
     try {
       if (isLogin) {
         if (!identifier.trim()) throw new Error("Please enter your email or username.");
+        if (password.length < 6) throw new Error("Password must be at least 6 characters.");
+        
         const { error: signInErr } = await NexusServer.signIn(identifier, password);
         if (signInErr) throw signInErr;
+        
+        clearTimeout(timeoutId);
         onClose();
       } else {
         if (!email.trim()) throw new Error("Official email is required.");
         if (username.length < 3) throw new Error("Username must be at least 3 characters.");
         if (usernameStatus === 'taken') throw new Error("This username is already claimed.");
+        if (password.length < 6) throw new Error("Password must be at least 6 characters.");
         
         const { error: signUpErr } = await NexusServer.signUp(email, password, username);
         if (signUpErr) throw signUpErr;
         
+        clearTimeout(timeoutId);
         setSignupSuccess(true);
-        // Don't close modal yet, show success message
       }
     } catch (err: any) {
-      setError(err.message || "Authentication failed. Registry out of sync.");
-    } finally {
       clearTimeout(timeoutId);
+      if (err.name !== 'AbortError') {
+        setError(err.message || "Authentication failed. The Hub registry might be undergoing maintenance.");
+      }
+    } finally {
       setLoading(false);
     }
   };

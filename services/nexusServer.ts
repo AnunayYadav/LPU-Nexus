@@ -3,11 +3,17 @@ import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
 import { LibraryFile, UserProfile, Folder, ChatMessage } from '../types.ts';
 
 const getEnvVar = (name: string): string => {
-  // Check process.env first as it's bootstrapped in index.tsx
-  if (typeof process !== 'undefined' && process.env && process.env[name]) {
-    return process.env[name] as string;
-  }
-  
+  // Try direct process.env first (for platform injected vars)
+  try {
+    if (typeof process !== 'undefined' && process.env && process.env[name]) {
+      return process.env[name] as string;
+    }
+  } catch (e) {}
+
+  // Try standard window/global check
+  const g = (typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : ({} as any));
+  if (g.process?.env?.[name]) return g.process.env[name];
+
   const vitePrefix = `VITE_${name}`;
   try {
     const metaEnv = (import.meta as any).env;
@@ -16,28 +22,30 @@ const getEnvVar = (name: string): string => {
       if (metaEnv[name]) return metaEnv[name];
     }
   } catch (e) {}
+  
   return '';
 };
-
-const supabaseUrl = getEnvVar('SUPABASE_URL');
-const supabaseAnonKey = getEnvVar('SUPABASE_ANON_KEY');
 
 let supabaseInstance: SupabaseClient | null = null;
 
 const getSupabase = () => {
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn("NexusServer: Supabase credentials missing from environment.");
+  if (supabaseInstance) return supabaseInstance;
+
+  const url = getEnvVar('SUPABASE_URL');
+  const key = getEnvVar('SUPABASE_ANON_KEY');
+
+  if (!url || !key) {
+    console.warn("NexusServer: Supabase connection parameters are missing. Verify SUPABASE_URL and SUPABASE_ANON_KEY.");
     return null;
   }
-  if (!supabaseInstance) {
-    try {
-      supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
-    } catch (e) {
-      console.error("Supabase Initialization Error:", e);
-      return null;
-    }
+
+  try {
+    supabaseInstance = createClient(url, key);
+    return supabaseInstance;
+  } catch (e) {
+    console.error("Supabase Initialization Error:", e);
+    return null;
   }
-  return supabaseInstance;
 };
 
 const BUCKET_NAME = 'nexus-documents';
@@ -59,15 +67,19 @@ class NexusServer {
   static async getSiteStats(): Promise<{ registered: number; visitors: number }> {
     const client = getSupabase();
     if (!client) return { registered: 0, visitors: 0 };
-    const { count: registeredCount } = await client.from('profiles').select('*', { count: 'exact', head: true });
-    const { count: visitorCount } = await client.from('site_visits').select('*', { count: 'exact', head: true });
-    const baseHistoricalReach = 1450; 
-    return { registered: registeredCount || 0, visitors: (visitorCount || 0) + baseHistoricalReach };
+    try {
+      const { count: registeredCount } = await client.from('profiles').select('*', { count: 'exact', head: true });
+      const { count: visitorCount } = await client.from('site_visits').select('*', { count: 'exact', head: true });
+      const baseHistoricalReach = 1450; 
+      return { registered: registeredCount || 0, visitors: (visitorCount || 0) + baseHistoricalReach };
+    } catch (e) {
+      return { registered: 0, visitors: 1450 };
+    }
   }
 
   static async signIn(identifier: string, pass: string) {
     const client = getSupabase();
-    if (!client) throw new Error("Database configuration missing. Check your Supabase URL and Key.");
+    if (!client) throw new Error("Connection Failure: Database terminal configuration is missing.");
     
     let email = identifier;
     // If user enters a username instead of email
@@ -79,7 +91,7 @@ class NexusServer {
         .maybeSingle();
       
       if (profileErr) throw new Error(`Registry lookup failed: ${profileErr.message}`);
-      if (!profile) throw new Error("No Verto found with this username. Please use your official email or correct username.");
+      if (!profile) throw new Error("No Verto found with this username. Use your official email if this is your first login.");
       email = profile.email;
     }
     
@@ -88,7 +100,7 @@ class NexusServer {
 
   static async signUp(email: string, pass: string, username: string) {
     const client = getSupabase();
-    if (!client) throw new Error("Database configuration missing. Check your Supabase URL and Key.");
+    if (!client) throw new Error("Connection Failure: Database terminal configuration is missing.");
     const { data: authData, error: signUpErr } = await client.auth.signUp({ 
       email, 
       password: pass, 
