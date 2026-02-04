@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import NexusServer from '../services/nexusServer.ts';
 
@@ -13,6 +14,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [signupSuccess, setSignupSuccess] = useState(false);
   const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
 
   // Validate username availability on the fly
@@ -20,8 +22,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
     if (!isLogin && username.length >= 3) {
       const timer = setTimeout(async () => {
         setUsernameStatus('checking');
-        const available = await NexusServer.checkUsernameAvailability(username);
-        setUsernameStatus(available ? 'available' : 'taken');
+        try {
+          const available = await NexusServer.checkUsernameAvailability(username);
+          setUsernameStatus(available ? 'available' : 'taken');
+        } catch (e) {
+          setUsernameStatus('idle');
+        }
       }, 600);
       return () => clearTimeout(timer);
     } else {
@@ -31,14 +37,25 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
+
     setLoading(true);
     setError(null);
+
+    // Timeout safety to prevent infinite loading state if networking hangs
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        setLoading(false);
+        setError("Network signal weak. Please check your connection and retry.");
+      }
+    }, 15000);
 
     try {
       if (isLogin) {
         if (!identifier.trim()) throw new Error("Please enter your email or username.");
         const { error: signInErr } = await NexusServer.signIn(identifier, password);
         if (signInErr) throw signInErr;
+        onClose();
       } else {
         if (!email.trim()) throw new Error("Official email is required.");
         if (username.length < 3) throw new Error("Username must be at least 3 characters.");
@@ -46,20 +63,44 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
         
         const { error: signUpErr } = await NexusServer.signUp(email, password, username);
         if (signUpErr) throw signUpErr;
+        
+        setSignupSuccess(true);
+        // Don't close modal yet, show success message
       }
-      onClose();
     } catch (err: any) {
-      setError(err.message || "Authentication failed");
+      setError(err.message || "Authentication failed. Registry out of sync.");
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
     }
   };
 
   const handleUsernameChange = (val: string) => {
-    // Force lowercase, alphanumeric and underscores only
     const clean = val.toLowerCase().replace(/[^a-z0-9_]/g, '');
     if (clean.length <= 15) setUsername(clean);
   };
+
+  if (signupSuccess) {
+    return (
+      <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-400/40 dark:bg-black/90 backdrop-blur-xl animate-fade-in overflow-hidden">
+        <div className="bg-white dark:bg-slate-950 rounded-[48px] w-full max-w-sm shadow-2xl border border-slate-200 dark:border-white/10 p-10 text-center space-y-6">
+          <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto text-emerald-500 shadow-xl shadow-emerald-500/5">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-10 h-10"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+          </div>
+          <h3 className="text-2xl font-black tracking-tighter uppercase leading-none dark:text-white">Verify Identity</h3>
+          <p className="text-slate-500 text-sm leading-relaxed font-medium">
+            Registry protocol initiated. Please check your official email (<strong>{email}</strong>) to activate your Verto instance.
+          </p>
+          <button 
+            onClick={onClose}
+            className="w-full bg-black dark:bg-white text-white dark:text-black py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all shadow-xl"
+          >
+            I'll Verify Now
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-400/40 dark:bg-black/90 backdrop-blur-xl animate-fade-in overflow-hidden">
@@ -85,9 +126,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
 
         <form onSubmit={handleSubmit} className="p-8 space-y-4">
           {error && (
-            <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-500 text-[9px] font-black uppercase rounded-2xl text-center animate-fade-in flex items-center justify-center gap-2">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-              {error}
+            <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-500 text-[9px] font-black uppercase rounded-2xl text-center animate-fade-in flex flex-col items-center justify-center gap-2">
+              <div className="flex items-center gap-2">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="11.99" y2="16"/></svg>
+                <span>Auth Failure</span>
+              </div>
+              <p className="font-bold opacity-80 normal-case">{error}</p>
             </div>
           )}
           
@@ -155,7 +199,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
 
           <button 
             type="submit" disabled={loading || (!isLogin && usernameStatus === 'taken')}
-            className="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 md:py-5 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-orange-600/20 active:scale-95 transition-all disabled:opacity-50 mt-4 flex items-center justify-center gap-2"
+            className="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 md:py-5 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-orange-600/20 active:scale-95 transition-all disabled:opacity-50 mt-4 flex items-center justify-center gap-2 border-none"
           >
             {loading ? (
                <div className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin" />
@@ -165,7 +209,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
           <button 
             type="button" 
             onClick={() => { setIsLogin(!isLogin); setError(null); }} 
-            className="w-full text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-orange-600 transition-colors py-4"
+            className="w-full text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-orange-600 transition-colors py-4 bg-transparent border-none"
           >
             {isLogin ? "New Verto? Create Instance" : "Found Identity? Log In"}
           </button>

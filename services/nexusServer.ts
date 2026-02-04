@@ -3,18 +3,17 @@ import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
 import { LibraryFile, UserProfile, Folder, ChatMessage } from '../types.ts';
 
 const getEnvVar = (name: string): string => {
+  // Check process.env first as it's bootstrapped in index.tsx
+  if (typeof process !== 'undefined' && process.env && process.env[name]) {
+    return process.env[name] as string;
+  }
+  
   const vitePrefix = `VITE_${name}`;
   try {
     const metaEnv = (import.meta as any).env;
     if (metaEnv) {
       if (metaEnv[vitePrefix]) return metaEnv[vitePrefix];
       if (metaEnv[name]) return metaEnv[name];
-    }
-  } catch (e) {}
-  try {
-    if (typeof process !== 'undefined' && process.env) {
-      if (process.env[vitePrefix]) return process.env[vitePrefix] as string;
-      if (process.env[name]) return process.env[name] as string;
     }
   } catch (e) {}
   return '';
@@ -26,7 +25,10 @@ const supabaseAnonKey = getEnvVar('SUPABASE_ANON_KEY');
 let supabaseInstance: SupabaseClient | null = null;
 
 const getSupabase = () => {
-  if (!supabaseUrl || !supabaseAnonKey) return null;
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn("NexusServer: Supabase credentials missing from environment.");
+    return null;
+  }
   if (!supabaseInstance) {
     try {
       supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
@@ -65,21 +67,35 @@ class NexusServer {
 
   static async signIn(identifier: string, pass: string) {
     const client = getSupabase();
-    if (!client) throw new Error("Supabase connection not established.");
+    if (!client) throw new Error("Database configuration missing. Check your Supabase URL and Key.");
+    
     let email = identifier;
+    // If user enters a username instead of email
     if (!identifier.includes('@')) {
-      const { data: profile } = await client.from('profiles').select('email').eq('username', identifier.toLowerCase()).maybeSingle();
-      if (!profile) throw new Error("No Verto found with this username.");
+      const { data: profile, error: profileErr } = await client
+        .from('profiles')
+        .select('email')
+        .eq('username', identifier.toLowerCase())
+        .maybeSingle();
+      
+      if (profileErr) throw new Error(`Registry lookup failed: ${profileErr.message}`);
+      if (!profile) throw new Error("No Verto found with this username. Please use your official email or correct username.");
       email = profile.email;
     }
+    
     return await client.auth.signInWithPassword({ email, password: pass });
   }
 
   static async signUp(email: string, pass: string, username: string) {
     const client = getSupabase();
-    if (!client) throw new Error("Supabase connection not established.");
+    if (!client) throw new Error("Database configuration missing. Check your Supabase URL and Key.");
     const { data: authData, error: signUpErr } = await client.auth.signUp({ 
-      email, password: pass, options: { data: { username: username.toLowerCase() } }
+      email, 
+      password: pass, 
+      options: { 
+        data: { username: username.toLowerCase() },
+        emailRedirectTo: window.location.origin
+      }
     });
     if (signUpErr) throw signUpErr;
     return { data: authData, error: null };
@@ -101,8 +117,13 @@ class NexusServer {
   static async getProfile(userId: string): Promise<UserProfile | null> {
     const client = getSupabase();
     if (!client) return null;
-    const { data } = await client.from('profiles').select('*').eq('id', userId).single();
-    return data;
+    try {
+      const { data, error } = await client.from('profiles').select('*').eq('id', userId).single();
+      if (error) return null;
+      return data;
+    } catch (e) {
+      return null;
+    }
   }
 
   static async updateProfile(userId: string, updates: Partial<UserProfile>): Promise<void> {
@@ -153,8 +174,12 @@ class NexusServer {
   static async checkUsernameAvailability(username: string): Promise<boolean> {
     const client = getSupabase();
     if (!client) return true;
-    const { data } = await client.from('profiles').select('username').eq('username', username.toLowerCase()).maybeSingle();
-    return !data;
+    try {
+      const { data } = await client.from('profiles').select('username').eq('username', username.toLowerCase()).maybeSingle();
+      return !data;
+    } catch (e) {
+      return true;
+    }
   }
 
   static async saveRecord(userId: string | null, type: string, label: string, content: any): Promise<void> {
@@ -227,7 +252,6 @@ class NexusServer {
     }));
   }
 
-  // Added fetchPendingFiles to support administrative review in ContentLibrary.tsx
   static async fetchPendingFiles(): Promise<LibraryFile[]> {
     const client = getSupabase();
     if (!client) throw new Error("Database connection unavailable.");
@@ -240,7 +264,6 @@ class NexusServer {
     }));
   }
 
-  // Added fetchUserFiles to support user's personal vault in ContentLibrary.tsx
   static async fetchUserFiles(userId: string): Promise<LibraryFile[]> {
     const client = getSupabase();
     if (!client) throw new Error("Database connection unavailable.");
@@ -278,7 +301,6 @@ class NexusServer {
     await client.from('documents').update({ ...finalData, status: 'approved', pending_update: null }).eq('id', id);
   }
 
-  // Added rejectFile to handle removal of rejected contributions
   static async rejectFile(id: string): Promise<void> {
     const client = getSupabase();
     if (!client) throw new Error('Database connection unavailable.');
@@ -289,7 +311,6 @@ class NexusServer {
     }
   }
 
-  // Added demoteFile to revert verified status back to pending
   static async demoteFile(id: string): Promise<void> {
     const client = getSupabase();
     if (!client) throw new Error('Database connection unavailable.');

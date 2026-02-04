@@ -2,7 +2,7 @@
 /**
  * LPU-Nexus Environment Bootstrap
  * This must run at the absolute top of the entry point to ensure
- * process.env.API_KEY is available to all subsequently loaded modules.
+ * environment variables are available to all subsequently loaded modules.
  */
 (function initializeNexusGlobalEnv() {
   const g = (typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : ({} as any));
@@ -11,25 +11,26 @@
   g.process = g.process || { env: {} };
   g.process.env = g.process.env || {};
 
-  try {
-    /**
-     * VITE STATIC REPLACEMENT:
-     * Using literal strings ensures the Vite bundler replaces these 
-     * with actual values from the Vercel/Local environment at build time.
-     */
-    // @ts-ignore
-    const V_KEY = import.meta.env ? import.meta.env.VITE_API_KEY : undefined;
-    // @ts-ignore
-    const A_KEY = import.meta.env ? import.meta.env.API_KEY : undefined;
-    
-    const key = V_KEY || A_KEY;
-    
-    if (key) {
-      g.process.env.API_KEY = key;
+  const varsToBootstrap = ['API_KEY', 'SUPABASE_URL', 'SUPABASE_ANON_KEY'];
+
+  varsToBootstrap.forEach(varName => {
+    try {
+      const vitePrefix = `VITE_${varName}`;
+      // @ts-ignore
+      const vKey = import.meta.env ? import.meta.env[vitePrefix] : undefined;
+      // @ts-ignore
+      const aKey = import.meta.env ? import.meta.env[varName] : undefined;
+      // @ts-ignore
+      const pKey = (typeof process !== 'undefined' && process.env) ? process.env[varName] : undefined;
+      
+      const val = vKey || aKey || pKey;
+      if (val) {
+        g.process.env[varName] = val;
+      }
+    } catch (e) {
+      // Fail silently for individual vars
     }
-  } catch (e) {
-    // Fail silently - environment might not support import.meta
-  }
+  });
 })();
 
 import React from 'react';
