@@ -306,27 +306,32 @@ class NexusServer {
     const client = getSupabase();
     if (!client) return null;
     
-    // Complex query to find a conversation shared by exactly these two users that is not a group
-    const { data } = await client.rpc('get_dm_between_users', { user1: userId1, user2: userId2 });
-    
-    // If RPC isn't available, we fallback to a simpler but slower manual check
-    if (!data) {
-       const { data: user1Convos } = await client.from('conversation_members').select('conversation_id').eq('user_id', userId1);
-       const { data: user2Convos } = await client.from('conversation_members').select('conversation_id').eq('user_id', userId2);
-       
-       if (!user1Convos || !user2Convos) return null;
-       
-       const commonIds = user1Convos
-        .filter(c1 => user2Convos.some(c2 => c2.conversation_id === c1.conversation_id))
-        .map(c => c.conversation_id);
-       
-       if (commonIds.length === 0) return null;
-       
-       const { data: convos } = await client.from('conversations').select('*').in('id', commonIds).eq('is_group', false).limit(1);
-       return convos?.[0] || null;
-    }
+    try {
+      // Complex query to find a conversation shared by exactly these two users that is not a group
+      const { data, error } = await client.rpc('get_dm_between_users', { user1: userId1, user2: userId2 });
+      
+      // If RPC isn't available or fails, we fallback to a manual check
+      if (error || !data || data.length === 0) {
+         const { data: user1Convos } = await client.from('conversation_members').select('conversation_id').eq('user_id', userId1);
+         const { data: user2Convos } = await client.from('conversation_members').select('conversation_id').eq('user_id', userId2);
+         
+         if (!user1Convos || !user2Convos || user1Convos.length === 0 || user2Convos.length === 0) return null;
+         
+         const commonIds = user1Convos
+          .filter(c1 => user2Convos.some(c2 => c2.conversation_id === c1.conversation_id))
+          .map(c => c.conversation_id);
+         
+         if (commonIds.length === 0) return null;
+         
+         const { data: convos } = await client.from('conversations').select('*').in('id', commonIds).eq('is_group', false).limit(1);
+         return convos?.[0] || null;
+      }
 
-    return data[0] || null;
+      return data[0] || null;
+    } catch (e) {
+      console.error("Manual DM check failure:", e);
+      return null;
+    }
   }
 
   static async createConversation(userId: string, name: string | null, isGroup: boolean, participants: string[]) {

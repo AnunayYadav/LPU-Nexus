@@ -95,8 +95,10 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
     try {
       const convos = await NexusServer.fetchConversations(userProfile.id);
       setConversations(convos);
+      return convos;
     } catch (e) {
       console.error(e);
+      return [];
     }
   };
 
@@ -185,23 +187,28 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
     setIsLoading(true);
     try {
       // Look for existing DM in server
-      const existing = await NexusServer.findExistingDM(userProfile.id, otherUser.id);
-      if (existing) {
-        // We need to inject the display name manually if it's missing from the fresh server lookup
-        existing.display_name = otherUser.username || "Verto Peer";
-        selectConversation(existing);
+      let targetConvo = await NexusServer.findExistingDM(userProfile.id, otherUser.id);
+      
+      if (!targetConvo) {
+        targetConvo = await NexusServer.createConversation(userProfile.id, null, false, [otherUser.id]);
+      }
+
+      if (targetConvo) {
+        // Sync the local sidebar state so the selection is visible
+        await loadConversations();
+        
+        // Manually inject metadata for the current session to ensure header looks correct immediately
+        targetConvo.display_name = otherUser.username || "Verto Peer";
+        
+        // Load messages and switch view
+        await selectConversation(targetConvo);
         setActiveView('dms');
       } else {
-        const convo = await NexusServer.createConversation(userProfile.id, null, false, [otherUser.id]);
-        if (convo) {
-          await loadConversations();
-          convo.display_name = otherUser.username || "Verto Peer";
-          selectConversation(convo);
-          setActiveView('dms');
-        }
+        throw new Error("Unable to establish communication link.");
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error("DM Protocol failure:", e);
+      alert(`Connection failed: ${e.message || "Please check your network."}`);
     } finally {
       setIsLoading(false);
     }
@@ -213,7 +220,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
     const convo = await NexusServer.createConversation(userProfile.id, newGroupName, true, selectedUsers);
     if (convo) {
       await loadConversations();
-      selectConversation(convo);
+      await selectConversation(convo);
       setActiveView('groups');
       setShowGroupModal(false);
       setNewGroupName('');
