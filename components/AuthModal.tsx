@@ -8,15 +8,14 @@ interface AuthModalProps {
 
 const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
   const [isLogin, setIsLogin] = useState(true);
-  const [identifier, setIdentifier] = useState(''); // Email or Username
-  const [email, setEmail] = useState(''); // Only used for signup
-  const [username, setUsername] = useState(''); // Mandatory for signup
+  const [identifier, setIdentifier] = useState(''); 
+  const [email, setEmail] = useState(''); 
+  const [username, setUsername] = useState(''); 
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
 
-  // Validate username availability on the fly
   useEffect(() => {
     if (!isLogin && username.length >= 3) {
       const timer = setTimeout(async () => {
@@ -38,26 +37,22 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
     e.preventDefault();
     if (loading) return;
 
+    if (!NexusServer.isConfigured()) {
+      setError("Registry Offline: Environment variables (SUPABASE_URL/KEY) are missing or invalid.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
-    // Timeout safety to prevent infinite loading state if networking hangs
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      setError("The server is taking longer than expected to respond. Please check your internet connection.");
-      setLoading(false);
-      controller.abort();
-    }, 20000);
-
     try {
       if (isLogin) {
-        if (!identifier.trim()) throw new Error("Please enter your email or username.");
-        if (password.length < 6) throw new Error("Password must be at least 6 characters.");
+        if (!identifier.trim()) throw new Error("Email or Username required.");
+        if (!password.trim()) throw new Error("Password required.");
         
         const { error: signInErr } = await NexusServer.signIn(identifier, password);
         if (signInErr) throw signInErr;
         
-        clearTimeout(timeoutId);
         onClose();
       } else {
         if (!email.trim()) throw new Error("Official email is required.");
@@ -68,16 +63,10 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
         const { error: signUpErr } = await NexusServer.signUp(email, password, username);
         if (signUpErr) throw signUpErr;
         
-        clearTimeout(timeoutId);
-        // Since confirm email is off, we close the modal immediately as Supabase signs them in.
         onClose();
       }
     } catch (err: any) {
-      clearTimeout(timeoutId);
-      if (err.name !== 'AbortError') {
-        setError(err.message || "Authentication failed. The Hub registry might be undergoing maintenance.");
-      }
-    } finally {
+      setError(err.message || "The Hub registry is unresponsive. Please try again later.");
       setLoading(false);
     }
   };
@@ -114,9 +103,9 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
             <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-500 text-[9px] font-black uppercase rounded-2xl text-center animate-fade-in flex flex-col items-center justify-center gap-2">
               <div className="flex items-center gap-2">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="11.99" y2="16"/></svg>
-                <span>Auth Failure</span>
+                <span>Terminal Error</span>
               </div>
-              <p className="font-bold opacity-80 normal-case">{error}</p>
+              <p className="font-bold opacity-80 normal-case leading-relaxed">{error}</p>
             </div>
           )}
           
@@ -128,7 +117,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-orange-600 transition-colors"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                    <input 
                     type="text" required value={identifier} onChange={e => setIdentifier(e.target.value)} 
-                    className="w-full bg-slate-100 dark:bg-black/60 pl-11 pr-4 py-4 rounded-2xl text-sm font-bold outline-none border border-transparent focus:ring-4 focus:ring-orange-600/10 shadow-inner dark:text-white transition-all" 
+                    disabled={loading}
+                    className="w-full bg-slate-100 dark:bg-black/60 pl-11 pr-4 py-4 rounded-2xl text-sm font-bold outline-none border border-transparent focus:ring-4 focus:ring-orange-600/10 shadow-inner dark:text-white transition-all disabled:opacity-50" 
                     placeholder="email@lpu.in or username"
                   />
                 </div>
@@ -141,7 +131,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-black text-sm group-focus-within:text-orange-600">@</span>
                     <input 
                       type="text" required value={username} onChange={e => handleUsernameChange(e.target.value)} 
-                      className={`w-full bg-slate-100 dark:bg-black/60 pl-9 pr-4 py-4 rounded-2xl text-sm font-bold outline-none border transition-all dark:text-white shadow-inner ${
+                      disabled={loading}
+                      className={`w-full bg-slate-100 dark:bg-black/60 pl-9 pr-4 py-4 rounded-2xl text-sm font-bold outline-none border transition-all dark:text-white shadow-inner disabled:opacity-50 ${
                         usernameStatus === 'available' ? 'border-emerald-500/50' : 
                         usernameStatus === 'taken' ? 'border-red-500/50' : 'border-transparent focus:ring-4 focus:ring-orange-600/10'
                       }`} 
@@ -161,7 +152,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-orange-600 transition-colors"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
                      <input 
                       type="email" required value={email} onChange={e => setEmail(e.target.value)} 
-                      className="w-full bg-slate-100 dark:bg-black/60 pl-11 pr-4 py-4 rounded-2xl text-sm font-bold outline-none border border-transparent focus:ring-4 focus:ring-orange-600/10 shadow-inner dark:text-white transition-all" 
+                      disabled={loading}
+                      className="w-full bg-slate-100 dark:bg-black/60 pl-11 pr-4 py-4 rounded-2xl text-sm font-bold outline-none border border-transparent focus:ring-4 focus:ring-orange-600/10 shadow-inner dark:text-white transition-all disabled:opacity-50" 
                       placeholder="e.g. name@lpu.in"
                     />
                   </div>
@@ -175,7 +167,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-orange-600 transition-colors"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                  <input 
                   type="password" required value={password} onChange={e => setPassword(e.target.value)} 
-                  className="w-full bg-slate-100 dark:bg-black/60 pl-11 pr-4 py-4 rounded-2xl text-sm font-bold outline-none border border-transparent focus:ring-4 focus:ring-orange-600/10 shadow-inner dark:text-white transition-all" 
+                  disabled={loading}
+                  className="w-full bg-slate-100 dark:bg-black/60 pl-11 pr-4 py-4 rounded-2xl text-sm font-bold outline-none border border-transparent focus:ring-4 focus:ring-orange-600/10 shadow-inner dark:text-white transition-all disabled:opacity-50" 
                   placeholder="••••••••"
                 />
               </div>

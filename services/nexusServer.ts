@@ -21,14 +21,24 @@ const getSupabase = () => {
   if (supabaseInstance) return supabaseInstance;
   const url = getEnvVar('SUPABASE_URL');
   const key = getEnvVar('SUPABASE_ANON_KEY');
-  if (!url || !key) return null;
+  if (!url || !key) {
+    console.error("Nexus Registry Configuration Missing: Please ensure SUPABASE_URL and SUPABASE_ANON_KEY are set.");
+    return null;
+  }
   try {
     supabaseInstance = createClient(url, key);
     return supabaseInstance;
-  } catch (e) { return null; }
+  } catch (e) { 
+    console.error("Failed to initialize Supabase:", e);
+    return null; 
+  }
 };
 
 class NexusServer {
+  static isConfigured(): boolean {
+    return !!getSupabase();
+  }
+
   static async recordVisit(): Promise<void> {
     const client = getSupabase();
     if (!client) return;
@@ -53,21 +63,36 @@ class NexusServer {
 
   static async signIn(identifier: string, pass: string) {
     const client = getSupabase();
-    if (!client) throw new Error("Registry Offline.");
-    let email = identifier;
+    if (!client) throw new Error("Registry Offline: Check Environment Config.");
+    
+    let email = identifier.trim();
+    // If not an email, try to resolve username
     if (!identifier.includes('@')) {
-      const { data: profile } = await client.from('profiles').select('email').eq('username', identifier.toLowerCase()).maybeSingle();
-      if (!profile) throw new Error("Verto Identity not found.");
-      email = profile.email;
+      try {
+        const { data: profile, error } = await client
+          .from('profiles')
+          .select('email')
+          .eq('username', identifier.toLowerCase().trim())
+          .maybeSingle();
+        
+        if (error) throw error;
+        if (!profile) throw new Error("Verto Identity not found.");
+        email = profile.email;
+      } catch (e: any) {
+        throw new Error(e.message || "Failed to resolve identity.");
+      }
     }
+    
     return await client.auth.signInWithPassword({ email, password: pass });
   }
 
   static async signUp(email: string, pass: string, username: string) {
     const client = getSupabase();
-    if (!client) throw new Error("Registry Offline.");
+    if (!client) throw new Error("Registry Offline: Check Environment Config.");
     return await client.auth.signUp({ 
-      email, password: pass, options: { data: { username: username.toLowerCase() } }
+      email: email.trim(), 
+      password: pass, 
+      options: { data: { username: username.toLowerCase().trim() } }
     });
   }
 
@@ -99,8 +124,18 @@ class NexusServer {
 
   static async searchProfiles(query: string): Promise<UserProfile[]> {
     const client = getSupabase();
-    if (!client || !query) return [];
-    const { data } = await client.from('profiles').select('*').ilike('username', `%${query}%`).limit(10);
+    if (!client || !query.trim()) return [];
+    const { data, error } = await client
+      .from('profiles')
+      .select('*')
+      .eq('is_public', true)
+      .ilike('username', `%${query.trim()}%`)
+      .limit(20);
+    
+    if (error) {
+      console.error("Directory Search Error:", error);
+      return [];
+    }
     return data || [];
   }
 
@@ -178,7 +213,6 @@ class NexusServer {
     const channel = client.channel(`convo-${conversationId}`).on('postgres_changes', { 
       event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` 
     }, async (payload) => {
-      // Fetch sender name for the new message
       const { data: profile } = await client.from('profiles').select('username').eq('id', payload.new.sender_id).single();
       onMessage({ id: payload.new.id, role: 'user', text: payload.new.text, timestamp: new Date(payload.new.created_at).getTime(), sender_id: payload.new.sender_id, sender_name: profile?.username });
     }).subscribe();
@@ -188,7 +222,7 @@ class NexusServer {
   static async checkUsernameAvailability(username: string): Promise<boolean> {
     const client = getSupabase();
     if (!client) return true;
-    const { data } = await client.from('profiles').select('username').eq('username', username.toLowerCase()).maybeSingle();
+    const { data } = await client.from('profiles').select('username').eq('username', username.toLowerCase().trim()).maybeSingle();
     return !data;
   }
 
