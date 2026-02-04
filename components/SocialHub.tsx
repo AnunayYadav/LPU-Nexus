@@ -5,6 +5,17 @@ import NexusServer from '../services/nexusServer.ts';
 
 type SocialView = 'lounge' | 'dms' | 'groups' | 'directory' | 'requests';
 
+const EXPLICIT_WORDS = ['fuck', 'shit', 'asshole', 'bitch', 'porn', 'sex', 'bastard', 'cunt', 'dick', 'pussy'];
+
+const filterProfanity = (text: string) => {
+  let filtered = text;
+  EXPLICIT_WORDS.forEach(word => {
+    const regex = new RegExp(word, 'gi');
+    filtered = filtered.replace(regex, '***');
+  });
+  return filtered;
+};
+
 const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile }) => {
   const [activeView, setActiveView] = useState<SocialView>('lounge');
   const [conversations, setConversations] = useState<any[]>([]);
@@ -19,6 +30,9 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
   const [friends, setFriends] = useState<UserProfile[]>([]);
   
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
+
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
@@ -37,20 +51,36 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
   // Real-time subscriptions
   useEffect(() => {
     let unsubscribe: () => void = () => {};
+    
+    const handlePayload = async (payload: any) => {
+      const { eventType, new: newRecord, old: oldRecord } = payload;
+      
+      if (eventType === 'INSERT') {
+        let senderName = newRecord.sender_name;
+        if (!senderName) {
+           const profile = await NexusServer.getProfile(newRecord.sender_id);
+           senderName = profile?.username || 'User';
+        }
+        const newMsg: ChatMessage = { 
+          id: newRecord.id, role: 'user', text: newRecord.text, 
+          timestamp: new Date(newRecord.created_at).getTime(), 
+          sender_id: newRecord.sender_id, sender_name: senderName
+        };
+        setMessages(prev => {
+          if (prev.some(m => m.id === newMsg.id)) return prev;
+          return [...prev, newMsg];
+        });
+      } else if (eventType === 'DELETE') {
+        setMessages(prev => prev.filter(m => m.id !== oldRecord.id));
+      } else if (eventType === 'UPDATE') {
+        setMessages(prev => prev.map(m => m.id === newRecord.id ? { ...m, text: newRecord.text } : m));
+      }
+    };
+
     if (activeView === 'lounge') {
-      unsubscribe = NexusServer.subscribeToSocialChat((newMsg) => {
-        setMessages(prev => {
-          if (prev.some(m => m.id === newMsg.id)) return prev;
-          return [...prev, newMsg];
-        });
-      });
+      unsubscribe = NexusServer.subscribeToSocialChat(handlePayload);
     } else if (activeConversation) {
-      unsubscribe = NexusServer.subscribeToConversation(activeConversation.id, (newMsg) => {
-        setMessages(prev => {
-          if (prev.some(m => m.id === newMsg.id)) return prev;
-          return [...prev, newMsg];
-        });
-      });
+      unsubscribe = NexusServer.subscribeToConversation(activeConversation.id, handlePayload);
     }
     return () => unsubscribe();
   }, [activeView, activeConversation]);
@@ -79,6 +109,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
   // Manage view switching to prevent ghost state
   const handleViewChange = (view: SocialView) => {
     setActiveView(view);
+    setEditingMessageId(null);
     if (view === 'lounge') {
       setActiveConversation(null);
       loadLounge();
@@ -139,6 +170,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
 
   const selectConversation = async (convo: any) => {
     setActiveConversation(convo);
+    setEditingMessageId(null);
     setIsLoading(true);
     try {
       const msgs = await NexusServer.fetchMessages(convo.id);
@@ -160,7 +192,8 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
     
     try {
       if (activeView === 'lounge') {
-        await NexusServer.sendSocialMessage(userProfile.id, userProfile.username || 'Anonymous User', tempText);
+        const filtered = filterProfanity(tempText);
+        await NexusServer.sendSocialMessage(userProfile.id, userProfile.username || 'Anonymous User', filtered);
       } else if (activeConversation) {
         await NexusServer.sendMessage(userProfile.id, activeConversation.id, tempText);
       }
@@ -169,6 +202,34 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
       setInputText(tempText);
     } finally { 
       setIsSending(false); 
+    }
+  };
+
+  const handleEditMessage = async (msgId: string) => {
+    if (!editValue.trim() || !userProfile) return;
+    try {
+      if (activeView === 'lounge') {
+        const filtered = filterProfanity(editValue);
+        await NexusServer.updateSocialMessage(msgId, userProfile.id, filtered);
+      } else {
+        await NexusServer.updateMessage(msgId, userProfile.id, editValue);
+      }
+      setEditingMessageId(null);
+    } catch (e) {
+      alert("Failed to edit message.");
+    }
+  };
+
+  const handleDeleteMessage = async (msgId: string) => {
+    if (!userProfile || !confirm("Delete this message?")) return;
+    try {
+      if (activeView === 'lounge') {
+        await NexusServer.deleteSocialMessage(msgId, userProfile.id);
+      } else {
+        await NexusServer.deleteMessage(msgId, userProfile.id);
+      }
+    } catch (e) {
+      alert("Failed to delete message.");
     }
   };
 
@@ -420,7 +481,6 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
           <div className="flex-1 flex flex-col min-h-0 bg-white dark:bg-black">
             <header className="px-8 py-5 border-b border-slate-200 dark:border-white/5 flex items-center justify-between bg-white dark:bg-black flex-shrink-0">
               <div className="flex items-center gap-4">
-                {/* Back button for mobile */}
                 {(activeView === 'dms' || activeView === 'groups') && (
                   <button onClick={() => setActiveConversation(null)} className="md:hidden p-2 -ml-2 text-slate-500 hover:text-orange-600 border-none bg-transparent transition-colors">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
@@ -445,7 +505,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
 
             <div 
               ref={scrollRef}
-              className="flex-1 overflow-y-auto p-6 md:p-8 space-y-4 no-scrollbar bg-white dark:bg-black scroll-smooth"
+              className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6 no-scrollbar bg-white dark:bg-black scroll-smooth"
             >
               {isLoading ? (
                 <div className="flex items-center justify-center h-full opacity-30 text-[10px] font-black uppercase tracking-widest animate-pulse">Loading messages...</div>
@@ -456,22 +516,54 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                 </div>
               ) : messages.map((msg, i) => {
                 const isMe = msg.sender_id === userProfile?.id;
+                const isEditing = editingMessageId === msg.id;
+
                 return (
                   <div key={msg.id || `temp-${i}`} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} msg-animate group`}>
-                    <div className={`flex items-center gap-2 mb-1 px-1 ${isMe ? 'flex-row-reverse' : ''}`}>
+                    <div className={`flex items-center gap-2 mb-1.5 px-1 ${isMe ? 'flex-row-reverse' : ''}`}>
                        {!isMe && <span className="text-[9px] font-black text-orange-600 uppercase tracking-tight">@{msg.sender_name}</span>}
                        <span className="text-[8px] font-bold text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                        </span>
                     </div>
-                    <div className="flex items-end gap-2 max-w-[85%] md:max-w-[70%]">
+                    
+                    <div className={`flex items-end gap-2 ${isMe ? 'flex-row-reverse' : ''} max-w-[85%] md:max-w-[70%]`}>
                       <div className={`relative px-5 py-3 rounded-[24px] text-sm font-medium shadow-sm leading-relaxed transition-all ${isMe ? 'bg-orange-600 text-white rounded-tr-none' : 'bg-slate-100 dark:bg-[#111111] text-slate-800 dark:text-slate-200 border border-slate-200/50 dark:border-white/5 rounded-tl-none'}`}>
-                        {msg.text}
+                        {isEditing ? (
+                          <div className="flex flex-col gap-2 min-w-[200px]">
+                            <textarea 
+                              value={editValue} 
+                              onChange={(e) => setEditValue(e.target.value)}
+                              className="w-full bg-black/20 text-white border-none rounded-lg p-2 text-sm focus:ring-1 focus:ring-white outline-none resize-none"
+                              rows={2}
+                              autoFocus
+                            />
+                            <div className="flex justify-end gap-2">
+                              <button onClick={() => setEditingMessageId(null)} className="text-[9px] uppercase font-black opacity-60 border-none bg-transparent">Cancel</button>
+                              <button onClick={() => handleEditMessage(msg.id!)} className="text-[9px] uppercase font-black border-none bg-transparent">Save</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <span>{msg.text}</span>
+                        )}
                       </div>
-                      {isMe && (
-                        <div className="flex items-center gap-0.5 mb-1 text-orange-500">
-                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="w-2.5 h-2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                           {msg.id && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="w-2.5 h-2.5 -ml-1.5"><polyline points="20 6 9 17 4 12"/></svg>}
+
+                      {isMe && !isEditing && (
+                        <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button 
+                            onClick={() => { setEditingMessageId(msg.id!); setEditValue(msg.text); }}
+                            className="p-1 hover:text-orange-500 transition-colors border-none bg-transparent text-slate-400"
+                            title="Edit message"
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteMessage(msg.id!)}
+                            className="p-1 hover:text-red-500 transition-colors border-none bg-transparent text-slate-400"
+                            title="Delete message"
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+                          </button>
                         </div>
                       )}
                     </div>
@@ -502,12 +594,11 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
             </div>
           </div>
         ) : (
-          /* Mobile View: Show the conversation list as the main content when no chat is selected */
+          /* Mobile View */
           <div className="flex-1 flex flex-col min-h-0">
             <div className="md:hidden h-full">
               {conversationListContent}
             </div>
-            {/* Desktop Placeholder (Still shown on desktop when no chat is selected) */}
             <div className="hidden md:flex flex-1 flex-col items-center justify-center text-center p-12 bg-white dark:bg-black animate-fade-in">
                <div className="w-24 h-24 bg-slate-50 dark:bg-white/5 rounded-[40px] flex items-center justify-center mb-8 text-slate-200 dark:text-slate-800">
                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="w-12 h-12"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>

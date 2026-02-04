@@ -235,6 +235,18 @@ class NexusServer {
     await client.from('social_messages').insert([{ sender_id: senderId, sender_name: senderName, text }]);
   }
 
+  static async deleteSocialMessage(messageId: string, userId: string) {
+    const client = getSupabase();
+    if (!client) return;
+    await client.from('social_messages').delete().eq('id', messageId).eq('sender_id', userId);
+  }
+
+  static async updateSocialMessage(messageId: string, userId: string, text: string) {
+    const client = getSupabase();
+    if (!client) return;
+    await client.from('social_messages').update({ text }).eq('id', messageId).eq('sender_id', userId);
+  }
+
   static async fetchSocialMessages(): Promise<ChatMessage[]> {
     const client = getSupabase();
     if (!client) return [];
@@ -244,12 +256,14 @@ class NexusServer {
     }));
   }
 
-  static subscribeToSocialChat(onMessage: (msg: ChatMessage) => void) {
+  static subscribeToSocialChat(onMessage: (msg: any) => void) {
     const client = getSupabase();
     if (!client) return () => {};
-    const channel = client.channel('global-social').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_messages' }, (payload) => {
-      onMessage({ id: payload.new.id, role: 'user', text: payload.new.text, timestamp: new Date(payload.new.created_at).getTime(), sender_name: payload.new.sender_name, sender_id: payload.new.sender_id });
-    }).subscribe();
+    const channel = client.channel('global-social')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'social_messages' }, (payload) => {
+        onMessage(payload);
+      })
+      .subscribe();
     return () => client.removeChannel(channel);
   }
 
@@ -433,15 +447,28 @@ class NexusServer {
     }
   }
 
-  static subscribeToConversation(conversationId: string, onMessage: (msg: ChatMessage) => void) {
+  static async deleteMessage(messageId: string, userId: string) {
+    const client = getSupabase();
+    if (!client) return;
+    await client.from('messages').delete().eq('id', messageId).eq('sender_id', userId);
+  }
+
+  static async updateMessage(messageId: string, userId: string, text: string) {
+    const client = getSupabase();
+    if (!client) return;
+    await client.from('messages').update({ text }).eq('id', messageId).eq('sender_id', userId);
+  }
+
+  static subscribeToConversation(conversationId: string, onUpdate: (payload: any) => void) {
     const client = getSupabase();
     if (!client || !conversationId) return () => {};
-    const channel = client.channel(`convo-${conversationId}`).on('postgres_changes', { 
-      event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` 
-    }, async (payload) => {
-      const { data: profile } = await client.from('profiles').select('username').eq('id', payload.new.sender_id).single();
-      onMessage({ id: payload.new.id, role: 'user', text: payload.new.text, timestamp: new Date(payload.new.created_at).getTime(), sender_id: payload.new.sender_id, sender_name: profile?.username });
-    }).subscribe();
+    const channel = client.channel(`convo-${conversationId}`)
+      .on('postgres_changes', { 
+        event: '*', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` 
+      }, (payload) => {
+        onUpdate(payload);
+      })
+      .subscribe();
     return () => client.removeChannel(channel);
   }
 
