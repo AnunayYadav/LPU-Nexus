@@ -88,6 +88,8 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Crucial Ref to track current active context across async calls
+  const currentContextRef = useRef<string>('lounge');
 
   // Initial Load
   useEffect(() => {
@@ -109,9 +111,13 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
   useEffect(() => {
     let unsubscribe: () => void = () => {};
     
-    const currentContextId = activeView === 'lounge' ? 'lounge' : activeConversation?.id;
+    const targetContextId = activeView === 'lounge' ? 'lounge' : activeConversation?.id;
+    if (!targetContextId) return;
 
     const handlePayload = (payload: any) => {
+      // Check if the update belongs to the context that is CURRENTLY visible to the user
+      if (currentContextRef.current !== targetContextId) return;
+
       const eventType = payload.eventType;
       const newRecord = payload.new;
       const oldRecord = payload.old;
@@ -129,48 +135,45 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
           };
           
           setMessages(prev => {
-            // Remove optimistic duplicates: Filter out any temp message with the same text/sender if needed
-            // But usually we just filter by ID
+            const isOptimisticReplaced = prev.some(m => m.id?.startsWith('temp-') && m.text === newMsg.text && m.sender_id === newMsg.sender_id);
+            if (isOptimisticReplaced) {
+              return prev.map(m => (m.id?.startsWith('temp-') && m.text === newMsg.text && m.sender_id === newMsg.sender_id) ? newMsg : m);
+            }
             if (prev.some(m => m.id === newMsg.id)) return prev;
-            
-            // Clean up any "temp-" messages that might be older versions of this real message
-            const filtered = prev.filter(m => !(m.id?.startsWith('temp-') && m.text === newMsg.text && m.sender_id === newMsg.sender_id));
-            return [...filtered, newMsg].sort((a, b) => a.timestamp - b.timestamp);
+            return [...prev, newMsg].sort((a, b) => a.timestamp - b.timestamp);
           });
 
-          if (currentContextId) {
-            setMessageCache(prev => {
-              const prevConvoMsgs = prev[currentContextId] || [];
-              if (prevConvoMsgs.some(m => m.id === newMsg.id)) return prev;
-              const filtered = prevConvoMsgs.filter(m => !(m.id?.startsWith('temp-') && m.text === newMsg.text && m.sender_id === newMsg.sender_id));
-              return {
-                ...prev,
-                [currentContextId]: [...filtered, newMsg].sort((a, b) => a.timestamp - b.timestamp)
-              };
-            });
-          }
+          setMessageCache(prev => {
+            const currentMsgs = prev[targetContextId] || [];
+            const isOptimisticReplaced = currentMsgs.some(m => m.id?.startsWith('temp-') && m.text === newMsg.text && m.sender_id === newMsg.sender_id);
+            let updatedMsgs;
+            if (isOptimisticReplaced) {
+              updatedMsgs = currentMsgs.map(m => (m.id?.startsWith('temp-') && m.text === newMsg.text && m.sender_id === newMsg.sender_id) ? newMsg : m);
+            } else if (currentMsgs.some(m => m.id === newMsg.id)) {
+              return prev;
+            } else {
+              updatedMsgs = [...currentMsgs, newMsg].sort((a, b) => a.timestamp - b.timestamp);
+            }
+            return { ...prev, [targetContextId]: updatedMsgs };
+          });
         } else if (eventType === 'DELETE') {
           const deletedId = oldRecord?.id || payload.old?.id;
           if (deletedId) {
             setMessages(prev => prev.filter(m => m.id !== deletedId));
-            if (currentContextId) {
-              setMessageCache(prev => ({
-                ...prev,
-                [currentContextId]: (prev[currentContextId] || []).filter(m => m.id !== deletedId)
-              }));
-            }
+            setMessageCache(prev => ({
+              ...prev,
+              [targetContextId]: (prev[targetContextId] || []).filter(m => m.id !== deletedId)
+            }));
           }
         } else if (eventType === 'UPDATE') {
           const updatedId = newRecord?.id;
           if (updatedId) {
             const updater = (m: ChatMessage) => m.id === updatedId ? { ...m, text: newRecord.text } : m;
             setMessages(prev => prev.map(updater));
-            if (currentContextId) {
-              setMessageCache(prev => ({
-                ...prev,
-                [currentContextId]: (prev[currentContextId] || []).map(updater)
-              }));
-            }
+            setMessageCache(prev => ({
+              ...prev,
+              [targetContextId]: (prev[targetContextId] || []).map(updater)
+            }));
           }
         }
       }
@@ -178,6 +181,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
       // Handle read status updates
       if (payload.table === 'conversation_members' && eventType === 'UPDATE' && activeConversation) {
         NexusServer.fetchMemberReadStatuses(activeConversation.id).then(statuses => {
+          if (currentContextRef.current !== activeConversation.id) return;
           const statusMap = statuses.reduce((acc: any, s: any) => ({
             ...acc,
             [s.user_id]: new Date(s.last_read_at).getTime()
@@ -192,6 +196,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
     } else if (activeConversation) {
       unsubscribe = NexusServer.subscribeToConversation(activeConversation.id, handlePayload);
       NexusServer.fetchMemberReadStatuses(activeConversation.id).then(statuses => {
+        if (currentContextRef.current !== activeConversation.id) return;
         const statusMap = statuses.reduce((acc: any, s: any) => ({
           ...acc,
           [s.user_id]: new Date(s.last_read_at).getTime()
@@ -214,7 +219,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
 
   useEffect(() => {
     scrollToBottom('smooth');
-  }, [messages]);
+  }, [messages.length]);
 
   useEffect(() => {
     if (!isLoading) {
@@ -225,22 +230,31 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
   const handleViewChange = (view: SocialView) => {
     setActiveView(view);
     setEditingMessageId(null);
+    setMessages([]); // Instant clear to prevent ghosting
+    
     if (view === 'lounge') {
+      currentContextRef.current = 'lounge';
       setActiveConversation(null);
       loadLounge();
     } else if (view === 'dms' || view === 'groups') {
+      currentContextRef.current = ''; // No convo selected yet
       setActiveConversation(null);
-      setMessages([]);
     }
   };
 
   const loadLounge = async () => {
-    if (messageCache['lounge']) {
-      setMessages(messageCache['lounge']);
+    const contextId = 'lounge';
+    currentContextRef.current = contextId;
+
+    if (messageCache[contextId]) {
+      setMessages(messageCache[contextId]);
       setIsLoading(false);
+      // Background sync without skeleton
       NexusServer.fetchSocialMessages().then(msgs => {
-        setMessages(msgs);
-        setMessageCache(prev => ({ ...prev, lounge: msgs }));
+        if (currentContextRef.current === contextId) {
+          setMessages(msgs);
+          setMessageCache(prev => ({ ...prev, [contextId]: msgs }));
+        }
       });
       return;
     }
@@ -248,12 +262,14 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
     setIsLoading(true);
     try {
       const msgs = await NexusServer.fetchSocialMessages();
-      setMessages(msgs);
-      setMessageCache(prev => ({ ...prev, lounge: msgs }));
+      if (currentContextRef.current === contextId) {
+        setMessages(msgs);
+        setMessageCache(prev => ({ ...prev, [contextId]: msgs }));
+      }
     } catch (e) {
       console.error(e);
     } finally {
-      setIsLoading(false);
+      if (currentContextRef.current === contextId) setIsLoading(false);
     }
   };
 
@@ -287,28 +303,36 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
   };
 
   const selectConversation = async (convo: any) => {
+    const contextId = convo.id;
+    currentContextRef.current = contextId;
     setActiveConversation(convo);
     setEditingMessageId(null);
     
-    if (messageCache[convo.id]) {
-      setMessages(messageCache[convo.id]);
+    if (messageCache[contextId]) {
+      setMessages(messageCache[contextId]);
       setIsLoading(false);
-      NexusServer.fetchMessages(convo.id).then(msgs => {
-        setMessages(msgs);
-        setMessageCache(prev => ({ ...prev, [convo.id]: msgs }));
+      // Background sync
+      NexusServer.fetchMessages(contextId).then(msgs => {
+        if (currentContextRef.current === contextId) {
+          setMessages(msgs);
+          setMessageCache(prev => ({ ...prev, [contextId]: msgs }));
+        }
       });
       return;
     }
 
     setIsLoading(true);
+    setMessages([]);
     try {
-      const msgs = await NexusServer.fetchMessages(convo.id);
-      setMessages(msgs);
-      setMessageCache(prev => ({ ...prev, [convo.id]: msgs }));
+      const msgs = await NexusServer.fetchMessages(contextId);
+      if (currentContextRef.current === contextId) {
+        setMessages(msgs);
+        setMessageCache(prev => ({ ...prev, [contextId]: msgs }));
+      }
     } catch (e) {
       console.error(e);
     } finally {
-      setIsLoading(false);
+      if (currentContextRef.current === contextId) setIsLoading(false);
     }
   };
 
@@ -316,10 +340,12 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
     e.preventDefault();
     if (!inputText.trim() || !userProfile || isSending) return;
     
+    const targetContextId = activeView === 'lounge' ? 'lounge' : activeConversation?.id;
+    if (!targetContextId) return;
+
     const tempText = inputText;
     const filtered = activeView === 'lounge' ? filterProfanity(tempText) : tempText;
     
-    // Optimistic Update: Add message to UI immediately
     const tempId = `temp-${Date.now()}`;
     const optimisticMsg: ChatMessage = {
       id: tempId,
@@ -340,29 +366,27 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
         await NexusServer.sendMessage(userProfile.id, activeConversation.id, filtered);
       }
     } catch (e) { 
-      console.error("Failed to send:", e);
-      // Remove the optimistic message if it failed
+      console.error("Transmission blocked:", e);
       setMessages(prev => prev.filter(m => m.id !== tempId));
       setInputText(tempText);
-      alert("Nexus connection unstable. Message transmission failed.");
+      alert("Nexus transmission failed. Link unstable.");
     }
   };
 
   const handleEditMessage = async (msgId: string) => {
     if (!editValue.trim() || !userProfile) return;
+    const contextId = activeView === 'lounge' ? 'lounge' : activeConversation?.id;
+    if (!contextId) return;
+
     const originalText = messages.find(m => m.id === msgId)?.text;
     const filtered = activeView === 'lounge' ? filterProfanity(editValue) : editValue;
     
-    const contextId = activeView === 'lounge' ? 'lounge' : activeConversation?.id;
-
     const updater = (m: ChatMessage) => m.id === msgId ? { ...m, text: filtered } : m;
     setMessages(prev => prev.map(updater));
-    if (contextId) {
-      setMessageCache(prev => ({
-        ...prev,
-        [contextId]: (prev[contextId] || []).map(updater)
-      }));
-    }
+    setMessageCache(prev => ({
+      ...prev,
+      [contextId]: (prev[contextId] || []).map(updater)
+    }));
 
     setEditingMessageId(null);
 
@@ -376,27 +400,25 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
       const resetter = (m: ChatMessage) => m.id === msgId ? { ...m, text: originalText! } : m;
       if (originalText) {
         setMessages(prev => prev.map(resetter));
-        if (contextId) {
-          setMessageCache(prev => ({ ...prev, [contextId]: (prev[contextId] || []).map(resetter) }));
-        }
+        setMessageCache(prev => ({ ...prev, [contextId]: (prev[contextId] || []).map(resetter) }));
       }
-      alert("Permission denied or error updating message.");
+      alert("Permission denied or link timeout.");
     }
   };
 
   const handleDeleteMessage = async (msgId: string) => {
-    if (!userProfile || !confirm("Delete this message?")) return;
+    if (!userProfile || !confirm("Erase this entry from the registry?")) return;
     
-    const originalMessages = [...messages];
     const contextId = activeView === 'lounge' ? 'lounge' : activeConversation?.id;
+    if (!contextId) return;
+
+    const originalMessages = [...messages];
 
     setMessages(prev => prev.filter(m => m.id !== msgId));
-    if (contextId) {
-      setMessageCache(prev => ({
-        ...prev,
-        [contextId]: (prev[contextId] || []).filter(m => m.id !== msgId)
-      }));
-    }
+    setMessageCache(prev => ({
+      ...prev,
+      [contextId]: (prev[contextId] || []).filter(m => m.id !== msgId)
+    }));
 
     try {
       if (activeView === 'lounge') {
@@ -406,10 +428,8 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
       }
     } catch (e) {
       setMessages(originalMessages);
-      if (contextId) {
-        setMessageCache(prev => ({ ...prev, [contextId]: originalMessages }));
-      }
-      alert("Could not delete message. You must be the sender.");
+      setMessageCache(prev => ({ ...prev, [contextId]: originalMessages }));
+      alert("Unauthorized deletion request.");
     }
   };
 
@@ -436,9 +456,9 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
     try {
       await NexusServer.sendFriendRequest(userProfile.id, targetId);
       loadFriendData();
-      alert("Friend request sent.");
+      alert("Communication signal sent.");
     } catch (e) {
-      alert("Failed to send request.");
+      alert("Signal blocked.");
     }
   };
 
@@ -453,7 +473,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
   };
 
   const startDM = async (otherUser: UserProfile) => {
-    if (!userProfile) { alert("Please sign in."); return; }
+    if (!userProfile) { alert("Identity authentication required."); return; }
     if (otherUser.id === userProfile.id) return;
     setIsLoading(true);
     try {
@@ -468,7 +488,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
         await selectConversation(targetConvo);
       }
     } catch (e: any) {
-      alert(`Error starting chat: ${e.message}`);
+      alert(`Handshake error: ${e.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -488,7 +508,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
         setSelectedUsers([]);
       }
     } catch (e: any) {
-      alert(`Error creating group: ${e.message}`);
+      alert(`Squad deployment failed: ${e.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -500,7 +520,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
     <div className="flex-1 flex flex-col h-full bg-slate-50 dark:bg-[#080808]">
       <div className="p-6 border-b border-slate-200 dark:border-white/5 flex items-center justify-between">
         <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 dark:text-white">
-          {activeView === 'dms' ? 'Chats' : 'Groups'}
+          {activeView === 'dms' ? 'Signals' : 'Squads'}
         </h3>
         <button onClick={loadConversations} className="p-1.5 hover:text-orange-500 transition-colors bg-transparent border-none">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
@@ -511,7 +531,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
           onClick={() => activeView === 'groups' ? setShowGroupModal(true) : setActiveView('directory')}
           className="w-full py-2.5 bg-black text-orange-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-orange-600 hover:text-white transition-all border-none shadow-sm"
         >
-          {activeView === 'groups' ? '+ New Group' : '+ Find Friends'}
+          {activeView === 'groups' ? '+ Deploy Squad' : '+ Scan Directory'}
         </button>
       </div>
       <div className="flex-1 overflow-y-auto p-4 space-y-2 no-scrollbar">
@@ -528,7 +548,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
             </div>
             <div className="flex-1 truncate">
               <p className="text-xs font-black uppercase tracking-tight">{convo.display_name || "User"}</p>
-              <p className={`text-[8px] font-bold uppercase tracking-widest opacity-60 ${activeConversation?.id === convo.id ? 'text-white' : ''}`}>{convo.is_group ? 'Squad' : 'Private'}</p>
+              <p className={`text-[8px] font-bold uppercase tracking-widest opacity-60 ${activeConversation?.id === convo.id ? 'text-white' : ''}`}>{convo.is_group ? 'Multi-link' : 'Peer'}</p>
             </div>
           </button>
         ))}
@@ -552,14 +572,14 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
       <div className="w-16 md:w-20 bg-slate-50 dark:bg-[#050505] border-r border-slate-200 dark:border-white/5 flex flex-col items-center py-8 space-y-6 flex-shrink-0">
         {[
           { id: 'lounge', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>, label: 'Lounge' },
-          { id: 'dms', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>, label: 'Direct' },
-          { id: 'groups', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>, label: 'Groups' },
+          { id: 'dms', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>, label: 'Signals' },
+          { id: 'groups', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>, label: 'Squads' },
           { id: 'directory', icon: (
             <div className="relative">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
               {inboundRequests.length > 0 && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-orange-600 rounded-full border-2 border-slate-50 dark:border-black" />}
             </div>
-          ), label: 'Find' },
+          ), label: 'Scan' },
         ].map(item => (
           <button 
             key={item.id} 
@@ -585,19 +605,18 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
             <header className="mb-12">
                <h2 className="text-3xl font-black tracking-tighter uppercase mb-8 dark:text-white">Directory</h2>
                
-               {/* Integrated Requests Toggle */}
                <div className="flex items-center gap-3 mb-8 bg-slate-100 dark:bg-white/5 p-1 rounded-2xl w-fit">
                   <button 
                     onClick={() => setDirectorySubView('search')}
                     className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${directorySubView === 'search' ? 'bg-white dark:bg-white/10 text-orange-600 shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'}`}
                   >
-                    Find People
+                    Scan Area
                   </button>
                   <button 
                     onClick={() => setDirectorySubView('requests')}
                     className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${directorySubView === 'requests' ? 'bg-white dark:bg-white/10 text-orange-600 shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'}`}
                   >
-                    Requests
+                    Signals
                     {inboundRequests.length > 0 && <span className="bg-orange-600 text-white px-1.5 py-0.5 rounded-md text-[8px] font-black">{inboundRequests.length}</span>}
                   </button>
                </div>
@@ -605,7 +624,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                {directorySubView === 'search' ? (
                  <div className="relative max-w-xl animate-fade-in">
                    <input 
-                    type="text" placeholder="Search by username..." value={searchQuery} onChange={(e) => handleUserSearch(e.target.value)}
+                    type="text" placeholder="Scan by username..." value={searchQuery} onChange={(e) => handleUserSearch(e.target.value)}
                     className="w-full bg-slate-100 dark:bg-[#0a0a0a] border border-slate-200 dark:border-white/5 rounded-2xl px-12 py-4 text-sm font-bold dark:text-white outline-none focus:ring-2 focus:ring-orange-600 transition-all shadow-inner"
                    />
                    <div className="absolute left-4 top-1/2 -translate-y-1/2">
@@ -653,8 +672,8 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                       </div>
                       <div className="min-h-[48px] mb-6"><p className="text-xs text-slate-500 dark:text-slate-400 font-medium line-clamp-2 leading-relaxed italic">{profile.is_public ? `"${profile.bio || "No bio set."}"` : "Details hidden."}</p></div>
                       <div className="mt-auto flex gap-2">
-                        <button onClick={() => startDM(profile)} className="flex-1 py-3 bg-black text-white rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-orange-600 transition-all border-none shadow-lg active:scale-95">Chat</button>
-                        {!isFriend && !isPending && <button onClick={() => sendRequest(profile.id)} className="px-4 py-3 bg-orange-600/10 text-orange-600 rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-orange-600 hover:text-white transition-all border-none">Add</button>}
+                        <button onClick={() => startDM(profile)} className="flex-1 py-3 bg-black text-white rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-orange-600 transition-all border-none shadow-lg active:scale-95">Link</button>
+                        {!isFriend && !isPending && <button onClick={() => sendRequest(profile.id)} className="px-4 py-3 bg-orange-600/10 text-orange-600 rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-orange-600 hover:text-white transition-all border-none">Scan</button>}
                         {isPending && <span className="px-4 py-3 bg-slate-100 dark:bg-white/5 text-slate-400 rounded-xl font-black text-[9px] uppercase tracking-widest">Sent</span>}
                       </div>
                     </div>
@@ -678,8 +697,8 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                     {activeView === 'lounge' ? '#' : (activeConversation?.display_name?.[0]?.toUpperCase() || 'C')}
                   </div>
                   <div>
-                    <h3 className="text-sm font-black uppercase tracking-widest dark:text-white">{activeView === 'lounge' ? 'Lounge' : (activeConversation?.display_name || 'Chat')}</h3>
-                    <div className="flex items-center gap-1.5"><span className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse" /><span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Live Now</span></div>
+                    <h3 className="text-sm font-black uppercase tracking-widest dark:text-white">{activeView === 'lounge' ? 'Campus Lounge' : (activeConversation?.display_name || 'Link')}</h3>
+                    <div className="flex items-center gap-1.5"><span className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse" /><span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Live Link</span></div>
                   </div>
                 </div>
               </header>
@@ -694,7 +713,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                     <MessageSkeleton isMe={true} />
                   </div>
                 ) : messages.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-full opacity-20 text-center py-10"><p className="text-[10px] font-black uppercase tracking-widest">No messages yet.</p></div>
+                  <div className="flex flex-col items-center justify-center h-full opacity-20 text-center py-10"><p className="text-[10px] font-black uppercase tracking-widest">Zero transmissions detected.</p></div>
                 ) : messages.map((msg, i) => {
                   const isMe = msg.sender_id === userProfile?.id;
                   const isEditing = editingMessageId === msg.id;
@@ -703,6 +722,8 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                   const isRead = activeView !== 'lounge' && Object.entries(memberReadStatus).some(([uid, time]) => 
                     uid !== msg.sender_id && time >= msg.timestamp
                   );
+
+                  const isOptimistic = msg.id?.startsWith('temp-');
 
                   return (
                     <div key={msg.id || `temp-${i}`} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} msg-animate group`}>
@@ -713,27 +734,27 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                          </span>
                       </div>
                       <div className={`flex items-center gap-2 ${isMe ? 'flex-row-reverse' : ''} max-w-[85%] lg:max-w-[70%]`}>
-                        <div className={`relative px-5 py-3 rounded-[24px] text-sm font-medium shadow-sm transition-all ${isMe ? 'bg-orange-600 text-white rounded-tr-none' : 'bg-slate-100 dark:bg-[#111111] text-slate-800 dark:text-slate-200 border border-transparent dark:border-white/5 rounded-tl-none'} ${msg.id?.startsWith('temp-') ? 'opacity-70 italic' : ''}`}>
+                        <div className={`relative px-5 py-3 rounded-[24px] text-sm font-medium shadow-sm transition-all ${isMe ? 'bg-orange-600 text-white rounded-tr-none' : 'bg-slate-100 dark:bg-[#111111] text-slate-800 dark:text-slate-200 border border-transparent dark:border-white/5 rounded-tl-none'} ${isOptimistic ? 'opacity-60 italic' : ''}`}>
                           {isEditing ? (
                             <div className="flex flex-col gap-2 min-w-[200px]">
                               <textarea value={editValue} onChange={(e) => setEditValue(e.target.value)} className="w-full bg-black/20 text-white border-none rounded-lg p-2 text-xs outline-none resize-none" rows={2} autoFocus />
                               <div className="flex justify-end gap-2">
                                 <button onClick={() => setEditingMessageId(null)} className="text-[8px] uppercase font-black opacity-60 border-none bg-transparent text-white p-0">Cancel</button>
-                                <button onClick={() => handleEditMessage(msg.id!)} className="text-[8px] uppercase font-black border-none bg-transparent text-white p-0">Update</button>
+                                <button onClick={() => handleEditMessage(msg.id!)} className="text-[8px] uppercase font-black border-none bg-transparent text-white p-0">Sync</button>
                               </div>
                             </div>
                           ) : (
                             <div className="flex flex-col">
                               <span>{msg.text}</span>
-                              {isMe && activeView !== 'lounge' && (
-                                <div className="self-end -mb-1 mt-1">
+                              {isMe && activeView !== 'lounge' && !isOptimistic && (
+                                <div className="self-end -mb-1 mt-1 transition-all">
                                   <ReadReceipt isRead={isRead} />
                                 </div>
                               )}
                             </div>
                           )}
                         </div>
-                        {isMe && !isEditing && (
+                        {isMe && !isEditing && !isOptimistic && (
                           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                             <button onClick={() => { setEditingMessageId(msg.id!); setEditValue(msg.text); }} className="p-1 text-slate-400 hover:text-orange-500 border-none bg-transparent transition-colors">
                               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -753,7 +774,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                 <form onSubmit={handleSendMessage} className="flex gap-3 bg-slate-50 dark:bg-[#080808] p-2 rounded-[28px] border border-slate-200 dark:border-white/5 shadow-inner max-w-4xl mx-auto w-full">
                   <input 
                     type="text" value={inputText} onChange={(e) => setInputText(e.target.value)}
-                    placeholder={userProfile ? "Type a message..." : "Sign in to chat"} disabled={!userProfile}
+                    placeholder={userProfile ? "Establish link..." : "Auth required"} disabled={!userProfile}
                     className="flex-1 bg-transparent border-none px-6 py-4 text-sm font-bold dark:text-white outline-none"
                   />
                   <button 
@@ -779,11 +800,11 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                   
                   <ul className="relative z-10 space-y-5">
                     {[
-                      "Be respectful to all fellow students.",
-                      "Avoid sharing personal sensitive data.",
-                      "Keep discussions helpful and positive.",
-                      "Do not post spam or advertisements.",
-                      "Only you can edit your own messages."
+                      "Maintain protocol professionalism.",
+                      "Encryption is active; stay secure.",
+                      "Constructive pulse only.",
+                      "Spam detection is active.",
+                      "Modify only your transmissions."
                     ].map((text, idx) => (
                       <li key={idx} className="flex gap-3">
                         <span className="w-1 h-1 bg-orange-500 rounded-full mt-2.5 flex-shrink-0" />
@@ -793,13 +814,13 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                   </ul>
 
                   <div className="mt-8 pt-6 border-t border-white/10 flex justify-between items-center relative z-10">
-                    <span className="text-[8px] font-black uppercase opacity-40">System Active</span>
+                    <span className="text-[8px] font-black uppercase opacity-40">Link Active</span>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4 text-orange-600"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
                   </div>
                 </div>
 
                 <div className="mt-auto pt-8">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-center opacity-50">LPU-Nexus v1.4</p>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-center opacity-50">LPU-Nexus v1.4.2</p>
                 </div>
               </div>
             )}
@@ -809,8 +830,8 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
             <div className="md:hidden h-full">{conversationListContent}</div>
             <div className="hidden md:flex flex-1 flex-col items-center justify-center text-center p-12 bg-white dark:bg-black animate-fade-in">
                <div className="w-20 h-20 bg-slate-50 dark:bg-white/5 rounded-[40px] flex items-center justify-center mb-8 text-slate-200 dark:text-slate-800"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="w-10 h-10"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
-               <h3 className="text-xl font-black uppercase tracking-tight dark:text-white mb-2">Select a Conversation</h3>
-               <button onClick={() => setActiveView('directory')} className="mt-8 px-8 py-3 bg-black text-orange-600 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-orange-600 hover:text-white transition-all border-none">Browse People</button>
+               <h3 className="text-xl font-black uppercase tracking-tight dark:text-white mb-2">Establish Active Link</h3>
+               <button onClick={() => setActiveView('directory')} className="mt-8 px-8 py-3 bg-black text-orange-600 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-orange-600 hover:text-white transition-all border-none">Scan Registry</button>
             </div>
           </div>
         )}
@@ -821,11 +842,11 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
           <div className="bg-white dark:bg-[#0a0a0a] rounded-[48px] w-full max-w-md shadow-2xl border border-white/10 p-10 flex flex-col">
             <header className="mb-8 flex justify-between items-center">
-              <h3 className="text-2xl font-black uppercase tracking-tighter dark:text-white">Create Group</h3>
+              <h3 className="text-2xl font-black uppercase tracking-tighter dark:text-white">Squad Creation</h3>
               <button onClick={() => setShowGroupModal(false)} className="text-slate-400 hover:text-white border-none bg-transparent p-0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             </header>
             <div className="space-y-6">
-              <input type="text" placeholder="Group Name..." value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} className="w-full bg-slate-100 dark:bg-black rounded-2xl p-4 text-sm font-bold dark:text-white border-none outline-none focus:ring-2 focus:ring-orange-600" />
+              <input type="text" placeholder="Squad Alias..." value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} className="w-full bg-slate-100 dark:bg-black rounded-2xl p-4 text-sm font-bold dark:text-white border-none outline-none focus:ring-2 focus:ring-orange-600" />
               <div className="max-h-40 overflow-y-auto no-scrollbar space-y-2 p-1">
                 {friends.map(p => (
                   <button key={p.id} onClick={() => setSelectedUsers(prev => prev.includes(p.id) ? prev.filter(uid => uid !== p.id) : [...prev, p.id])} className={`w-full p-3 rounded-xl flex items-center justify-between transition-all border-none ${selectedUsers.includes(p.id) ? 'bg-orange-600 text-white' : 'bg-slate-100 dark:bg-white/5 text-slate-500'}`}>
@@ -834,7 +855,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                   </button>
                 ))}
               </div>
-              <button onClick={handleCreateGroup} disabled={!newGroupName.trim() || selectedUsers.length === 0 || isLoading} className="w-full bg-orange-600 text-white py-5 rounded-[24px] font-black text-xs uppercase shadow-2xl active:scale-95 disabled:opacity-50 border-none transition-all">Create Group</button>
+              <button onClick={handleCreateGroup} disabled={!newGroupName.trim() || selectedUsers.length === 0 || isLoading} className="w-full bg-orange-600 text-white py-5 rounded-[24px] font-black text-xs uppercase shadow-2xl active:scale-95 disabled:opacity-50 border-none transition-all">Deploy Squad</button>
             </div>
           </div>
         </div>
