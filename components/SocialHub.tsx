@@ -16,6 +16,41 @@ const filterProfanity = (text: string) => {
   return filtered;
 };
 
+// Skeleton Loader Components
+const ConvoSkeleton = () => (
+  <div className="w-full p-4 rounded-3xl flex items-center gap-3 bg-slate-50/50 dark:bg-white/[0.02] animate-pulse">
+    <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-white/5 shimmer" />
+    <div className="flex-1 space-y-2">
+      <div className="h-3 w-24 bg-slate-200 dark:bg-white/5 rounded-md shimmer" />
+      <div className="h-2 w-12 bg-slate-200 dark:bg-white/5 rounded-md shimmer" />
+    </div>
+  </div>
+);
+
+const MessageSkeleton = ({ isMe }: { isMe: boolean }) => (
+  <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} animate-pulse w-full`}>
+    <div className={`h-2 w-16 bg-slate-100 dark:bg-white/5 rounded mb-2 shimmer ${isMe ? 'mr-1' : 'ml-1'}`} />
+    <div className={`h-12 w-2/3 md:w-1/2 bg-slate-100 dark:bg-white/5 rounded-[24px] shimmer ${isMe ? 'rounded-tr-none' : 'rounded-tl-none'}`} />
+  </div>
+);
+
+const UserCardSkeleton = () => (
+  <div className="p-6 rounded-[32px] border border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02] animate-pulse">
+    <div className="flex items-center gap-4 mb-4">
+      <div className="w-12 h-12 rounded-2xl bg-slate-200 dark:bg-white/5 shimmer" />
+      <div className="space-y-2">
+        <div className="h-3 w-20 bg-slate-200 dark:bg-white/5 rounded shimmer" />
+        <div className="h-2 w-12 bg-slate-200 dark:bg-white/5 rounded shimmer" />
+      </div>
+    </div>
+    <div className="h-3 w-full bg-slate-200 dark:bg-white/5 rounded mb-6 shimmer" />
+    <div className="flex gap-2">
+      <div className="h-10 flex-1 bg-slate-200 dark:bg-white/5 rounded-xl shimmer" />
+      <div className="h-10 w-12 bg-slate-200 dark:bg-white/5 rounded-xl shimmer" />
+    </div>
+  </div>
+);
+
 const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile }) => {
   const [activeView, setActiveView] = useState<SocialView>('lounge');
   const [conversations, setConversations] = useState<any[]>([]);
@@ -24,6 +59,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isConvoLoading, setIsConvoLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<UserProfile[]>([]);
@@ -151,6 +187,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
 
   const loadConversations = async () => {
     if (!userProfile) return;
+    setIsConvoLoading(true);
     try {
       const convos = await NexusServer.fetchConversations(userProfile.id);
       setConversations(convos);
@@ -158,6 +195,8 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
     } catch (e) {
       console.error(e);
       return [];
+    } finally {
+      setIsConvoLoading(false);
     }
   };
 
@@ -340,7 +379,9 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
         </button>
       </div>
       <div className="flex-1 overflow-y-auto p-4 space-y-2 no-scrollbar">
-        {conversations.filter(c => activeView === 'groups' ? c.is_group : !c.is_group).map(convo => (
+        {isConvoLoading ? (
+          Array.from({ length: 8 }).map((_, i) => <ConvoSkeleton key={i} />)
+        ) : conversations.filter(c => activeView === 'groups' ? c.is_group : !c.is_group).map(convo => (
           <button 
             key={convo.id} 
             onClick={() => selectConversation(convo)}
@@ -419,11 +460,13 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                </div>
             </header>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
-              {searchQuery && searchResults.map(profile => {
+              {isSearching ? (
+                Array.from({ length: 6 }).map((_, i) => <UserCardSkeleton key={i} />)
+              ) : searchQuery && searchResults.map(profile => {
                 const isFriend = friends.some(f => f.id === profile.id);
                 const isPending = friendRequests.some(r => r.sender_id === userProfile?.id && r.receiver_id === profile.id && r.status === 'pending');
                 return (
-                  <div key={profile.id} className="p-6 rounded-[32px] border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-[#050505] hover:border-orange-500 transition-all group flex flex-col relative overflow-hidden">
+                  <div key={profile.id} className="p-6 rounded-[32px] border border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02] hover:border-orange-500 transition-all group flex flex-col relative overflow-hidden">
                     <div className="flex items-center gap-4 mb-4">
                       <div className="w-12 h-12 rounded-2xl bg-black flex items-center justify-center text-orange-600 font-black text-xl">{profile.username?.[0]?.toUpperCase()}</div>
                       <div>
@@ -484,7 +527,13 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
 
               <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6 no-scrollbar bg-white dark:bg-black scroll-smooth">
                 {isLoading ? (
-                  <div className="flex items-center justify-center h-full opacity-30 text-[10px] font-black uppercase tracking-widest animate-pulse">Connecting...</div>
+                  <div className="space-y-8">
+                    <MessageSkeleton isMe={false} />
+                    <MessageSkeleton isMe={true} />
+                    <MessageSkeleton isMe={false} />
+                    <MessageSkeleton isMe={false} />
+                    <MessageSkeleton isMe={true} />
+                  </div>
                 ) : messages.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full opacity-20 text-center py-10"><p className="text-[10px] font-black uppercase tracking-widest">No messages yet.</p></div>
                 ) : messages.map((msg, i) => {
