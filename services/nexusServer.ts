@@ -3,12 +3,9 @@ import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
 import { LibraryFile, UserProfile, Folder, ChatMessage } from '../types.ts';
 
 const getEnvVar = (name: string): string => {
-  // Try global process.env (populated by index.tsx bootstrap)
   try {
     const g = (typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : ({} as any));
     if (g.process?.env?.[name]) return g.process.env[name];
-    
-    // Fallback to Vite meta env
     const metaEnv = (import.meta as any).env;
     if (metaEnv) {
       if (metaEnv[`VITE_${name}`]) return metaEnv[`VITE_${name}`];
@@ -22,25 +19,14 @@ let supabaseInstance: SupabaseClient | null = null;
 
 const getSupabase = () => {
   if (supabaseInstance) return supabaseInstance;
-
   const url = getEnvVar('SUPABASE_URL');
   const key = getEnvVar('SUPABASE_ANON_KEY');
-
-  if (!url || !key || url === '' || key === '') {
-    console.error("Nexus Registry: Configuration keys are missing from environment.");
-    return null;
-  }
-
+  if (!url || !key) return null;
   try {
     supabaseInstance = createClient(url, key);
     return supabaseInstance;
-  } catch (e) {
-    console.error("Nexus Registry: Initialization crash:", e);
-    return null;
-  }
+  } catch (e) { return null; }
 };
-
-const BUCKET_NAME = 'nexus-documents';
 
 class NexusServer {
   static async recordVisit(): Promise<void> {
@@ -62,38 +48,26 @@ class NexusServer {
       const { count: reg } = await client.from('profiles').select('*', { count: 'exact', head: true });
       const { count: vis } = await client.from('site_visits').select('*', { count: 'exact', head: true });
       return { registered: reg || 0, visitors: (vis || 0) + 1450 };
-    } catch (e) {
-      return { registered: 0, visitors: 1450 };
-    }
+    } catch (e) { return { registered: 0, visitors: 1450 }; }
   }
 
   static async signIn(identifier: string, pass: string) {
     const client = getSupabase();
-    if (!client) throw new Error("Registry Offline: Database keys not detected.");
-    
+    if (!client) throw new Error("Registry Offline.");
     let email = identifier;
     if (!identifier.includes('@')) {
-      const { data: profile, error: profileErr } = await client
-        .from('profiles')
-        .select('email')
-        .eq('username', identifier.toLowerCase())
-        .maybeSingle();
-      
-      if (profileErr) throw new Error(`Lookup Failure: ${profileErr.message}`);
-      if (!profile) throw new Error("Verto Identity not found. Use your official email if this is your first session.");
+      const { data: profile } = await client.from('profiles').select('email').eq('username', identifier.toLowerCase()).maybeSingle();
+      if (!profile) throw new Error("Verto Identity not found.");
       email = profile.email;
     }
-    
     return await client.auth.signInWithPassword({ email, password: pass });
   }
 
   static async signUp(email: string, pass: string, username: string) {
     const client = getSupabase();
-    if (!client) throw new Error("Registry Offline: Database keys not detected.");
+    if (!client) throw new Error("Registry Offline.");
     return await client.auth.signUp({ 
-      email, 
-      password: pass, 
-      options: { data: { username: username.toLowerCase() } }
+      email, password: pass, options: { data: { username: username.toLowerCase() } }
     });
   }
 
@@ -106,39 +80,74 @@ class NexusServer {
   static onAuthStateChange(callback: (user: User | null) => void) {
     const client = getSupabase();
     if (!client) return () => {};
-    const { data: { subscription } } = client.auth.onAuthStateChange((_event, session) => {
-      callback(session?.user ?? null);
-    });
+    const { data: { subscription } } = client.auth.onAuthStateChange((_event, session) => callback(session?.user ?? null));
     return () => subscription.unsubscribe();
   }
 
   static async getProfile(userId: string): Promise<UserProfile | null> {
     const client = getSupabase();
     if (!client) return null;
-    try {
-      // Sometimes trigger-created profiles are delayed by a few milliseconds
-      const { data, error } = await client.from('profiles').select('*').eq('id', userId).maybeSingle();
-      if (error || !data) return null;
-      return data;
-    } catch (e) {
-      return null;
-    }
+    const { data } = await client.from('profiles').select('*').eq('id', userId).maybeSingle();
+    return data;
   }
 
   static async updateProfile(userId: string, updates: Partial<UserProfile>): Promise<void> {
     const client = getSupabase();
-    if (!client) throw new Error("Database offline.");
-    const { error } = await client.from('profiles').update(updates).eq('id', userId);
-    if (error) throw error;
+    if (!client) return;
+    await client.from('profiles').update(updates).eq('id', userId);
+  }
+
+  static async searchProfiles(query: string): Promise<UserProfile[]> {
+    const client = getSupabase();
+    if (!client || !query) return [];
+    const { data } = await client.from('profiles').select('*').ilike('username', `%${query}%`).limit(10);
+    return data || [];
   }
 
   static async fetchPublicProfiles(): Promise<UserProfile[]> {
     const client = getSupabase();
     if (!client) return [];
-    const { data } = await client.from('profiles').select('*').eq('is_public', true).order('username');
+    const { data } = await client.from('profiles').select('*').eq('is_public', true).order('username').limit(20);
     return data || [];
   }
 
+  // Conversation Methods
+  static async fetchConversations(userId: string) {
+    const client = getSupabase();
+    if (!client) return [];
+    const { data } = await client
+      .from('conversation_members')
+      .select('conversation_id, conversations(*)')
+      .eq('user_id', userId);
+    return data?.map(d => d.conversations) || [];
+  }
+
+  static async createConversation(userId: string, name: string | null, isGroup: boolean, participants: string[]) {
+    const client = getSupabase();
+    if (!client) return null;
+    const { data: convo } = await client.from('conversations').insert([{ name, is_group: isGroup, created_by: userId }]).select().single();
+    if (!convo) return null;
+    const members = [...new Set([...participants, userId])].map(pid => ({ conversation_id: convo.id, user_id: pid }));
+    await client.from('conversation_members').insert(members);
+    return convo;
+  }
+
+  static async fetchMessages(conversationId: string): Promise<ChatMessage[]> {
+    const client = getSupabase();
+    if (!client) return [];
+    const { data } = await client.from('messages').select('*, profiles(username)').eq('conversation_id', conversationId).order('created_at', { ascending: true });
+    return (data || []).map(m => ({
+      id: m.id, role: 'user', text: m.text, timestamp: new Date(m.created_at).getTime(), sender_id: m.sender_id, sender_name: m.profiles?.username
+    }));
+  }
+
+  static async sendMessage(userId: string, conversationId: string, text: string) {
+    const client = getSupabase();
+    if (!client) return;
+    await client.from('messages').insert([{ conversation_id: conversationId, sender_id: userId, text }]);
+  }
+
+  // Realtime
   static async sendSocialMessage(senderId: string, senderName: string, text: string) {
     const client = getSupabase();
     if (!client) return;
@@ -157,12 +166,22 @@ class NexusServer {
   static subscribeToSocialChat(onMessage: (msg: ChatMessage) => void) {
     const client = getSupabase();
     if (!client) return () => {};
-    const channel = client.channel('global-social')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_messages' }, (payload) => {
-        onMessage({
-          id: payload.new.id, role: 'user', text: payload.new.text, timestamp: new Date(payload.new.created_at).getTime(), sender_name: payload.new.sender_name, sender_id: payload.new.sender_id
-        });
-      }).subscribe();
+    const channel = client.channel('global-social').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_messages' }, (payload) => {
+      onMessage({ id: payload.new.id, role: 'user', text: payload.new.text, timestamp: new Date(payload.new.created_at).getTime(), sender_name: payload.new.sender_name, sender_id: payload.new.sender_id });
+    }).subscribe();
+    return () => client.removeChannel(channel);
+  }
+
+  static subscribeToConversation(conversationId: string, onMessage: (msg: ChatMessage) => void) {
+    const client = getSupabase();
+    if (!client) return () => {};
+    const channel = client.channel(`convo-${conversationId}`).on('postgres_changes', { 
+      event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` 
+    }, async (payload) => {
+      // Fetch sender name for the new message
+      const { data: profile } = await client.from('profiles').select('username').eq('id', payload.new.sender_id).single();
+      onMessage({ id: payload.new.id, role: 'user', text: payload.new.text, timestamp: new Date(payload.new.created_at).getTime(), sender_id: payload.new.sender_id, sender_name: profile?.username });
+    }).subscribe();
     return () => client.removeChannel(channel);
   }
 
@@ -269,7 +288,7 @@ class NexusServer {
     if (!client) throw new Error('Database offline.');
     const fileName = `${Math.random().toString(36).substring(2)}.${file.name.split('.').pop()}`;
     const filePath = `community/${fileName}`;
-    await client.storage.from(BUCKET_NAME).upload(filePath, file);
+    await client.storage.from('nexus-documents').upload(filePath, file);
     await client.from('documents').insert([{
       name, description, subject, semester, type, size: `${(file.size / 1024 / 1024).toFixed(2)} MB`, storage_path: filePath, uploader_id: userId, status: isAdmin ? 'approved' : 'pending'
     }]);
@@ -295,7 +314,7 @@ class NexusServer {
     const { data: file } = await client.from('documents').select('storage_path').eq('id', id).single();
     if (file) {
       await client.from('documents').delete().eq('id', id);
-      await client.storage.from(BUCKET_NAME).remove([file.storage_path]);
+      await client.storage.from('nexus-documents').remove([file.storage_path]);
     }
   }
 
@@ -308,7 +327,7 @@ class NexusServer {
   static async getFileUrl(path: string): Promise<string> {
     const client = getSupabase();
     if (!client) return '';
-    const { data } = client.storage.from(BUCKET_NAME).getPublicUrl(path);
+    const { data } = client.storage.from('nexus-documents').getPublicUrl(path);
     return data.publicUrl;
   }
 
@@ -316,7 +335,7 @@ class NexusServer {
     const client = getSupabase();
     if (!client) return;
     await client.from('documents').delete().eq('id', id);
-    await client.storage.from(BUCKET_NAME).remove([storagePath]);
+    await client.storage.from('nexus-documents').remove([storagePath]);
   }
 }
 

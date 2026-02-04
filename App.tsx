@@ -70,7 +70,8 @@ const Dashboard: React.FC<{ setModule: (m: ModuleType) => void }> = ({ setModule
         { id: ModuleType.PLACEMENT, title: "Placement Prefect", desc: "Resume ATS matching & optimization tailored for campus drives.", color: "hover:border-orange-500/50" },
         { id: ModuleType.LIBRARY, title: "Content Library", desc: "Centralized hub for all your lectures, question banks and notes.", color: "hover:border-orange-500/50" },
         { id: ModuleType.CAMPUS, title: "Campus Navigator", desc: "Mess menu checker and interactive 3D map.", color: "hover:border-indigo-500/50" },
-        { id: ModuleType.GLOBAL, title: "Global Gateway", desc: "Real-time university data and international opportunities scout.", color: "hover:border-emerald-500/50" }
+        { id: ModuleType.GLOBAL, title: "Global Gateway", desc: "Real-time university data and international opportunities scout.", color: "hover:border-emerald-500/50" },
+        { id: ModuleType.SOCIAL, title: "Social Hub", desc: "Connect with fellow Vertos, join squads, and chat in the lounge.", color: "hover:border-orange-500/50" }
       ].map(card => (
         <div key={card.id} onClick={() => setModule(card.id)} className={`group relative p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/50 ${card.color} transition-all cursor-pointer hover:shadow-2xl overflow-hidden min-h-[160px]`}>
           <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">{card.title}</h3>
@@ -100,7 +101,6 @@ const App: React.FC = () => {
     const unsubscribe = NexusServer.onAuthStateChange(async (user) => {
       if (user) {
         const profile = await NexusServer.getProfile(user.id);
-        // Fallback for immediate UI update even if profile fetch is slow
         setUserProfile(profile || { id: user.id, email: user.email!, is_admin: false });
       } else { 
         setUserProfile(null); 
@@ -130,9 +130,7 @@ const App: React.FC = () => {
 
   const renderModule = () => {
     switch (currentModule) {
-      case ModuleType.SOCIAL: 
-        if (!userProfile?.is_admin) return <Dashboard setModule={navigateToModule} />;
-        return <SocialHub userProfile={userProfile} />;
+      case ModuleType.SOCIAL: return <SocialHub userProfile={userProfile} />;
       case ModuleType.PLACEMENT: return <PlacementPrefect userProfile={userProfile} />;
       case ModuleType.LIBRARY: return <ContentLibrary userProfile={userProfile} />;
       case ModuleType.CAMPUS: return <CampusNavigator />;
