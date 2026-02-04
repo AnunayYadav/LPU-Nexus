@@ -3,26 +3,18 @@ import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
 import { LibraryFile, UserProfile, Folder, ChatMessage } from '../types.ts';
 
 const getEnvVar = (name: string): string => {
-  // Try direct process.env first (for platform injected vars)
+  // Try global process.env (populated by index.tsx bootstrap)
   try {
-    if (typeof process !== 'undefined' && process.env && process.env[name]) {
-      return process.env[name] as string;
-    }
-  } catch (e) {}
-
-  // Try standard window/global check
-  const g = (typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : ({} as any));
-  if (g.process?.env?.[name]) return g.process.env[name];
-
-  const vitePrefix = `VITE_${name}`;
-  try {
+    const g = (typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : ({} as any));
+    if (g.process?.env?.[name]) return g.process.env[name];
+    
+    // Fallback to Vite meta env
     const metaEnv = (import.meta as any).env;
     if (metaEnv) {
-      if (metaEnv[vitePrefix]) return metaEnv[vitePrefix];
+      if (metaEnv[`VITE_${name}`]) return metaEnv[`VITE_${name}`];
       if (metaEnv[name]) return metaEnv[name];
     }
   } catch (e) {}
-  
   return '';
 };
 
@@ -34,8 +26,8 @@ const getSupabase = () => {
   const url = getEnvVar('SUPABASE_URL');
   const key = getEnvVar('SUPABASE_ANON_KEY');
 
-  if (!url || !key) {
-    console.warn("NexusServer: Supabase connection parameters are missing. Verify SUPABASE_URL and SUPABASE_ANON_KEY.");
+  if (!url || !key || url === '' || key === '') {
+    console.error("Nexus Registry: Configuration keys are missing from environment.");
     return null;
   }
 
@@ -43,7 +35,7 @@ const getSupabase = () => {
     supabaseInstance = createClient(url, key);
     return supabaseInstance;
   } catch (e) {
-    console.error("Supabase Initialization Error:", e);
+    console.error("Nexus Registry: Initialization crash:", e);
     return null;
   }
 };
@@ -54,9 +46,8 @@ class NexusServer {
   static async recordVisit(): Promise<void> {
     const client = getSupabase();
     if (!client) return;
-    const SESSION_KEY = 'nexus_session_visit_logged';
-    const alreadyLogged = sessionStorage.getItem(SESSION_KEY);
-    if (!alreadyLogged) {
+    const SESSION_KEY = 'nexus_session_logged';
+    if (!sessionStorage.getItem(SESSION_KEY)) {
       try {
         const { error } = await client.from('site_visits').insert([{}]);
         if (!error) sessionStorage.setItem(SESSION_KEY, 'true');
@@ -66,12 +57,11 @@ class NexusServer {
 
   static async getSiteStats(): Promise<{ registered: number; visitors: number }> {
     const client = getSupabase();
-    if (!client) return { registered: 0, visitors: 0 };
+    if (!client) return { registered: 0, visitors: 1450 };
     try {
-      const { count: registeredCount } = await client.from('profiles').select('*', { count: 'exact', head: true });
-      const { count: visitorCount } = await client.from('site_visits').select('*', { count: 'exact', head: true });
-      const baseHistoricalReach = 1450; 
-      return { registered: registeredCount || 0, visitors: (visitorCount || 0) + baseHistoricalReach };
+      const { count: reg } = await client.from('profiles').select('*', { count: 'exact', head: true });
+      const { count: vis } = await client.from('site_visits').select('*', { count: 'exact', head: true });
+      return { registered: reg || 0, visitors: (vis || 0) + 1450 };
     } catch (e) {
       return { registered: 0, visitors: 1450 };
     }
@@ -79,10 +69,9 @@ class NexusServer {
 
   static async signIn(identifier: string, pass: string) {
     const client = getSupabase();
-    if (!client) throw new Error("Connection Failure: Database terminal configuration is missing.");
+    if (!client) throw new Error("Registry Offline: Database keys not detected.");
     
     let email = identifier;
-    // If user enters a username instead of email
     if (!identifier.includes('@')) {
       const { data: profile, error: profileErr } = await client
         .from('profiles')
@@ -90,8 +79,8 @@ class NexusServer {
         .eq('username', identifier.toLowerCase())
         .maybeSingle();
       
-      if (profileErr) throw new Error(`Registry lookup failed: ${profileErr.message}`);
-      if (!profile) throw new Error("No Verto found with this username. Use your official email if this is your first login.");
+      if (profileErr) throw new Error(`Lookup Failure: ${profileErr.message}`);
+      if (!profile) throw new Error("Verto Identity not found. Use your official email if this is your first session.");
       email = profile.email;
     }
     
@@ -100,17 +89,12 @@ class NexusServer {
 
   static async signUp(email: string, pass: string, username: string) {
     const client = getSupabase();
-    if (!client) throw new Error("Connection Failure: Database terminal configuration is missing.");
-    const { data: authData, error: signUpErr } = await client.auth.signUp({ 
+    if (!client) throw new Error("Registry Offline: Database keys not detected.");
+    return await client.auth.signUp({ 
       email, 
       password: pass, 
-      options: { 
-        data: { username: username.toLowerCase() },
-        emailRedirectTo: window.location.origin
-      }
+      options: { data: { username: username.toLowerCase() } }
     });
-    if (signUpErr) throw signUpErr;
-    return { data: authData, error: null };
   }
 
   static async signOut() {
@@ -122,7 +106,9 @@ class NexusServer {
   static onAuthStateChange(callback: (user: User | null) => void) {
     const client = getSupabase();
     if (!client) return () => {};
-    const { data: { subscription } } = client.auth.onAuthStateChange((_event, session) => callback(session?.user ?? null));
+    const { data: { subscription } } = client.auth.onAuthStateChange((_event, session) => {
+      callback(session?.user ?? null);
+    });
     return () => subscription.unsubscribe();
   }
 
@@ -130,8 +116,9 @@ class NexusServer {
     const client = getSupabase();
     if (!client) return null;
     try {
-      const { data, error } = await client.from('profiles').select('*').eq('id', userId).single();
-      if (error) return null;
+      // Sometimes trigger-created profiles are delayed by a few milliseconds
+      const { data, error } = await client.from('profiles').select('*').eq('id', userId).maybeSingle();
+      if (error || !data) return null;
       return data;
     } catch (e) {
       return null;
@@ -155,10 +142,7 @@ class NexusServer {
   static async sendSocialMessage(senderId: string, senderName: string, text: string) {
     const client = getSupabase();
     if (!client) return;
-    const { error } = await client.from('social_messages').insert([{
-      sender_id: senderId, sender_name: senderName, text
-    }]);
-    if (error) throw error;
+    await client.from('social_messages').insert([{ sender_id: senderId, sender_name: senderName, text }]);
   }
 
   static async fetchSocialMessages(): Promise<ChatMessage[]> {
@@ -178,27 +162,20 @@ class NexusServer {
         onMessage({
           id: payload.new.id, role: 'user', text: payload.new.text, timestamp: new Date(payload.new.created_at).getTime(), sender_name: payload.new.sender_name, sender_id: payload.new.sender_id
         });
-      })
-      .subscribe();
+      }).subscribe();
     return () => client.removeChannel(channel);
   }
 
   static async checkUsernameAvailability(username: string): Promise<boolean> {
     const client = getSupabase();
     if (!client) return true;
-    try {
-      const { data } = await client.from('profiles').select('username').eq('username', username.toLowerCase()).maybeSingle();
-      return !data;
-    } catch (e) {
-      return true;
-    }
+    const { data } = await client.from('profiles').select('username').eq('username', username.toLowerCase()).maybeSingle();
+    return !data;
   }
 
   static async saveRecord(userId: string | null, type: string, label: string, content: any): Promise<void> {
     const client = getSupabase();
-    if (userId && client) {
-      await client.from('user_history').insert([{ user_id: userId, type, label, content }]);
-    }
+    if (userId && client) await client.from('user_history').insert([{ user_id: userId, type, label, content }]);
   }
 
   static async fetchRecords(userId: string | null, type: string): Promise<any[]> {
@@ -210,7 +187,7 @@ class NexusServer {
     return [];
   }
 
-  static async deleteRecord(id: string, type: string, userId: string | null): Promise<void> {
+  static async deleteRecord(id: string, _type: string, userId: string | null): Promise<void> {
     const client = getSupabase();
     if (userId && client) await client.from('user_history').delete().eq('id', id);
   }
@@ -245,20 +222,19 @@ class NexusServer {
 
   static async submitFeedback(text: string, userId?: string, email?: string) {
     const client = getSupabase();
-    if (!client) throw new Error("Database connection unavailable.");
+    if (!client) throw new Error("Database offline.");
     await client.from('feedback').insert([{ text, user_id: userId || null, user_email: email || null }]);
   }
 
-  static async fetchFiles(query?: string, subject?: string): Promise<LibraryFile[]> {
+  static async fetchFiles(query?: string, _subject?: string): Promise<LibraryFile[]> {
     const client = getSupabase();
-    if (!client) throw new Error("Database connection unavailable.");
+    if (!client) throw new Error("Database offline.");
     const { data } = await client.from('documents').select('*, profiles(username, email)').eq('status', 'approved').order('created_at', { ascending: false });
     let res = data || [];
-    if (subject && subject !== 'All') res = res.filter(d => d.subject === subject);
     if (query) res = res.filter(d => d.name.toLowerCase().includes(query.toLowerCase()));
     return res.map(item => ({
       id: item.id, name: item.name, description: item.description, subject: item.subject, semester: item.semester || 'Other',
-      type: item.type, status: item.status, uploadDate: new Date(item.created_at).getTime(), size: item.size,
+      type: item.type, status: item.status as any, uploadDate: new Date(item.created_at).getTime(), size: item.size,
       storage_path: item.storage_path, uploader_id: item.uploader_id, uploader_username: item.profiles?.username || "Anonymous Verto",
       admin_notes: item.admin_notes, isUserUploaded: true, pending_update: item.pending_update
     }));
@@ -266,11 +242,11 @@ class NexusServer {
 
   static async fetchPendingFiles(): Promise<LibraryFile[]> {
     const client = getSupabase();
-    if (!client) throw new Error("Database connection unavailable.");
+    if (!client) return [];
     const { data } = await client.from('documents').select('*, profiles(username, email)').eq('status', 'pending').order('created_at', { ascending: false });
     return (data || []).map(item => ({
       id: item.id, name: item.name, description: item.description, subject: item.subject, semester: item.semester || 'Other',
-      type: item.type, status: item.status, uploadDate: new Date(item.created_at).getTime(), size: item.size,
+      type: item.type, status: item.status as any, uploadDate: new Date(item.created_at).getTime(), size: item.size,
       storage_path: item.storage_path, uploader_id: item.uploader_id, uploader_username: item.profiles?.username || "Anonymous Verto",
       admin_notes: item.admin_notes, isUserUploaded: true, pending_update: item.pending_update
     }));
@@ -278,11 +254,11 @@ class NexusServer {
 
   static async fetchUserFiles(userId: string): Promise<LibraryFile[]> {
     const client = getSupabase();
-    if (!client) throw new Error("Database connection unavailable.");
+    if (!client) return [];
     const { data } = await client.from('documents').select('*, profiles(username, email)').eq('uploader_id', userId).order('created_at', { ascending: false });
     return (data || []).map(item => ({
       id: item.id, name: item.name, description: item.description, subject: item.subject, semester: item.semester || 'Other',
-      type: item.type, status: item.status, uploadDate: new Date(item.created_at).getTime(), size: item.size,
+      type: item.type, status: item.status as any, uploadDate: new Date(item.created_at).getTime(), size: item.size,
       storage_path: item.storage_path, uploader_id: item.uploader_id, uploader_username: item.profiles?.username || "Anonymous Verto",
       admin_notes: item.admin_notes, isUserUploaded: true, pending_update: item.pending_update
     }));
@@ -290,7 +266,7 @@ class NexusServer {
 
   static async uploadFile(file: File, name: string, description: string, subject: string, semester: string, type: string, userId: string, isAdmin: boolean = false): Promise<void> {
     const client = getSupabase();
-    if (!client) throw new Error('Database connection unavailable.');
+    if (!client) throw new Error('Database offline.');
     const fileName = `${Math.random().toString(36).substring(2)}.${file.name.split('.').pop()}`;
     const filePath = `community/${fileName}`;
     await client.storage.from(BUCKET_NAME).upload(filePath, file);
@@ -301,13 +277,13 @@ class NexusServer {
 
   static async requestUpdate(id: string, metadata: any, isAdmin: boolean = false): Promise<void> {
     const client = getSupabase();
-    if (!client) throw new Error('Database connection unavailable.');
+    if (!client) return;
     await client.from('documents').update(isAdmin ? { ...metadata, pending_update: null } : { pending_update: metadata }).eq('id', id);
   }
 
   static async approveFile(id: string): Promise<void> {
     const client = getSupabase();
-    if (!client) throw new Error('Database connection unavailable.');
+    if (!client) return;
     const { data: record } = await client.from('documents').select('*').eq('id', id).single();
     const finalData = record.pending_update || record;
     await client.from('documents').update({ ...finalData, status: 'approved', pending_update: null }).eq('id', id);
@@ -315,7 +291,7 @@ class NexusServer {
 
   static async rejectFile(id: string): Promise<void> {
     const client = getSupabase();
-    if (!client) throw new Error('Database connection unavailable.');
+    if (!client) return;
     const { data: file } = await client.from('documents').select('storage_path').eq('id', id).single();
     if (file) {
       await client.from('documents').delete().eq('id', id);
@@ -325,20 +301,20 @@ class NexusServer {
 
   static async demoteFile(id: string): Promise<void> {
     const client = getSupabase();
-    if (!client) throw new Error('Database connection unavailable.');
+    if (!client) return;
     await client.from('documents').update({ status: 'pending' }).eq('id', id);
   }
 
   static async getFileUrl(path: string): Promise<string> {
     const client = getSupabase();
-    if (!client) throw new Error('Database connection unavailable.');
+    if (!client) return '';
     const { data } = client.storage.from(BUCKET_NAME).getPublicUrl(path);
     return data.publicUrl;
   }
 
   static async deleteFile(id: string, storagePath: string): Promise<void> {
     const client = getSupabase();
-    if (!client) throw new Error('Database connection unavailable.');
+    if (!client) return;
     await client.from('documents').delete().eq('id', id);
     await client.storage.from(BUCKET_NAME).remove([storagePath]);
   }
