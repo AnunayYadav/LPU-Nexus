@@ -41,8 +41,13 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
     return () => unsubscribe();
   }, [activeView, activeConversation]);
 
+  // Selective auto-scroll: only when messages array actually grows
+  const prevMsgLength = useRef(messages.length);
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messages.length > prevMsgLength.current) {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+    prevMsgLength.current = messages.length;
   }, [messages]);
 
   const loadLounge = async () => {
@@ -91,7 +96,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
 
   const startDM = async (otherUser: UserProfile) => {
     if (!userProfile) return;
-    const existing = conversations.find(c => !c.is_group && c.name === null); // Simplification: in real app, check participants
+    const existing = conversations.find(c => !c.is_group && c.name === null); // Simplification
     if (existing) {
       selectConversation(existing);
       setActiveView('dms');
@@ -124,9 +129,9 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
   };
 
   return (
-    <div className="max-w-6xl mx-auto flex h-[calc(100vh-140px)] animate-fade-in bg-white dark:bg-black rounded-[48px] overflow-hidden border border-slate-200 dark:border-white/5 shadow-2xl">
-      {/* Navigation Rail */}
-      <div className="w-16 md:w-20 bg-slate-50 dark:bg-slate-950 border-r border-slate-200 dark:border-white/5 flex flex-col items-center py-8 space-y-6">
+    <div className="flex h-full w-full animate-fade-in bg-white dark:bg-black overflow-hidden border-none shadow-none">
+      {/* Navigation Rail - Joined flush to main sidebar */}
+      <div className="w-16 md:w-20 bg-slate-50 dark:bg-[#050505] border-r border-slate-200 dark:border-white/5 flex flex-col items-center py-8 space-y-6">
         {[
           { id: 'lounge', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>, label: 'Lounge' },
           { id: 'dms', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>, label: 'Direct' },
@@ -150,7 +155,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
 
       {/* Middle List Area */}
       {activeView !== 'directory' && activeView !== 'lounge' && (
-        <div className="w-64 md:w-80 bg-slate-50 dark:bg-slate-950/40 border-r border-slate-200 dark:border-white/5 flex flex-col hidden md:flex">
+        <div className="w-64 md:w-80 bg-slate-50 dark:bg-[#080808] border-r border-slate-200 dark:border-white/5 flex flex-col hidden md:flex">
           <div className="p-6 border-b border-slate-200 dark:border-white/5">
             <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 dark:text-white">{activeView === 'dms' ? 'Transmissions' : 'Squads'}</h3>
             <button 
@@ -192,15 +197,15 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                <div className="relative max-w-xl">
                  <input 
                   type="text" placeholder="Search by username..." value={searchQuery} onChange={(e) => handleUserSearch(e.target.value)}
-                  className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl px-12 py-4 text-sm font-bold dark:text-white outline-none focus:ring-2 focus:ring-orange-600 transition-all shadow-inner"
+                  className="w-full bg-slate-100 dark:bg-[#0a0a0a] border border-slate-200 dark:border-white/5 rounded-2xl px-12 py-4 text-sm font-bold dark:text-white outline-none focus:ring-2 focus:ring-orange-600 transition-all shadow-inner"
                  />
                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
                </div>
             </header>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
               {(searchQuery ? searchResults : publicProfiles).map(profile => (
-                <div key={profile.id} className="glass-panel p-6 rounded-[32px] border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-slate-950/40 hover:border-orange-500/50 transition-all group flex flex-col relative overflow-hidden">
+                <div key={profile.id} className="glass-panel p-6 rounded-[32px] border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-[#050505] hover:border-orange-500/50 transition-all group flex flex-col relative overflow-hidden">
                   <div className="flex items-center gap-4 mb-4">
                     <div className="w-12 h-12 rounded-2xl bg-black flex items-center justify-center text-orange-600 font-black text-xl border border-white/5 group-hover:scale-110 transition-transform">
                       {profile.username?.[0]?.toUpperCase()}
@@ -225,7 +230,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
           </div>
         ) : (
           <>
-            <header className="px-8 py-5 border-b border-slate-200 dark:border-white/5 flex items-center justify-between">
+            <header className="px-8 py-5 border-b border-slate-200 dark:border-white/5 flex items-center justify-between bg-white dark:bg-black">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-xl bg-orange-600/10 flex items-center justify-center text-orange-600">
                   {activeView === 'lounge' ? (
@@ -244,7 +249,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
               </div>
             </header>
 
-            <div className="flex-1 overflow-y-auto p-8 space-y-6 no-scrollbar" ref={scrollRef}>
+            <div className="flex-1 overflow-y-auto p-8 space-y-6 no-scrollbar bg-white dark:bg-black" ref={scrollRef}>
               {isLoading ? (
                 <div className="flex items-center justify-center h-full opacity-30 text-[10px] font-black uppercase tracking-widest animate-pulse">Synchronizing Buffers...</div>
               ) : messages.map((msg, i) => {
@@ -255,7 +260,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                        {!isMe && <span className="text-[9px] font-black text-orange-600 uppercase tracking-tight">@{msg.sender_name}</span>}
                        <span className="text-[8px] font-bold text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
-                    <div className={`px-6 py-3.5 rounded-[24px] text-sm font-medium shadow-sm max-w-[85%] md:max-w-[70%] leading-relaxed ${isMe ? 'bg-orange-600 text-white rounded-tr-none' : 'bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-slate-200/50 dark:border-white/5 rounded-tl-none'}`}>
+                    <div className={`px-6 py-3.5 rounded-[24px] text-sm font-medium shadow-sm max-w-[85%] md:max-w-[70%] leading-relaxed ${isMe ? 'bg-orange-600 text-white rounded-tr-none' : 'bg-slate-100 dark:bg-[#111111] text-slate-800 dark:text-slate-200 border border-slate-200/50 dark:border-white/5 rounded-tl-none'}`}>
                       {msg.text}
                     </div>
                   </div>
@@ -265,7 +270,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
             </div>
             
             <div className="p-6 bg-white dark:bg-black border-t border-slate-200 dark:border-white/5">
-              <form onSubmit={handleSendMessage} className="flex gap-3 bg-slate-50 dark:bg-slate-950 p-2 rounded-[28px] border border-slate-200 dark:border-white/5 focus-within:border-orange-500/50 transition-all shadow-inner">
+              <form onSubmit={handleSendMessage} className="flex gap-3 bg-slate-50 dark:bg-[#080808] p-2 rounded-[28px] border border-slate-200 dark:border-white/5 focus-within:border-orange-500/50 transition-all shadow-inner">
                 <input 
                   type="text" value={inputText} onChange={(e) => setInputText(e.target.value)}
                   placeholder={userProfile ? (activeView === 'lounge' ? "Broadcast to the lounge..." : "Transmit data pulse...") : "Authenticate to interact"}
@@ -287,7 +292,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
       {/* Group Creation Modal */}
       {showGroupModal && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-fade-in">
-          <div className="bg-white dark:bg-slate-950 rounded-[48px] w-full max-w-md shadow-2xl border border-white/10 overflow-hidden flex flex-col p-10">
+          <div className="bg-white dark:bg-[#0a0a0a] rounded-[48px] w-full max-w-md shadow-2xl border border-white/10 overflow-hidden flex flex-col p-10">
             <header className="mb-8 flex justify-between items-center">
               <div>
                 <h3 className="text-2xl font-black uppercase tracking-tighter dark:text-white leading-none">Deploy Squad</h3>

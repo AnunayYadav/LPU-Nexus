@@ -146,6 +146,8 @@ const App: React.FC = () => {
     }
   };
 
+  const isSocialHub = currentModule === ModuleType.SOCIAL;
+
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-black text-slate-900 dark:text-slate-200 transition-colors duration-300">
       <Sidebar currentModule={currentModule} setModule={navigateToModule} isMobileMenuOpen={isMobileMenuOpen} toggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)} userProfile={userProfile} />
@@ -200,8 +202,8 @@ const App: React.FC = () => {
              </div>
           </div>
         </div>
-        <div id="main-content-area" className="flex-1 overflow-y-auto p-4 md:p-8 relative scroll-smooth">
-           <div className="relative z-0 max-w-7xl mx-auto">{renderModule()}</div>
+        <div id="main-content-area" className={`flex-1 overflow-y-auto relative scroll-smooth ${isSocialHub ? 'p-0' : 'p-4 md:p-8'}`}>
+           <div className={`relative z-0 ${isSocialHub ? 'max-w-none h-full' : 'max-w-7xl mx-auto'}`}>{renderModule()}</div>
            {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
         </div>
       </main>
