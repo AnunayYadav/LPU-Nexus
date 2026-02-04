@@ -11,7 +11,8 @@ export enum ModuleType {
   ATTENDANCE = 'ATTENDANCE',
   SHARE_CGPA = 'SHARE_CGPA',
   ABOUT = 'ABOUT',
-  PROFILE = 'PROFILE'
+  PROFILE = 'PROFILE',
+  SOCIAL = 'SOCIAL'
 }
 
 export interface UserProfile {
@@ -19,13 +20,20 @@ export interface UserProfile {
   email: string;
   is_admin: boolean;
   username?: string;
+  program?: string;
+  batch?: string;
+  bio?: string;
+  is_public?: boolean;
 }
 
 export interface ChatMessage {
+  id?: string;
   role: 'user' | 'model' | 'system';
   text: string;
   isError?: boolean;
   timestamp: number;
+  sender_name?: string;
+  sender_id?: string;
 }
 
 export interface ResumeAnalysisResult {
@@ -83,10 +91,6 @@ export interface Flashcard {
 }
 
 declare global {
-  /**
-   * Corrected global interface declaration to properly extend the Window object.
-   * Using 'Window' (capitalized) is required by TypeScript to merge with the existing global Window interface.
-   */
   interface Window {
     pdfjsLib: any;
     mermaid: any;

@@ -19,7 +19,6 @@ const Sidebar: React.FC<SidebarProps> = ({ currentModule, setModule, isMobileMen
 
   const feedbackModalRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll logic to center feedback modal
   useEffect(() => {
     if (showFeedbackModal) {
       feedbackModalRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -31,6 +30,11 @@ const Sidebar: React.FC<SidebarProps> = ({ currentModule, setModule, isMobileMen
       id: ModuleType.DASHBOARD, 
       label: 'Dashboard', 
       icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 
+    },
+    { 
+      id: ModuleType.SOCIAL, 
+      label: 'Social Hub', 
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> 
     },
     { 
       id: ModuleType.ATTENDANCE, 
@@ -81,20 +85,12 @@ const Sidebar: React.FC<SidebarProps> = ({ currentModule, setModule, isMobileMen
 
   const submitFeedback = async () => {
     if (!feedbackText.trim() || isSubmitting) return;
-    
     setIsSubmitting(true);
     try {
-      await NexusServer.submitFeedback(
-        feedbackText, 
-        userProfile?.id, 
-        userProfile?.email
-      );
+      await NexusServer.submitFeedback(feedbackText, userProfile?.id, userProfile?.email);
       setSubmitSuccess(true);
       setFeedbackText("");
-      setTimeout(() => {
-        setSubmitSuccess(false);
-        setShowFeedbackModal(false);
-      }, 2000);
+      setTimeout(() => { setSubmitSuccess(false); setShowFeedbackModal(false); }, 2000);
     } catch (e: any) {
       alert(`Submission failed: ${e.message}`);
     } finally {
@@ -105,10 +101,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentModule, setModule, isMobileMen
   return (
     <>
       {isMobileMenuOpen && (
-        <div 
-          className="fixed inset-0 bg-black/60 z-20 md:hidden backdrop-blur-md"
-          onClick={toggleMobileMenu}
-        />
+        <div className="fixed inset-0 bg-black/60 z-20 md:hidden backdrop-blur-md" onClick={toggleMobileMenu} />
       )}
 
       {showFeedbackModal && (
@@ -134,18 +127,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentModule, setModule, isMobileMen
                   placeholder="Type your feedback here..."
                 />
                 <div className="flex justify-end space-x-3 mt-6">
-                  <button 
-                    onClick={() => setShowFeedbackModal(false)}
-                    disabled={isSubmitting}
-                    className="px-4 py-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-bold text-sm border-none bg-transparent"
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    onClick={submitFeedback}
-                    disabled={isSubmitting || !feedbackText.trim()}
-                    className="px-8 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-bold text-sm shadow-lg shadow-orange-600/20 disabled:opacity-50 transition-all flex items-center gap-2 border-none"
-                  >
+                  <button onClick={() => setShowFeedbackModal(false)} disabled={isSubmitting} className="px-4 py-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-bold text-sm border-none bg-transparent">Cancel</button>
+                  <button onClick={submitFeedback} disabled={isSubmitting || !feedbackText.trim()} className="px-8 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-bold text-sm shadow-lg shadow-orange-600/20 disabled:opacity-50 transition-all flex items-center gap-2 border-none">
                     {isSubmitting && <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
                     <span>{isSubmitting ? 'Sending...' : 'Submit'}</span>
                   </button>
@@ -163,7 +146,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentModule, setModule, isMobileMen
         md:translate-x-0 md:static flex flex-col shadow-2xl md:shadow-none
       `}>
         <div className="p-8 border-b border-slate-200 dark:border-white/5">
-          <h1 className="text-2xl font-black bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent tracking-tighter">
+          <h1 className="text-2xl font-black bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent tracking-tighter cursor-pointer" onClick={() => setModule(ModuleType.DASHBOARD)}>
             LPU-Nexus
           </h1>
           <p className="text-[10px] uppercase font-bold tracking-widest text-slate-400 dark:text-slate-600 mt-1">Intelligence Hub</p>
@@ -191,20 +174,14 @@ const Sidebar: React.FC<SidebarProps> = ({ currentModule, setModule, isMobileMen
         </nav>
 
         <div className="p-6 border-t border-slate-200 dark:border-white/5 space-y-4">
-          <button 
-            onClick={() => setShowFeedbackModal(true)}
-            className="w-full text-xs flex items-center justify-center space-x-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 py-2 transition-colors font-bold uppercase tracking-widest border-none bg-transparent"
-          >
+          <button onClick={() => setShowFeedbackModal(true)} className="w-full text-xs flex items-center justify-center space-x-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 py-2 transition-colors font-bold uppercase tracking-widest border-none bg-transparent">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             <span>Feedback</span>
           </button>
-
           <div className="bg-gradient-to-br from-orange-600 to-red-700 rounded-2xl p-5 border border-white/10 shadow-xl shadow-orange-600/10">
             <h3 className="text-xs font-black text-white uppercase tracking-widest mb-1">Nexus Pro</h3>
             <p className="text-[10px] text-orange-100 mb-3 font-medium">Unlimited Scans & Deep AI Analysis</p>
-            <button className="w-full text-xs bg-white text-orange-600 py-2.5 rounded-xl font-black transition-transform hover:scale-105 shadow-lg active:scale-95 border-none">
-              UPGRADE
-            </button>
+            <button className="w-full text-xs bg-white text-orange-600 py-2.5 rounded-xl font-black transition-transform hover:scale-105 shadow-lg active:scale-95 border-none">UPGRADE</button>
           </div>
         </div>
       </aside>

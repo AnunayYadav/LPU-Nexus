@@ -13,6 +13,7 @@ import ShareReport from './components/ShareReport.tsx';
 import AboutUs from './components/AboutUs.tsx';
 import AuthModal from './components/AuthModal.tsx';
 import ProfileSection from './components/ProfileSection.tsx';
+import SocialHub from './components/SocialHub.tsx';
 import { ModuleType, UserProfile } from './types.ts';
 import NexusServer from './services/nexusServer.ts';
 import { Analytics } from "@vercel/analytics/react";
@@ -30,6 +31,7 @@ const getModuleFromPath = (path: string): ModuleType => {
   if (p.endsWith('/help')) return ModuleType.HELP;
   if (p.endsWith('/about')) return ModuleType.ABOUT;
   if (p.endsWith('/profile')) return ModuleType.PROFILE;
+  if (p.endsWith('/social')) return ModuleType.SOCIAL;
   return ModuleType.DASHBOARD;
 };
 
@@ -44,9 +46,10 @@ const getPathFromModule = (module: ModuleType): string => {
     case ModuleType.FRESHERS: return '/freshers';
     case ModuleType.HELP: return '/help';
     case ModuleType.ABOUT: return '/about';
+    case ModuleType.PROFILE: return '/profile';
+    case ModuleType.SOCIAL: return '/social';
     case ModuleType.DASHBOARD: return '/';
     case ModuleType.SHARE_CGPA: return '/share-cgpa';
-    case ModuleType.PROFILE: return '/profile';
     default: return '/';
   }
 };
@@ -61,39 +64,26 @@ const Dashboard: React.FC<{ setModule: (m: ModuleType) => void }> = ({ setModule
     </div>
 
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div onClick={() => setModule(ModuleType.SOCIAL)} className="group relative p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/50 hover:border-orange-500/50 transition-all cursor-pointer hover:shadow-2xl overflow-hidden min-h-[160px]"><h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Social Hub</h3><p className="text-slate-600 dark:text-slate-400 text-sm">Verto global chat and student directory for cross-batch collaboration.</p></div>
       <div onClick={() => setModule(ModuleType.CGPA)} className="group relative p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/50 hover:border-orange-500/50 transition-all cursor-pointer hover:shadow-2xl overflow-hidden min-h-[160px]"><h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">CGPA Calculator</h3><p className="text-slate-600 dark:text-slate-400 text-sm">Calculate your SGPA and CGPA based on LPU grading standards.</p></div>
       <div onClick={() => setModule(ModuleType.ATTENDANCE)} className="group relative p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/50 hover:border-green-500/50 transition-all cursor-pointer hover:shadow-2xl overflow-hidden min-h-[160px]"><h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Attendance Tracker</h3><p className="text-slate-600 dark:text-slate-400 text-sm">Monitor your attendance and hit that 75% threshold with ease.</p></div>
       <div onClick={() => setModule(ModuleType.PLACEMENT)} className="group relative p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/50 hover:border-orange-500/50 transition-all cursor-pointer hover:shadow-2xl overflow-hidden min-h-[160px]"><h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Placement Prefect</h3><p className="text-slate-600 dark:text-slate-400 text-sm">Resume ATS matching & optimization tailored for campus drives.</p></div>
       <div onClick={() => setModule(ModuleType.LIBRARY)} className="group relative p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/50 hover:border-orange-500/50 transition-all cursor-pointer hover:shadow-2xl overflow-hidden min-h-[160px]"><h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Content Library</h3><p className="text-slate-600 dark:text-slate-400 text-sm">Centralized hub for all your lectures, question banks and notes.</p></div>
       <div onClick={() => setModule(ModuleType.CAMPUS)} className="group relative p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/50 hover:border-indigo-500/50 transition-all cursor-pointer hover:shadow-2xl overflow-hidden min-h-[160px]"><h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Campus Navigator</h3><p className="text-slate-600 dark:text-slate-400 text-sm">Mess menu checker and interactive 3D map.</p></div>
-      <div onClick={() => setModule(ModuleType.GLOBAL)} className="group relative p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/50 hover:border-emerald-500/50 transition-all cursor-pointer hover:shadow-2xl overflow-hidden min-h-[160px]"><h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Global Gateway</h3><p className="text-slate-600 dark:text-slate-400 text-sm">Real-time international university and visa scouting.</p></div>
     </div>
   </div>
 );
 
 const App: React.FC = () => {
   const [currentModule, setCurrentModule] = useState<ModuleType>(() => getModuleFromPath(window.location.pathname));
-  const [libraryInitialView, setLibraryInitialView] = useState<'browse' | 'my-uploads'>('browse');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
-  const authModalRef = useRef<HTMLDivElement>(null);
-
-  // Auto-scroll logic for authentication gateway
   useEffect(() => {
-    if (showAuthModal) {
-      // Focus the modal in the center of the scroll view
-      authModalRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  }, [showAuthModal]);
-
-  useEffect(() => {
-    // RECORD AUTHENTIC VISIT
     NexusServer.recordVisit();
-
     const savedTheme = localStorage.getItem('theme') as 'light' | 'dark';
     if (savedTheme) {
       setTheme(savedTheme);
@@ -114,11 +104,6 @@ const App: React.FC = () => {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  useEffect(() => {
-    const mainArea = document.getElementById('main-content-area');
-    if (mainArea) mainArea.scrollTo({ top: 0, behavior: 'auto' });
-  }, [currentModule]);
-
   const navigateToModule = (module: ModuleType) => {
     setCurrentModule(module);
     const newPath = getPathFromModule(module);
@@ -134,8 +119,9 @@ const App: React.FC = () => {
 
   const renderModule = () => {
     switch (currentModule) {
+      case ModuleType.SOCIAL: return <SocialHub userProfile={userProfile} />;
       case ModuleType.PLACEMENT: return <PlacementPrefect userProfile={userProfile} />;
-      case ModuleType.LIBRARY: return <ContentLibrary userProfile={userProfile} initialView={libraryInitialView} />;
+      case ModuleType.LIBRARY: return <ContentLibrary userProfile={userProfile} />;
       case ModuleType.CAMPUS: return <CampusNavigator />;
       case ModuleType.GLOBAL: return <GlobalGateway />;
       case ModuleType.HELP: return <HelpSection />;
@@ -160,17 +146,12 @@ const App: React.FC = () => {
           </div>
           <div className="flex items-center space-x-3 ml-auto">
              <button onClick={toggleTheme} className="p-2 rounded-full bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-all border-none">{theme === 'dark' ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg> : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>}</button>
-             <div className="relative">{userProfile ? <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="w-10 h-10 rounded-full bg-gradient-to-tr from-orange-600 to-red-700 flex items-center justify-center text-white font-black border-none shadow-lg group hover:scale-110 transition-all relative overflow-hidden"><div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" /><span className="relative z-10">{userProfile.username ? userProfile.username[0].toUpperCase() : userProfile.email[0].toUpperCase()}</span></button> : <button onClick={() => setShowAuthModal(true)} className="w-10 h-10 rounded-full border-none bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400 hover:text-orange-500 transition-all shadow-sm active:scale-95"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></button>}{isProfileMenuOpen && userProfile && (<><div className="fixed inset-0 z-40" onClick={() => setIsProfileMenuOpen(false)} /><div className="absolute top-full right-0 mt-3 w-64 glass-panel rounded-3xl border border-slate-200 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden animate-fade-in z-50 bg-white dark:bg-black"><div className="p-5 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02]"><p className="text-[10px] font-black uppercase text-orange-600 tracking-[0.2em] mb-1">Authenticated</p><p className="text-sm font-black truncate dark:text-white uppercase tracking-tight">{userProfile.username || 'Citizen Verto'}</p><p className="text-[9px] font-bold text-slate-400 truncate mt-0.5">{userProfile.email}</p></div><div className="py-2"><button onClick={() => { navigateToModule(ModuleType.PROFILE); setIsProfileMenuOpen(false); }} className="w-full text-left px-5 py-3.5 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-orange-600/10 hover:text-orange-600 dark:hover:text-orange-500 flex items-center space-x-3 transition-all border-none bg-transparent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Profile Terminal</span></button><button onClick={() => { setLibraryInitialView('my-uploads'); navigateToModule(ModuleType.LIBRARY); setIsProfileMenuOpen(false); }} className="w-full text-left px-5 py-3.5 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-orange-600/10 hover:text-orange-600 dark:hover:text-orange-500 flex items-center space-x-3 transition-all border-none bg-transparent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>Personal Vault</span></button><div className="mx-4 my-2 h-px bg-slate-100 dark:bg-white/5" /><button onClick={async () => { await NexusServer.signOut(); setIsProfileMenuOpen(false); }} className="w-full text-left px-5 py-3.5 text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-900/10 flex items-center space-x-3 transition-all border-none bg-transparent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span>De-authenticate</span></button></div></div></>)}</div>
+             <div className="relative">{userProfile ? <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="w-10 h-10 rounded-full bg-gradient-to-tr from-orange-600 to-red-700 flex items-center justify-center text-white font-black border-none shadow-lg group hover:scale-110 transition-all relative overflow-hidden"><span className="relative z-10">{userProfile.username?.[0]?.toUpperCase() || userProfile.email[0].toUpperCase()}</span></button> : <button onClick={() => setShowAuthModal(true)} className="w-10 h-10 rounded-full border-none bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400 hover:text-orange-500 transition-all shadow-sm active:scale-95"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></button>}{isProfileMenuOpen && userProfile && (<><div className="fixed inset-0 z-40" onClick={() => setIsProfileMenuOpen(false)} /><div className="absolute top-full right-0 mt-3 w-64 glass-panel rounded-3xl border border-slate-200 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden animate-fade-in z-50 bg-white dark:bg-black"><div className="p-5 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02]"><p className="text-[10px] font-black uppercase text-orange-600 tracking-[0.2em] mb-1">Authenticated</p><p className="text-sm font-black truncate dark:text-white uppercase tracking-tight">{userProfile.username || 'Citizen Verto'}</p><p className="text-[9px] font-bold text-slate-400 truncate mt-0.5">{userProfile.email}</p></div><div className="py-2"><button onClick={() => { navigateToModule(ModuleType.PROFILE); setIsProfileMenuOpen(false); }} className="w-full text-left px-5 py-3.5 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-orange-600/10 hover:text-orange-600 dark:hover:text-orange-500 flex items-center space-x-3 transition-all border-none bg-transparent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Profile Terminal</span></button><div className="mx-4 my-2 h-px bg-slate-100 dark:bg-white/5" /><button onClick={async () => { await NexusServer.signOut(); setIsProfileMenuOpen(false); }} className="w-full text-left px-5 py-3.5 text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-900/10 flex items-center space-x-3 transition-all border-none bg-transparent">De-authenticate</button></div></div></>)}</div>
           </div>
         </div>
         <div id="main-content-area" className="flex-1 overflow-y-auto p-4 md:p-8 relative scroll-smooth">
-           <div className="fixed top-0 left-1/4 w-96 h-96 bg-orange-500/5 rounded-full blur-3xl pointer-events-none"></div>
            <div className="relative z-0 max-w-7xl mx-auto">{renderModule()}</div>
-           {showAuthModal && (
-             <div ref={authModalRef} className="z-50 relative">
-               <AuthModal onClose={() => setShowAuthModal(false)} />
-             </div>
-           )}
+           {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
         </div>
       </main>
       <Analytics />
