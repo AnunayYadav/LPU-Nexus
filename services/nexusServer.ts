@@ -140,7 +140,7 @@ class NexusServer {
 
   static async getProfile(userId: string): Promise<UserProfile | null> {
     const client = getSupabase();
-    if (!client) return null;
+    if (!client || !userId) return null;
     try {
       const { data, error } = await client.from('profiles').select('*').eq('id', userId).maybeSingle();
       if (error) return null;
@@ -152,7 +152,7 @@ class NexusServer {
 
   static async updateProfile(userId: string, updates: Partial<UserProfile>): Promise<void> {
     const client = getSupabase();
-    if (!client) return;
+    if (!client || !userId) return;
     await client.from('profiles').update(updates).eq('id', userId);
   }
 
@@ -176,35 +176,50 @@ class NexusServer {
 
   static async sendFriendRequest(senderId: string, receiverId: string) {
     const client = getSupabase();
-    if (!client) return;
+    if (!client || !senderId || !receiverId) return;
     return await client.from('friend_requests').insert([{ sender_id: senderId, receiver_id: receiverId, status: 'pending' }]);
   }
 
   static async getFriendRequests(userId: string): Promise<FriendRequest[]> {
     const client = getSupabase();
-    if (!client) return [];
-    const { data } = await client
+    if (!client || !userId) return [];
+    
+    const { data, error } = await client
       .from('friend_requests')
-      .select('*, sender:profiles!sender_id(*), receiver:profiles!receiver_id(*)')
+      .select(`
+        *,
+        sender:profiles!friend_requests_sender_id_fkey(*),
+        receiver:profiles!friend_requests_receiver_id_fkey(*)
+      `)
       .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`);
+    
+    if (error) {
+      console.error("Signal Fetch Error:", error);
+      return [];
+    }
     return data || [];
   }
 
   static async updateFriendRequest(requestId: string, status: 'accepted' | 'declined') {
     const client = getSupabase();
-    if (!client) return;
+    if (!client || !requestId) return;
     return await client.from('friend_requests').update({ status }).eq('id', requestId);
   }
 
   static async getFriends(userId: string): Promise<UserProfile[]> {
     const client = getSupabase();
-    if (!client) return [];
-    const { data } = await client
+    if (!client || !userId) return [];
+    
+    const { data, error } = await client
       .from('friend_requests')
-      .select('sender:profiles!sender_id(*), receiver:profiles!receiver_id(*)')
+      .select(`
+        sender:profiles!friend_requests_sender_id_fkey(*),
+        receiver:profiles!friend_requests_receiver_id_fkey(*)
+      `)
       .eq('status', 'accepted')
       .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`);
     
+    if (error) return [];
     if (!data) return [];
     
     return data.map(item => {
@@ -270,98 +285,157 @@ class NexusServer {
 
   static async fetchConversations(userId: string) {
     const client = getSupabase();
-    if (!client) return [];
+    if (!client || !userId) return [];
     
-    // Fetch conversations including participant info for DMs
-    const { data, error } = await client
+    const { data: memberships, error: memError } = await client
       .from('conversation_members')
-      .select('conversation_id, conversations(*), user_id')
+      .select('conversation_id')
       .eq('user_id', userId);
 
-    if (error) return [];
+    if (memError || !memberships) {
+      console.error("Fetch memberships failure:", memError);
+      return [];
+    }
 
-    const conversations = [];
-    for (const item of data) {
-      const convo = item.conversations;
+    const conversationIds = memberships.map(m => m.conversation_id);
+    if (conversationIds.length === 0) return [];
+
+    const { data: convos, error: convError } = await client
+      .from('conversations')
+      .select('*')
+      .in('id', conversationIds);
+
+    if (convError || !convos) return [];
+
+    const finalConvos = [];
+    for (const convo of convos) {
       if (!convo.is_group) {
-        // Find the other participant's profile
         const { data: otherMember } = await client
           .from('conversation_members')
-          .select('profiles(id, username)')
+          .select('user_id')
           .eq('conversation_id', convo.id)
           .neq('user_id', userId)
-          .single();
+          .maybeSingle();
         
-        convo.display_name = (otherMember?.profiles as any)?.username || "Verto Peer";
-        convo.other_user_id = (otherMember?.profiles as any)?.id;
+        if (otherMember?.user_id) {
+          const { data: profile } = await client
+            .from('profiles')
+            .select('username')
+            .eq('id', otherMember.user_id)
+            .maybeSingle();
+          
+          convo.display_name = profile?.username || "Verto Peer";
+          convo.other_user_id = otherMember.user_id;
+        } else {
+          convo.display_name = "Self Note Channel";
+        }
       } else {
         convo.display_name = convo.name || "Squad Channel";
       }
-      conversations.push(convo);
+      finalConvos.push(convo);
     }
-    return conversations;
+    return finalConvos;
   }
 
   static async findExistingDM(userId1: string, userId2: string) {
     const client = getSupabase();
-    if (!client) return null;
+    if (!client || !userId1 || !userId2) return null;
     
     try {
-      // Complex query to find a conversation shared by exactly these two users that is not a group
       const { data, error } = await client.rpc('get_dm_between_users', { user1: userId1, user2: userId2 });
-      
-      // If RPC isn't available or fails, we fallback to a manual check
-      if (error || !data || data.length === 0) {
-         const { data: user1Convos } = await client.from('conversation_members').select('conversation_id').eq('user_id', userId1);
-         const { data: user2Convos } = await client.from('conversation_members').select('conversation_id').eq('user_id', userId2);
-         
-         if (!user1Convos || !user2Convos || user1Convos.length === 0 || user2Convos.length === 0) return null;
-         
-         const commonIds = user1Convos
-          .filter(c1 => user2Convos.some(c2 => c2.conversation_id === c1.conversation_id))
-          .map(c => c.conversation_id);
-         
-         if (commonIds.length === 0) return null;
-         
-         const { data: convos } = await client.from('conversations').select('*').in('id', commonIds).eq('is_group', false).limit(1);
-         return convos?.[0] || null;
-      }
+      if (!error && data && data.length > 0) return data[0];
 
-      return data[0] || null;
+      const { data: user1Members } = await client.from('conversation_members').select('conversation_id').eq('user_id', userId1);
+      if (!user1Members) return null;
+
+      const convoIds = user1Members.map(m => m.conversation_id);
+      const { data: commonMembers } = await client
+        .from('conversation_members')
+        .select('conversation_id')
+        .in('conversation_id', convoIds)
+        .eq('user_id', userId2);
+      
+      if (!commonMembers || commonMembers.length === 0) return null;
+
+      const matchedIds = commonMembers.map(m => m.conversation_id);
+      const { data: dmConvo } = await client
+        .from('conversations')
+        .select('*')
+        .in('id', matchedIds)
+        .eq('is_group', false)
+        .maybeSingle();
+      
+      return dmConvo || null;
     } catch (e) {
-      console.error("Manual DM check failure:", e);
       return null;
     }
   }
 
   static async createConversation(userId: string, name: string | null, isGroup: boolean, participants: string[]) {
     const client = getSupabase();
-    if (!client) return null;
-    const { data: convo } = await client.from('conversations').insert([{ name, is_group: isGroup, created_by: userId }]).select().single();
-    if (!convo) return null;
-    const members = [...new Set([...participants, userId])].map(pid => ({ conversation_id: convo.id, user_id: pid }));
-    await client.from('conversation_members').insert(members);
+    if (!client || !userId) throw new Error("Registry link offline.");
+    
+    const { data: convo, error: convoError } = await client
+      .from('conversations')
+      .insert([{ name, is_group: isGroup, created_by: userId }])
+      .select()
+      .maybeSingle();
+      
+    if (convoError || !convo) {
+      throw new Error(`Deployment blocked: ${convoError?.message || "Check Registry"}`);
+    }
+
+    const membersList = [...new Set([...participants, userId])];
+    const memberInserts = membersList.map(pid => ({ 
+      conversation_id: convo.id, 
+      user_id: pid 
+    }));
+
+    const { error: memberError } = await client.from('conversation_members').insert(memberInserts);
+    if (memberError) {
+      await client.from('conversations').delete().eq('id', convo.id);
+      throw new Error(`Handshake failed: ${memberError.message}`);
+    }
+
     return convo;
   }
 
   static async fetchMessages(conversationId: string): Promise<ChatMessage[]> {
     const client = getSupabase();
-    if (!client) return [];
-    const { data } = await client.from('messages').select('*, profiles(username)').eq('conversation_id', conversationId).order('created_at', { ascending: true });
-    return (data || []).map(m => ({
-      id: m.id, role: 'user', text: m.text, timestamp: new Date(m.created_at).getTime(), sender_id: m.sender_id, sender_name: m.profiles?.username
+    if (!client || !conversationId) return [];
+    
+    // Using simple fetch to avoid relationship ambiguity
+    const { data: msgs, error } = await client
+      .from('messages')
+      .select('*')
+      .eq('conversation_id', conversationId)
+      .order('created_at', { ascending: true });
+
+    if (error || !msgs) return [];
+
+    // Resolve profile info efficiently
+    const senderIds = Array.from(new Set(msgs.map(m => m.sender_id)));
+    const { data: profiles } = await client.from('profiles').select('id, username').in('id', senderIds);
+    const profileMap = (profiles || []).reduce((acc: any, p: any) => ({ ...acc, [p.id]: p.username }), {});
+
+    return msgs.map(m => ({
+      id: m.id, role: 'user', text: m.text, timestamp: new Date(m.created_at).getTime(), sender_id: m.sender_id, sender_name: profileMap[m.sender_id] || 'Verto'
     }));
   }
 
   static async sendMessage(userId: string, conversationId: string, text: string) {
     const client = getSupabase();
-    if (!client) return;
-    await client.from('messages').insert([{ conversation_id: conversationId, sender_id: userId, text }]);
+    if (!client || !userId || !conversationId) return;
+    const { error } = await client.from('messages').insert([{ conversation_id: conversationId, sender_id: userId, text }]);
+    if (error) {
+      console.error("Transmission error:", error);
+      throw error;
+    }
   }
 
   static subscribeToConversation(conversationId: string, onMessage: (msg: ChatMessage) => void) {
     const client = getSupabase();
-    if (!client) return () => {};
+    if (!client || !conversationId) return () => {};
     const channel = client.channel(`convo-${conversationId}`).on('postgres_changes', { 
       event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` 
     }, async (payload) => {
@@ -419,9 +493,6 @@ class NexusServer {
     }));
   }
 
-  /**
-   * Fetches files that are pending moderation.
-   */
   static async fetchPendingFiles(): Promise<LibraryFile[]> {
     const client = getSupabase();
     if (!client) throw new Error("Database offline.");
@@ -434,12 +505,9 @@ class NexusServer {
     }));
   }
 
-  /**
-   * Fetches files uploaded by a specific user.
-   */
   static async fetchUserFiles(userId: string): Promise<LibraryFile[]> {
     const client = getSupabase();
-    if (!client) throw new Error("Database offline.");
+    if (!client || !userId) throw new Error("Database offline.");
     const { data } = await client.from('documents').select('*, profiles(username, email)').eq('uploader_id', userId).order('created_at', { ascending: false });
     return (data || []).map(item => ({
       id: item.id, name: item.name, description: item.description, subject: item.subject, semester: item.semester || 'Other',
@@ -451,7 +519,7 @@ class NexusServer {
 
   static async uploadFile(file: File, name: string, description: string, subject: string, semester: string, type: string, userId: string, isAdmin: boolean = false): Promise<void> {
     const client = getSupabase();
-    if (!client) throw new Error('Database offline.');
+    if (!client || !userId) throw new Error('Database offline.');
     const fileName = `${Math.random().toString(36).substring(2)}.${file.name.split('.').pop()}`;
     const filePath = `community/${fileName}`;
     await client.storage.from('nexus-documents').upload(filePath, file);

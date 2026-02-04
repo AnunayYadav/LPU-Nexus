@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { UserProfile, ChatMessage, FriendRequest } from '../types.ts';
 import NexusServer from '../services/nexusServer.ts';
 
@@ -56,13 +56,15 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
     return () => unsubscribe();
   }, [activeView, activeConversation]);
 
-  const prevMsgLength = useRef(messages.length);
+  // Reliable Auto-scroll to bottom
   useEffect(() => {
-    if (messages.length > prevMsgLength.current) {
-      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (!isLoading) {
+      const timer = setTimeout(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+      return () => clearTimeout(timer);
     }
-    prevMsgLength.current = messages.length;
-  }, [messages]);
+  }, [messages, isLoading]);
 
   const loadLounge = async () => {
     setIsLoading(true);
@@ -118,9 +120,11 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputText.trim() || !userProfile || isSending) return;
+    
     setIsSending(true);
     const tempText = inputText;
     setInputText('');
+    
     try {
       if (activeView === 'lounge') {
         await NexusServer.sendSocialMessage(userProfile.id, userProfile.username || 'Anonymous Verto', tempText);
@@ -175,18 +179,18 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
   };
 
   const startDM = async (otherUser: UserProfile) => {
-    if (!userProfile) return;
-    
-    // Privacy Logic: If private and NOT friends, require request
-    const isFriend = friends.some(f => f.id === otherUser.id);
-    if (!otherUser.is_public && !isFriend) {
-      alert("This channel is encrypted. Send a friend request to unlock direct transmissions.");
+    if (!userProfile) {
+      alert("Please sign in to establish a link.");
       return;
     }
 
+    if (otherUser.id === userProfile.id) {
+      alert("You cannot establish a direct link with yourself.");
+      return;
+    }
+    
     setIsLoading(true);
     try {
-      // Look for existing DM in server
       let targetConvo = await NexusServer.findExistingDM(userProfile.id, otherUser.id);
       
       if (!targetConvo) {
@@ -194,21 +198,15 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
       }
 
       if (targetConvo) {
-        // Sync the local sidebar state so the selection is visible
         await loadConversations();
-        
-        // Manually inject metadata for the current session to ensure header looks correct immediately
         targetConvo.display_name = otherUser.username || "Verto Peer";
-        
-        // Load messages and switch view
         await selectConversation(targetConvo);
         setActiveView('dms');
       } else {
-        throw new Error("Unable to establish communication link.");
+        throw new Error("Handshake failed.");
       }
     } catch (e: any) {
-      console.error("DM Protocol failure:", e);
-      alert(`Connection failed: ${e.message || "Please check your network."}`);
+      alert(`Handshake Failed: ${e.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -217,16 +215,21 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
   const handleCreateGroup = async () => {
     if (!userProfile || !newGroupName.trim() || selectedUsers.length === 0) return;
     setIsLoading(true);
-    const convo = await NexusServer.createConversation(userProfile.id, newGroupName, true, selectedUsers);
-    if (convo) {
-      await loadConversations();
-      await selectConversation(convo);
-      setActiveView('groups');
-      setShowGroupModal(false);
-      setNewGroupName('');
-      setSelectedUsers([]);
+    try {
+      const convo = await NexusServer.createConversation(userProfile.id, newGroupName, true, selectedUsers);
+      if (convo) {
+        await loadConversations();
+        await selectConversation(convo);
+        setActiveView('groups');
+        setShowGroupModal(false);
+        setNewGroupName('');
+        setSelectedUsers([]);
+      }
+    } catch (e: any) {
+      alert(`Group deployment failed: ${e.message}`);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const inboundRequests = friendRequests.filter(r => r.receiver_id === userProfile?.id && r.status === 'pending');
@@ -236,15 +239,18 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
     <div className="flex h-full w-full animate-fade-in bg-white dark:bg-black overflow-hidden border-none shadow-none">
       <style>{`
         @keyframes msgInRight {
-          from { opacity: 0; transform: translateX(12px) scale(0.95); }
-          to { opacity: 1; transform: translateX(0) scale(1); }
+          from { opacity: 0; transform: translateY(10px) scale(0.98); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
         }
         @keyframes msgInLeft {
-          from { opacity: 0; transform: translateX(-12px) scale(0.95); }
-          to { opacity: 1; transform: translateX(0) scale(1); }
+          from { opacity: 0; transform: translateX(-10px) translateY(10px); }
+          to { opacity: 1; transform: translateX(0) translateY(0); }
         }
-        .msg-animate-right { animation: msgInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
-        .msg-animate-left { animation: msgInLeft 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+        .msg-animate-right { animation: msgInRight 0.4s cubic-bezier(0.17, 0.67, 0.16, 0.99) forwards; }
+        .msg-animate-left { animation: msgInLeft 0.4s cubic-bezier(0.17, 0.67, 0.16, 0.99) forwards; }
+        
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
 
       {/* Navigation Rail */}
@@ -276,13 +282,16 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
       {/* Sidebars for different views */}
       {activeView !== 'directory' && activeView !== 'lounge' && activeView !== 'requests' && (
         <div className="w-64 md:w-80 bg-slate-50 dark:bg-[#080808] border-r border-slate-200 dark:border-white/5 flex flex-col hidden md:flex">
-          <div className="p-6 border-b border-slate-200 dark:border-white/5">
+          <div className="p-6 border-b border-slate-200 dark:border-white/5 flex items-center justify-between">
             <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 dark:text-white">{activeView === 'dms' ? 'Transmissions' : 'Squads'}</h3>
+            <button onClick={loadConversations} className="p-1.5 hover:text-orange-500 transition-colors" title="Sync Registry"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></button>
+          </div>
+          <div className="p-4 border-b border-slate-200 dark:border-white/5">
             <button 
               onClick={() => activeView === 'groups' ? setShowGroupModal(true) : setActiveView('directory')}
-              className="mt-4 w-full py-2.5 bg-black text-orange-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-orange-600 hover:text-white transition-all border-none"
+              className="w-full py-2.5 bg-black text-orange-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-orange-600 hover:text-white transition-all border-none shadow-sm"
             >
-              {activeView === 'groups' ? '+ Deploy Squad' : '+ Encrypted Link'}
+              {activeView === 'groups' ? '+ Deploy Squad' : '+ Signal Scout'}
             </button>
           </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-2 no-scrollbar">
@@ -301,9 +310,6 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                 </div>
               </button>
             ))}
-            {conversations.length === 0 && (
-              <div className="py-10 text-center opacity-20 text-[9px] font-black uppercase tracking-widest">Awaiting Uplink...</div>
-            )}
           </div>
         </div>
       )}
@@ -364,35 +370,24 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                     </div>
 
                     <div className="mt-auto flex gap-2">
-                      {profile.is_public || isFriend ? (
+                      <button 
+                        onClick={() => startDM(profile)}
+                        className="flex-1 py-3 bg-black text-white rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-orange-600 transition-all border-none shadow-lg active:scale-95"
+                      >
+                        Message
+                      </button>
+                      {!isFriend && !isPending && (
                         <button 
-                          onClick={() => startDM(profile)}
-                          className="flex-1 py-3 bg-black text-white rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-orange-600 transition-all border-none shadow-lg active:scale-95"
+                          onClick={() => sendRequest(profile.id)}
+                          className="px-4 py-3 bg-orange-600/10 text-orange-600 rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-orange-600 hover:text-white transition-all border-none"
                         >
-                          Message
-                        </button>
-                      ) : (
-                        <button 
-                          onClick={() => !isPending && sendRequest(profile.id)}
-                          disabled={isPending}
-                          className={`flex-1 py-3 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all border-none shadow-lg active:scale-95 ${isPending ? 'bg-slate-200 dark:bg-white/5 text-slate-400' : 'bg-orange-600 text-white hover:bg-orange-700'}`}
-                        >
-                          {isPending ? 'Request Sent' : 'Add Friend'}
+                          Add
                         </button>
                       )}
                     </div>
                   </div>
                 );
               })}
-              {!searchQuery && (
-                <div className="col-span-full py-20 text-center opacity-30">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="w-16 h-16 mx-auto mb-4"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-                  <p className="text-xs font-black uppercase tracking-widest">Awaiting Username Input...</p>
-                </div>
-              )}
-              {searchQuery && searchResults.length === 0 && !isSearching && (
-                <div className="col-span-full py-20 text-center opacity-20 text-xs font-black uppercase tracking-widest">No Vertos found matching criteria.</div>
-              )}
             </div>
           </div>
         ) : activeView === 'requests' ? (
@@ -408,49 +403,23 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                   <span className="w-8 h-px bg-orange-600/20" />
                   Inbound Requests ({inboundRequests.length})
                 </h3>
-                {inboundRequests.length === 0 ? (
-                  <div className="p-10 border-2 border-dashed border-slate-200 dark:border-white/5 rounded-[40px] text-center opacity-20 text-[10px] font-black uppercase tracking-widest">Zero pending signals.</div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {inboundRequests.map(req => (
-                      <div key={req.id} className="glass-panel p-6 rounded-[32px] bg-white dark:bg-[#050505] border border-slate-200 dark:border-white/5 flex items-center justify-between">
-                         <div className="flex items-center gap-4">
-                           <div className="w-12 h-12 rounded-2xl bg-black text-orange-500 flex items-center justify-center font-black text-xl">
-                             {req.sender?.username?.[0]?.toUpperCase()}
-                           </div>
-                           <div>
-                             <p className="text-sm font-black dark:text-white uppercase tracking-tight">@{req.sender?.username}</p>
-                             <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Awaiting Verification</p>
-                           </div>
-                         </div>
-                         <div className="flex gap-2">
-                            <button onClick={() => respondToRequest(req.id, 'declined')} className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-red-500 transition-all border-none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-                            <button onClick={() => respondToRequest(req.id, 'accepted')} className="w-10 h-10 rounded-xl bg-orange-600 text-white shadow-lg shadow-orange-600/20 transition-all border-none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><polyline points="20 6 9 17 4 12"/></svg></button>
-                         </div>
-                      </div>
-                    ))}
+                {inboundRequests.map(req => (
+                  <div key={req.id} className="glass-panel p-6 rounded-[32px] bg-white dark:bg-[#050505] border border-slate-200 dark:border-white/5 flex items-center justify-between">
+                     <div className="flex items-center gap-4">
+                       <div className="w-12 h-12 rounded-2xl bg-black text-orange-500 flex items-center justify-center font-black text-xl">
+                         {req.sender?.username?.[0]?.toUpperCase()}
+                       </div>
+                       <div>
+                         <p className="text-sm font-black dark:text-white uppercase tracking-tight">@{req.sender?.username}</p>
+                         <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Awaiting Verification</p>
+                       </div>
+                     </div>
+                     <div className="flex gap-2">
+                        <button onClick={() => respondToRequest(req.id, 'declined')} className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-red-500 transition-all border-none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+                        <button onClick={() => respondToRequest(req.id, 'accepted')} className="w-10 h-10 rounded-xl bg-orange-600 text-white shadow-lg shadow-orange-600/20 transition-all border-none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><polyline points="20 6 9 17 4 12"/></svg></button>
+                     </div>
                   </div>
-                )}
-              </section>
-
-              <section>
-                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-6 flex items-center gap-3">
-                  <span className="w-8 h-px bg-slate-500/20" />
-                  Sent Transmissions ({outboundRequests.length})
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {outboundRequests.map(req => (
-                    <div key={req.id} className="p-6 rounded-[32px] border border-slate-100 dark:border-white/5 flex items-center gap-4 opacity-60">
-                       <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-400 flex items-center justify-center font-black">
-                         {req.receiver?.username?.[0]?.toUpperCase()}
-                       </div>
-                       <div className="flex-1">
-                          <p className="text-xs font-black dark:text-white uppercase tracking-tight">@{req.receiver?.username}</p>
-                          <p className="text-[7px] font-bold text-slate-400 uppercase tracking-[0.2em]">Signal status: Transmitted</p>
-                       </div>
-                    </div>
-                  ))}
-                </div>
+                ))}
               </section>
             </div>
           </div>
@@ -475,26 +444,37 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
               </div>
             </header>
 
-            <div className="flex-1 overflow-y-auto p-8 space-y-6 no-scrollbar bg-white dark:bg-black" ref={scrollRef}>
+            <div 
+              ref={scrollRef}
+              className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6 no-scrollbar bg-white dark:bg-black scroll-smooth"
+            >
               {isLoading ? (
                 <div className="flex items-center justify-center h-full opacity-30 text-[10px] font-black uppercase tracking-widest animate-pulse">Synchronizing Buffers...</div>
               ) : messages.map((msg, i) => {
                 const isMe = msg.sender_id === userProfile?.id;
                 return (
                   <div key={msg.id || i} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} ${isMe ? 'msg-animate-right' : 'msg-animate-left'} group`}>
-                    <div className={`flex items-center gap-2 mb-1.5 px-3 ${isMe ? 'flex-row-reverse' : ''}`}>
+                    <div className={`flex items-center gap-2 mb-1.5 px-1 ${isMe ? 'flex-row-reverse' : ''}`}>
                        {!isMe && <span className="text-[9px] font-black text-orange-600 uppercase tracking-tight">@{msg.sender_name}</span>}
                        <span className="text-[8px] font-bold text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                        </span>
                     </div>
-                    <div className={`relative px-6 py-3.5 rounded-[24px] text-sm font-medium shadow-sm max-w-[85%] md:max-w-[70%] leading-relaxed ${isMe ? 'bg-orange-600 text-white rounded-tr-none' : 'bg-slate-100 dark:bg-[#111111] text-slate-800 dark:text-slate-200 border border-slate-200/50 dark:border-white/5 rounded-tl-none'}`}>
-                      {msg.text}
+                    <div className="flex items-end gap-2 max-w-[85%] md:max-w-[70%]">
+                      <div className={`relative px-5 py-3 rounded-[24px] text-sm font-medium shadow-sm leading-relaxed transition-all ${isMe ? 'bg-orange-600 text-white rounded-tr-none' : 'bg-slate-100 dark:bg-[#111111] text-slate-800 dark:text-slate-200 border border-slate-200/50 dark:border-white/5 rounded-tl-none'}`}>
+                        {msg.text}
+                      </div>
+                      {isMe && (
+                        <div className="flex items-center gap-0.5 mb-1 opacity-60">
+                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="w-2.5 h-2.5 text-orange-500"><polyline points="20 6 9 17 4 12"/></svg>
+                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="w-2.5 h-2.5 text-orange-500 -ml-1.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
               })}
-              <div ref={chatEndRef} />
+              <div ref={chatEndRef} className="h-4 w-full" />
             </div>
             
             <div className="p-6 bg-white dark:bg-black border-t border-slate-200 dark:border-white/5">
@@ -556,7 +536,6 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                       {selectedUsers.includes(p.id) && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="w-3 h-3"><polyline points="20 6 9 17 4 12"/></svg>}
                     </button>
                   ))}
-                  {friends.length === 0 && <p className="text-[9px] text-slate-500 uppercase tracking-widest text-center py-4">No peers verified in registry.</p>}
                 </div>
               </div>
 

@@ -3,35 +3,19 @@
 
 **LPU-Nexus** is a comprehensive, AI-powered student utility platform designed specifically for the students of Lovely Professional University.
 
-![Version](https://img.shields.io/badge/version-1.3.0-orange)
+![Version](https://img.shields.io/badge/version-1.4.0-orange)
 ![AI](https://img.shields.io/badge/Powered%20By-Gemini%203-red)
 ![Cloud](https://img.shields.io/badge/Database-Supabase-emerald)
 
 ---
 
-## ⚙️ Database Fix & Setup (Supabase)
+## ⚙️ Database Setup (Supabase)
 
-If you are seeing a "column not found" error or usernames are not appearing, run this script in your **Supabase SQL Editor**:
+If you are seeing "Connection failed" or "Identity protocol failure," you must run these scripts in your **Supabase SQL Editor**:
 
-### 1. Unified Setup (Run This First)
+### 1. Core Profile Setup
 ```sql
--- Fix: Add missing columns to 'documents' if they don't exist
-DO $$ 
-BEGIN 
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='documents' AND column_name='uploader_id') THEN
-        ALTER TABLE public.documents ADD COLUMN uploader_id UUID REFERENCES auth.users(id);
-    END IF;
-    
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='documents' AND column_name='admin_notes') THEN
-        ALTER TABLE public.documents ADD COLUMN admin_notes TEXT;
-    END IF;
-
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='documents' AND column_name='pending_update') THEN
-        ALTER TABLE public.documents ADD COLUMN pending_update JSONB;
-    END IF;
-END $$;
-
--- Create 'profiles' table with all required fields
+-- Create 'profiles' table
 CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
     email TEXT,
@@ -45,35 +29,108 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Ensure RLS is enabled
+-- Enable RLS
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Public Profiles Access" ON public.profiles;
-CREATE POLICY "Public Profiles Access" ON public.profiles FOR SELECT USING (is_public = true OR auth.uid() = id);
+CREATE POLICY "Public Profiles Access" ON public.profiles FOR SELECT USING (true);
 CREATE POLICY "Users update own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
-```
 
-### 2. Correct Auto-Profile Trigger
-This script ensures that when a user signs up via the app, their `username` (sent in the metadata) is automatically pulled into the `profiles` table.
-```sql
+-- Auto-profile trigger
 CREATE OR REPLACE FUNCTION public.handle_new_user() 
 RETURNS trigger AS $$
 BEGIN
   INSERT INTO public.profiles (id, email, username, is_admin)
-  VALUES (
-    new.id, 
-    new.email, 
-    new.raw_user_meta_data->>'username', -- Extracts from app signup options
-    false
-  );
+  VALUES (new.id, new.email, new.raw_user_meta_data->>'username', false);
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Recreate trigger to ensure it uses the latest function
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+```
+
+### 2. Social Hub & Messaging Setup (CRITICAL FOR MESSAGING)
+Run this to fix the "Unable to establish communication link" error:
+
+```sql
+-- Conversations Table
+CREATE TABLE IF NOT EXISTS public.conversations (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    name TEXT, -- Null for DMs
+    is_group BOOLEAN DEFAULT false,
+    created_by UUID REFERENCES auth.users(id),
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Conversation Members
+CREATE TABLE IF NOT EXISTS public.conversation_members (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    conversation_id UUID REFERENCES public.conversations(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    joined_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE(conversation_id, user_id)
+);
+
+-- Messages Table
+CREATE TABLE IF NOT EXISTS public.messages (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    conversation_id UUID REFERENCES public.conversations(id) ON DELETE CASCADE,
+    sender_id UUID REFERENCES auth.users(id),
+    text TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Global Lounge Messages
+CREATE TABLE IF NOT EXISTS public.social_messages (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    sender_id UUID REFERENCES auth.users(id),
+    sender_name TEXT,
+    text TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Friend Request System
+CREATE TABLE IF NOT EXISTS public.friend_requests (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    sender_id UUID REFERENCES auth.users(id),
+    receiver_id UUID REFERENCES auth.users(id),
+    status TEXT DEFAULT 'pending', -- pending, accepted, declined
+    created_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE(sender_id, receiver_id)
+);
+
+-- RPC Function to find existing DMs (Fixes the "Message" button)
+CREATE OR REPLACE FUNCTION get_dm_between_users(user1 UUID, user2 UUID)
+RETURNS SETOF conversations AS $$
+BEGIN
+  RETURN QUERY
+  SELECT c.*
+  FROM conversations c
+  JOIN conversation_members cm1 ON c.id = cm1.conversation_id
+  JOIN conversation_members cm2 ON c.id = cm2.conversation_id
+  WHERE c.is_group = false
+    AND cm1.user_id = user1
+    AND cm2.user_id = user2
+  LIMIT 1;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Messaging RLS Policies
+ALTER TABLE public.conversations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.conversation_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.social_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.friend_requests ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "View own conversations" ON conversations FOR SELECT USING (EXISTS (SELECT 1 FROM conversation_members WHERE conversation_id = id AND user_id = auth.uid()));
+CREATE POLICY "Create conversations" ON conversations FOR INSERT WITH CHECK (auth.uid() = created_by);
+CREATE POLICY "View members" ON conversation_members FOR SELECT USING (EXISTS (SELECT 1 FROM conversation_members sub WHERE sub.conversation_id = conversation_id AND sub.user_id = auth.uid()));
+CREATE POLICY "Join conversations" ON conversation_members FOR INSERT WITH CHECK (true);
+CREATE POLICY "View messages" ON messages FOR SELECT USING (EXISTS (SELECT 1 FROM conversation_members WHERE conversation_id = messages.conversation_id AND user_id = auth.uid()));
+CREATE POLICY "Send messages" ON messages FOR INSERT WITH CHECK (auth.uid() = sender_id);
+CREATE POLICY "View Lounge" ON social_messages FOR SELECT USING (true);
+CREATE POLICY "Post Lounge" ON social_messages FOR INSERT WITH CHECK (auth.uid() = sender_id);
+CREATE POLICY "View Requests" ON friend_requests FOR SELECT USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
+CREATE POLICY "Manage Requests" ON friend_requests FOR ALL USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
 ```
 
 ---
@@ -82,22 +139,15 @@ CREATE TRIGGER on_auth_user_created
 
 ### 👔 The Placement Prefect (AI Resume Analyzer)
 - **ATS Matching:** Upload your resume (PDF) and paste a Job Description to get an instant match score.
-- **Brutal Feedback:** Leverages **Gemini 3 Flash/Pro** to provide critical phrasing advice.
+- **Brutal Feedback:** Leverages **Gemini 3 Pro** to provide critical phrasing advice.
 
 ### 📂 Nexus FS Registry (Content Library)
 - **Hierarchical File Manager:** Semester -> Subject -> Category structure.
-- **Drag & Drop:** Admins can drag files directly into folders to pre-set upload paths.
+- **Contribution:** Students can upload notes for peer verification.
 
 ### 💬 Verto Social Hub
 - **Lounge:** Real-time campus-wide chat.
 - **Squads:** Encrypted group messaging for sections or study groups.
-
----
-
-## 🚀 Getting Started
-
-1. `npm install`
-2. Configure `.env` with `API_KEY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`.
-3. `npm run dev`
+- **Directory:** Find and message any Verto on campus.
 
 *Disclaimer: LPU-Nexus is an independent student-led project and is not officially affiliated with Lovely Professional University.*
