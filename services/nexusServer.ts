@@ -414,6 +414,26 @@ class NexusServer {
     return convo;
   }
 
+  static async markConversationAsRead(userId: string, conversationId: string) {
+    const client = getSupabase();
+    if (!client || !userId || !conversationId) return;
+    await client
+      .from('conversation_members')
+      .update({ last_read_at: new Date().toISOString() })
+      .eq('conversation_id', conversationId)
+      .eq('user_id', userId);
+  }
+
+  static async fetchMemberReadStatuses(conversationId: string) {
+    const client = getSupabase();
+    if (!client || !conversationId) return [];
+    const { data } = await client
+      .from('conversation_members')
+      .select('user_id, last_read_at')
+      .eq('conversation_id', conversationId);
+    return data || [];
+  }
+
   static async fetchMessages(conversationId: string): Promise<ChatMessage[]> {
     const client = getSupabase();
     if (!client || !conversationId) return [];
@@ -465,6 +485,11 @@ class NexusServer {
     const channel = client.channel(`convo-${conversationId}`)
       .on('postgres_changes', { 
         event: '*', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` 
+      }, (payload) => {
+        onUpdate(payload);
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'public', table: 'conversation_members', filter: `conversation_id=eq.${conversationId}`
       }, (payload) => {
         onUpdate(payload);
       })

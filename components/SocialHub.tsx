@@ -16,6 +16,16 @@ const filterProfanity = (text: string) => {
   return filtered;
 };
 
+// Read Receipt Component
+const ReadReceipt = ({ isRead }: { isRead: boolean }) => (
+  <div className={`flex items-center ml-1 ${isRead ? 'text-orange-500' : 'text-slate-400'}`}>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3">
+      <polyline points="20 6 9 17 4 12" />
+      {isRead && <polyline points="20 12 11 21 6 16" className="-ml-1" />}
+    </svg>
+  </div>
+);
+
 // Skeleton Loader Components
 const ConvoSkeleton = () => (
   <div className="w-full p-4 rounded-3xl flex items-center gap-3 bg-slate-50/50 dark:bg-white/[0.02] animate-pulse">
@@ -59,6 +69,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
   // Cache for messages keyed by 'lounge' or convo.id
   const [messageCache, setMessageCache] = useState<Record<string, ChatMessage[]>>({});
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [memberReadStatus, setMemberReadStatus] = useState<Record<string, number>>({});
   
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -88,6 +99,13 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
     }
   }, [userProfile]);
 
+  // Mark active conversation as read
+  useEffect(() => {
+    if (userProfile && activeConversation) {
+      NexusServer.markConversationAsRead(userProfile.id, activeConversation.id);
+    }
+  }, [activeConversation, messages, userProfile]);
+
   // Real-time subscriptions
   useEffect(() => {
     let unsubscribe: () => void = () => {};
@@ -99,54 +117,66 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
       
       const currentContextId = activeView === 'lounge' ? 'lounge' : activeConversation?.id;
 
-      if (eventType === 'INSERT') {
-        const newMsg: ChatMessage = { 
-          id: newRecord.id, 
-          role: 'user', 
-          text: newRecord.text, 
-          timestamp: new Date(newRecord.created_at).getTime(), 
-          sender_id: newRecord.sender_id, 
-          sender_name: newRecord.sender_name || 'User'
-        };
-        
-        // Update current messages if it's for the active view
-        setMessages(prev => {
-          if (prev.some(m => m.id === newMsg.id)) return prev;
-          return [...prev, newMsg];
-        });
+      // Handle message updates
+      if (payload.table === 'messages' || payload.table === 'social_messages') {
+        if (eventType === 'INSERT') {
+          const newMsg: ChatMessage = { 
+            id: newRecord.id, 
+            role: 'user', 
+            text: newRecord.text, 
+            timestamp: new Date(newRecord.created_at).getTime(), 
+            sender_id: newRecord.sender_id, 
+            sender_name: newRecord.sender_name || 'User'
+          };
+          
+          setMessages(prev => {
+            if (prev.some(m => m.id === newMsg.id)) return prev;
+            return [...prev, newMsg];
+          });
 
-        // Also update cache for the relevant context
-        if (currentContextId) {
-          setMessageCache(prev => ({
-            ...prev,
-            [currentContextId]: prev[currentContextId] 
-              ? (prev[currentContextId].some(m => m.id === newMsg.id) ? prev[currentContextId] : [...prev[currentContextId], newMsg])
-              : [newMsg]
-          }));
-        }
-      } else if (eventType === 'DELETE') {
-        const deletedId = oldRecord?.id || payload.old?.id;
-        if (deletedId) {
-          setMessages(prev => prev.filter(m => m.id !== deletedId));
           if (currentContextId) {
             setMessageCache(prev => ({
               ...prev,
-              [currentContextId]: (prev[currentContextId] || []).filter(m => m.id !== deletedId)
+              [currentContextId]: prev[currentContextId] 
+                ? (prev[currentContextId].some(m => m.id === newMsg.id) ? prev[currentContextId] : [...prev[currentContextId], newMsg])
+                : [newMsg]
             }));
           }
-        }
-      } else if (eventType === 'UPDATE') {
-        const updatedId = newRecord?.id;
-        if (updatedId) {
-          const updater = (m: ChatMessage) => m.id === updatedId ? { ...m, text: newRecord.text } : m;
-          setMessages(prev => prev.map(updater));
-          if (currentContextId) {
-            setMessageCache(prev => ({
-              ...prev,
-              [currentContextId]: (prev[currentContextId] || []).map(updater)
-            }));
+        } else if (eventType === 'DELETE') {
+          const deletedId = oldRecord?.id || payload.old?.id;
+          if (deletedId) {
+            setMessages(prev => prev.filter(m => m.id !== deletedId));
+            if (currentContextId) {
+              setMessageCache(prev => ({
+                ...prev,
+                [currentContextId]: (prev[currentContextId] || []).filter(m => m.id !== deletedId)
+              }));
+            }
+          }
+        } else if (eventType === 'UPDATE') {
+          const updatedId = newRecord?.id;
+          if (updatedId) {
+            const updater = (m: ChatMessage) => m.id === updatedId ? { ...m, text: newRecord.text } : m;
+            setMessages(prev => prev.map(updater));
+            if (currentContextId) {
+              setMessageCache(prev => ({
+                ...prev,
+                [currentContextId]: (prev[currentContextId] || []).map(updater)
+              }));
+            }
           }
         }
+      }
+
+      // Handle read status updates (member table changes)
+      if (payload.table === 'conversation_members' && eventType === 'UPDATE' && activeConversation) {
+        NexusServer.fetchMemberReadStatuses(activeConversation.id).then(statuses => {
+          const statusMap = statuses.reduce((acc: any, s: any) => ({
+            ...acc,
+            [s.user_id]: new Date(s.last_read_at).getTime()
+          }), {});
+          setMemberReadStatus(statusMap);
+        });
       }
     };
 
@@ -154,6 +184,14 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
       unsubscribe = NexusServer.subscribeToSocialChat(handlePayload);
     } else if (activeConversation) {
       unsubscribe = NexusServer.subscribeToConversation(activeConversation.id, handlePayload);
+      // Fetch initial read statuses
+      NexusServer.fetchMemberReadStatuses(activeConversation.id).then(statuses => {
+        const statusMap = statuses.reduce((acc: any, s: any) => ({
+          ...acc,
+          [s.user_id]: new Date(s.last_read_at).getTime()
+        }), {});
+        setMemberReadStatus(statusMap);
+      });
     }
     return () => unsubscribe();
   }, [activeView, activeConversation]);
@@ -191,11 +229,9 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
   };
 
   const loadLounge = async () => {
-    // If we already have lounge messages in cache, show them immediately
     if (messageCache['lounge']) {
       setMessages(messageCache['lounge']);
       setIsLoading(false);
-      // Optional: Refresh in background
       NexusServer.fetchSocialMessages().then(msgs => {
         setMessages(msgs);
         setMessageCache(prev => ({ ...prev, lounge: msgs }));
@@ -248,11 +284,9 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
     setActiveConversation(convo);
     setEditingMessageId(null);
     
-    // If messages are in cache, use them immediately to avoid skeleton blink
     if (messageCache[convo.id]) {
       setMessages(messageCache[convo.id]);
       setIsLoading(false);
-      // Optional: Background refresh
       NexusServer.fetchMessages(convo.id).then(msgs => {
         setMessages(msgs);
         setMessageCache(prev => ({ ...prev, [convo.id]: msgs }));
@@ -622,6 +656,12 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                 ) : messages.map((msg, i) => {
                   const isMe = msg.sender_id === userProfile?.id;
                   const isEditing = editingMessageId === msg.id;
+                  
+                  // Read status logic: Message is read if any participant (besides sender) has a last_read_at >= msg timestamp
+                  const isRead = activeView !== 'lounge' && Object.entries(memberReadStatus).some(([uid, time]) => 
+                    uid !== msg.sender_id && time >= msg.timestamp
+                  );
+
                   return (
                     <div key={msg.id || `temp-${i}`} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} msg-animate group`}>
                       <div className={`flex items-center gap-2 mb-1.5 px-1 ${isMe ? 'flex-row-reverse' : ''}`}>
@@ -640,7 +680,16 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                                 <button onClick={() => handleEditMessage(msg.id!)} className="text-[8px] uppercase font-black border-none bg-transparent text-white p-0">Update</button>
                               </div>
                             </div>
-                          ) : <span>{msg.text}</span>}
+                          ) : (
+                            <div className="flex flex-col">
+                              <span>{msg.text}</span>
+                              {isMe && activeView !== 'lounge' && (
+                                <div className="self-end -mb-1 mt-1">
+                                  <ReadReceipt isRead={isRead} />
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                         {isMe && !isEditing && (
                           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
