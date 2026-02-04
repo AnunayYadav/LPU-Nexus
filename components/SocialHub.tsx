@@ -55,7 +55,11 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
   const [activeView, setActiveView] = useState<SocialView>('lounge');
   const [conversations, setConversations] = useState<any[]>([]);
   const [activeConversation, setActiveConversation] = useState<any | null>(null);
+  
+  // Cache for messages keyed by 'lounge' or convo.id
+  const [messageCache, setMessageCache] = useState<Record<string, ChatMessage[]>>({});
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -93,6 +97,8 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
       const newRecord = payload.new;
       const oldRecord = payload.old;
       
+      const currentContextId = activeView === 'lounge' ? 'lounge' : activeConversation?.id;
+
       if (eventType === 'INSERT') {
         const newMsg: ChatMessage = { 
           id: newRecord.id, 
@@ -102,19 +108,44 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
           sender_id: newRecord.sender_id, 
           sender_name: newRecord.sender_name || 'User'
         };
+        
+        // Update current messages if it's for the active view
         setMessages(prev => {
           if (prev.some(m => m.id === newMsg.id)) return prev;
           return [...prev, newMsg];
         });
+
+        // Also update cache for the relevant context
+        if (currentContextId) {
+          setMessageCache(prev => ({
+            ...prev,
+            [currentContextId]: prev[currentContextId] 
+              ? (prev[currentContextId].some(m => m.id === newMsg.id) ? prev[currentContextId] : [...prev[currentContextId], newMsg])
+              : [newMsg]
+          }));
+        }
       } else if (eventType === 'DELETE') {
         const deletedId = oldRecord?.id || payload.old?.id;
         if (deletedId) {
           setMessages(prev => prev.filter(m => m.id !== deletedId));
+          if (currentContextId) {
+            setMessageCache(prev => ({
+              ...prev,
+              [currentContextId]: (prev[currentContextId] || []).filter(m => m.id !== deletedId)
+            }));
+          }
         }
       } else if (eventType === 'UPDATE') {
         const updatedId = newRecord?.id;
         if (updatedId) {
-          setMessages(prev => prev.map(m => m.id === updatedId ? { ...m, text: newRecord.text } : m));
+          const updater = (m: ChatMessage) => m.id === updatedId ? { ...m, text: newRecord.text } : m;
+          setMessages(prev => prev.map(updater));
+          if (currentContextId) {
+            setMessageCache(prev => ({
+              ...prev,
+              [currentContextId]: (prev[currentContextId] || []).map(updater)
+            }));
+          }
         }
       }
     };
@@ -160,10 +191,23 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
   };
 
   const loadLounge = async () => {
+    // If we already have lounge messages in cache, show them immediately
+    if (messageCache['lounge']) {
+      setMessages(messageCache['lounge']);
+      setIsLoading(false);
+      // Optional: Refresh in background
+      NexusServer.fetchSocialMessages().then(msgs => {
+        setMessages(msgs);
+        setMessageCache(prev => ({ ...prev, lounge: msgs }));
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       const msgs = await NexusServer.fetchSocialMessages();
       setMessages(msgs);
+      setMessageCache(prev => ({ ...prev, lounge: msgs }));
     } catch (e) {
       console.error(e);
     } finally {
@@ -203,10 +247,24 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
   const selectConversation = async (convo: any) => {
     setActiveConversation(convo);
     setEditingMessageId(null);
+    
+    // If messages are in cache, use them immediately to avoid skeleton blink
+    if (messageCache[convo.id]) {
+      setMessages(messageCache[convo.id]);
+      setIsLoading(false);
+      // Optional: Background refresh
+      NexusServer.fetchMessages(convo.id).then(msgs => {
+        setMessages(msgs);
+        setMessageCache(prev => ({ ...prev, [convo.id]: msgs }));
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       const msgs = await NexusServer.fetchMessages(convo.id);
       setMessages(msgs);
+      setMessageCache(prev => ({ ...prev, [convo.id]: msgs }));
     } catch (e) {
       console.error(e);
     } finally {
@@ -242,7 +300,17 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
     const originalText = messages.find(m => m.id === msgId)?.text;
     const filtered = activeView === 'lounge' ? filterProfanity(editValue) : editValue;
     
-    setMessages(prev => prev.map(m => m.id === msgId ? { ...m, text: filtered } : m));
+    const contextId = activeView === 'lounge' ? 'lounge' : activeConversation?.id;
+
+    const updater = (m: ChatMessage) => m.id === msgId ? { ...m, text: filtered } : m;
+    setMessages(prev => prev.map(updater));
+    if (contextId) {
+      setMessageCache(prev => ({
+        ...prev,
+        [contextId]: (prev[contextId] || []).map(updater)
+      }));
+    }
+
     setEditingMessageId(null);
 
     try {
@@ -252,8 +320,12 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
         await NexusServer.updateMessage(msgId, userProfile.id, filtered);
       }
     } catch (e) {
+      const resetter = (m: ChatMessage) => m.id === msgId ? { ...m, text: originalText! } : m;
       if (originalText) {
-        setMessages(prev => prev.map(m => m.id === msgId ? { ...m, text: originalText } : m));
+        setMessages(prev => prev.map(resetter));
+        if (contextId) {
+          setMessageCache(prev => ({ ...prev, [contextId]: (prev[contextId] || []).map(resetter) }));
+        }
       }
       alert("Permission denied or error updating message.");
     }
@@ -263,7 +335,15 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
     if (!userProfile || !confirm("Delete this message?")) return;
     
     const originalMessages = [...messages];
+    const contextId = activeView === 'lounge' ? 'lounge' : activeConversation?.id;
+
     setMessages(prev => prev.filter(m => m.id !== msgId));
+    if (contextId) {
+      setMessageCache(prev => ({
+        ...prev,
+        [contextId]: (prev[contextId] || []).filter(m => m.id !== msgId)
+      }));
+    }
 
     try {
       if (activeView === 'lounge') {
@@ -273,6 +353,9 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
       }
     } catch (e) {
       setMessages(originalMessages);
+      if (contextId) {
+        setMessageCache(prev => ({ ...prev, [contextId]: originalMessages }));
+      }
       alert("Could not delete message. You must be the sender.");
     }
   };
