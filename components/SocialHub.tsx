@@ -66,7 +66,6 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
   const [conversations, setConversations] = useState<any[]>([]);
   const [activeConversation, setActiveConversation] = useState<any | null>(null);
   
-  // Cache for messages keyed by 'lounge' or convo.id
   const [messageCache, setMessageCache] = useState<Record<string, ChatMessage[]>>({});
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [memberReadStatus, setMemberReadStatus] = useState<Record<string, number>>({});
@@ -110,13 +109,13 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
   useEffect(() => {
     let unsubscribe: () => void = () => {};
     
+    const currentContextId = activeView === 'lounge' ? 'lounge' : activeConversation?.id;
+
     const handlePayload = (payload: any) => {
       const eventType = payload.eventType;
       const newRecord = payload.new;
       const oldRecord = payload.old;
       
-      const currentContextId = activeView === 'lounge' ? 'lounge' : activeConversation?.id;
-
       // Handle message updates
       if (payload.table === 'messages' || payload.table === 'social_messages') {
         if (eventType === 'INSERT') {
@@ -130,17 +129,25 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
           };
           
           setMessages(prev => {
+            // Remove optimistic duplicates: Filter out any temp message with the same text/sender if needed
+            // But usually we just filter by ID
             if (prev.some(m => m.id === newMsg.id)) return prev;
-            return [...prev, newMsg];
+            
+            // Clean up any "temp-" messages that might be older versions of this real message
+            const filtered = prev.filter(m => !(m.id?.startsWith('temp-') && m.text === newMsg.text && m.sender_id === newMsg.sender_id));
+            return [...filtered, newMsg].sort((a, b) => a.timestamp - b.timestamp);
           });
 
           if (currentContextId) {
-            setMessageCache(prev => ({
-              ...prev,
-              [currentContextId]: prev[currentContextId] 
-                ? (prev[currentContextId].some(m => m.id === newMsg.id) ? prev[currentContextId] : [...prev[currentContextId], newMsg])
-                : [newMsg]
-            }));
+            setMessageCache(prev => {
+              const prevConvoMsgs = prev[currentContextId] || [];
+              if (prevConvoMsgs.some(m => m.id === newMsg.id)) return prev;
+              const filtered = prevConvoMsgs.filter(m => !(m.id?.startsWith('temp-') && m.text === newMsg.text && m.sender_id === newMsg.sender_id));
+              return {
+                ...prev,
+                [currentContextId]: [...filtered, newMsg].sort((a, b) => a.timestamp - b.timestamp)
+              };
+            });
           }
         } else if (eventType === 'DELETE') {
           const deletedId = oldRecord?.id || payload.old?.id;
@@ -168,7 +175,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
         }
       }
 
-      // Handle read status updates (member table changes)
+      // Handle read status updates
       if (payload.table === 'conversation_members' && eventType === 'UPDATE' && activeConversation) {
         NexusServer.fetchMemberReadStatuses(activeConversation.id).then(statuses => {
           const statusMap = statuses.reduce((acc: any, s: any) => ({
@@ -184,7 +191,6 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
       unsubscribe = NexusServer.subscribeToSocialChat(handlePayload);
     } else if (activeConversation) {
       unsubscribe = NexusServer.subscribeToConversation(activeConversation.id, handlePayload);
-      // Fetch initial read statuses
       NexusServer.fetchMemberReadStatuses(activeConversation.id).then(statuses => {
         const statusMap = statuses.reduce((acc: any, s: any) => ({
           ...acc,
@@ -310,22 +316,35 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
     e.preventDefault();
     if (!inputText.trim() || !userProfile || isSending) return;
     
-    setIsSending(true);
     const tempText = inputText;
+    const filtered = activeView === 'lounge' ? filterProfanity(tempText) : tempText;
+    
+    // Optimistic Update: Add message to UI immediately
+    const tempId = `temp-${Date.now()}`;
+    const optimisticMsg: ChatMessage = {
+      id: tempId,
+      role: 'user',
+      text: filtered,
+      timestamp: Date.now(),
+      sender_id: userProfile.id,
+      sender_name: userProfile.username || 'User'
+    };
+
+    setMessages(prev => [...prev, optimisticMsg]);
     setInputText('');
     
     try {
       if (activeView === 'lounge') {
-        const filtered = filterProfanity(tempText);
         await NexusServer.sendSocialMessage(userProfile.id, userProfile.username || 'User', filtered);
       } else if (activeConversation) {
-        await NexusServer.sendMessage(userProfile.id, activeConversation.id, tempText);
+        await NexusServer.sendMessage(userProfile.id, activeConversation.id, filtered);
       }
     } catch (e) { 
-      console.error(e);
+      console.error("Failed to send:", e);
+      // Remove the optimistic message if it failed
+      setMessages(prev => prev.filter(m => m.id !== tempId));
       setInputText(tempText);
-    } finally { 
-      setIsSending(false); 
+      alert("Nexus connection unstable. Message transmission failed.");
     }
   };
 
@@ -371,12 +390,10 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
     const originalMessages = [...messages];
     const contextId = activeView === 'lounge' ? 'lounge' : activeConversation?.id;
 
-    // Fixed ReferenceError: Use msgId instead of deletedId
     setMessages(prev => prev.filter(m => m.id !== msgId));
     if (contextId) {
       setMessageCache(prev => ({
         ...prev,
-        // Fixed: Correctly use local contextId and msgId parameter
         [contextId]: (prev[contextId] || []).filter(m => m.id !== msgId)
       }));
     }
@@ -696,7 +713,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                          </span>
                       </div>
                       <div className={`flex items-center gap-2 ${isMe ? 'flex-row-reverse' : ''} max-w-[85%] lg:max-w-[70%]`}>
-                        <div className={`relative px-5 py-3 rounded-[24px] text-sm font-medium shadow-sm transition-all ${isMe ? 'bg-orange-600 text-white rounded-tr-none' : 'bg-slate-100 dark:bg-[#111111] text-slate-800 dark:text-slate-200 border border-transparent dark:border-white/5 rounded-tl-none'}`}>
+                        <div className={`relative px-5 py-3 rounded-[24px] text-sm font-medium shadow-sm transition-all ${isMe ? 'bg-orange-600 text-white rounded-tr-none' : 'bg-slate-100 dark:bg-[#111111] text-slate-800 dark:text-slate-200 border border-transparent dark:border-white/5 rounded-tl-none'} ${msg.id?.startsWith('temp-') ? 'opacity-70 italic' : ''}`}>
                           {isEditing ? (
                             <div className="flex flex-col gap-2 min-w-[200px]">
                               <textarea value={editValue} onChange={(e) => setEditValue(e.target.value)} className="w-full bg-black/20 text-white border-none rounded-lg p-2 text-xs outline-none resize-none" rows={2} autoFocus />
@@ -736,14 +753,14 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                 <form onSubmit={handleSendMessage} className="flex gap-3 bg-slate-50 dark:bg-[#080808] p-2 rounded-[28px] border border-slate-200 dark:border-white/5 shadow-inner max-w-4xl mx-auto w-full">
                   <input 
                     type="text" value={inputText} onChange={(e) => setInputText(e.target.value)}
-                    placeholder={userProfile ? "Type a message..." : "Sign in to chat"} disabled={!userProfile || isSending}
+                    placeholder={userProfile ? "Type a message..." : "Sign in to chat"} disabled={!userProfile}
                     className="flex-1 bg-transparent border-none px-6 py-4 text-sm font-bold dark:text-white outline-none"
                   />
                   <button 
-                    type="submit" disabled={!userProfile || isSending || !inputText.trim()}
+                    type="submit" disabled={!userProfile || !inputText.trim()}
                     className="bg-orange-600 hover:bg-orange-700 text-white w-12 h-12 rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-all disabled:opacity-50 border-none"
                   >
-                    {isSending ? <div className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin" /> : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                   </button>
                 </form>
               </div>
@@ -757,9 +774,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                   <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest mt-2">Guidelines</p>
                 </header>
 
-                {/* Guidelines Section with Gradient Backdrop */}
                 <div className="relative p-7 rounded-[40px] shadow-2xl bg-black text-white overflow-hidden group">
-                  {/* Decorative Gradient Backdrop */}
                   <div className="absolute top-0 right-0 w-32 h-32 bg-orange-600 opacity-20 blur-[50px] rounded-full -mr-16 -mt-16 group-hover:opacity-40 transition-opacity" />
                   
                   <ul className="relative z-10 space-y-5">
