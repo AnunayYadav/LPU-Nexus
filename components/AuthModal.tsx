@@ -14,7 +14,6 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [signupSuccess, setSignupSuccess] = useState(false);
   const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
 
   // Validate username availability on the fly
@@ -70,7 +69,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
         if (signUpErr) throw signUpErr;
         
         clearTimeout(timeoutId);
-        setSignupSuccess(true);
+        // Since confirm email is off, we close the modal immediately as Supabase signs them in.
+        onClose();
       }
     } catch (err: any) {
       clearTimeout(timeoutId);
@@ -86,28 +86,6 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
     const clean = val.toLowerCase().replace(/[^a-z0-9_]/g, '');
     if (clean.length <= 15) setUsername(clean);
   };
-
-  if (signupSuccess) {
-    return (
-      <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-400/40 dark:bg-black/90 backdrop-blur-xl animate-fade-in overflow-hidden">
-        <div className="bg-white dark:bg-slate-950 rounded-[48px] w-full max-w-sm shadow-2xl border border-slate-200 dark:border-white/10 p-10 text-center space-y-6">
-          <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto text-emerald-500 shadow-xl shadow-emerald-500/5">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-10 h-10"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-          </div>
-          <h3 className="text-2xl font-black tracking-tighter uppercase leading-none dark:text-white">Verify Identity</h3>
-          <p className="text-slate-500 text-sm leading-relaxed font-medium">
-            Registry protocol initiated. Please check your official email (<strong>{email}</strong>) to activate your Verto instance.
-          </p>
-          <button 
-            onClick={onClose}
-            className="w-full bg-black dark:bg-white text-white dark:text-black py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all shadow-xl"
-          >
-            I'll Verify Now
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-400/40 dark:bg-black/90 backdrop-blur-xl animate-fade-in overflow-hidden">
