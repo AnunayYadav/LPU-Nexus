@@ -29,6 +29,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
   const [searchResults, setSearchResults] = useState<UserProfile[]>([]);
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
   const [friends, setFriends] = useState<UserProfile[]>([]);
+  const [siteStats, setSiteStats] = useState({ registered: 0, visitors: 0 });
   
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
@@ -46,6 +47,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
       loadConversations();
       loadFriendData();
     }
+    NexusServer.getSiteStats().then(setSiteStats);
   }, [userProfile]);
 
   // Real-time subscriptions
@@ -53,7 +55,9 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
     let unsubscribe: () => void = () => {};
     
     const handlePayload = (payload: any) => {
-      const { eventType, new: newRecord, old: oldRecord } = payload;
+      const eventType = payload.eventType;
+      const newRecord = payload.new;
+      const oldRecord = payload.old;
       
       if (eventType === 'INSERT') {
         const newMsg: ChatMessage = { 
@@ -69,7 +73,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
           return [...prev, newMsg];
         });
       } else if (eventType === 'DELETE') {
-        const deletedId = oldRecord?.id;
+        const deletedId = oldRecord?.id || payload.old?.id;
         if (deletedId) {
           setMessages(prev => prev.filter(m => m.id !== deletedId));
         }
@@ -201,7 +205,6 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
     const originalText = messages.find(m => m.id === msgId)?.text;
     const filtered = activeView === 'lounge' ? filterProfanity(editValue) : editValue;
     
-    // Optimistic Update
     setMessages(prev => prev.map(m => m.id === msgId ? { ...m, text: filtered } : m));
     setEditingMessageId(null);
 
@@ -212,19 +215,17 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
         await NexusServer.updateMessage(msgId, userProfile.id, filtered);
       }
     } catch (e) {
-      // Revert if failed (likely RLS blocking it)
       if (originalText) {
         setMessages(prev => prev.map(m => m.id === msgId ? { ...m, text: originalText } : m));
       }
-      alert("Permission denied. Ensure you updated your Supabase SQL policies for UPDATE.");
+      alert("Permission denied or link failure.");
     }
   };
 
   const handleDeleteMessage = async (msgId: string) => {
-    if (!userProfile || !confirm("Delete this message permanently?")) return;
+    if (!userProfile || !confirm("Erase this entry permanently?")) return;
     
     const originalMessages = [...messages];
-    // Optimistic Update
     setMessages(prev => prev.filter(m => m.id !== msgId));
 
     try {
@@ -234,9 +235,8 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
         await NexusServer.deleteMessage(msgId, userProfile.id);
       }
     } catch (e) {
-      // Revert if failed (likely RLS blocking it)
       setMessages(originalMessages);
-      alert("Could not delete message. Ensure you updated your Supabase SQL policies for DELETE.");
+      alert("Could not erase message. Ensure you are the sender.");
     }
   };
 
@@ -373,7 +373,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
 
-      {/* Navigation */}
+      {/* Side Navigation */}
       <div className="w-16 md:w-20 bg-slate-50 dark:bg-[#050505] border-r border-slate-200 dark:border-white/5 flex flex-col items-center py-8 space-y-6 flex-shrink-0">
         {[
           { id: 'lounge', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>, label: 'Lounge' },
@@ -464,91 +464,139 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
             </section>
           </div>
         ) : (activeView === 'lounge' || activeConversation) ? (
-          <div className="flex-1 flex flex-col min-h-0 bg-white dark:bg-black">
-            <header className="px-8 py-5 border-b border-slate-200 dark:border-white/5 flex items-center justify-between bg-white dark:bg-black flex-shrink-0">
-              <div className="flex items-center gap-4">
-                {(activeView === 'dms' || activeView === 'groups') && (
-                  <button onClick={() => setActiveConversation(null)} className="md:hidden p-2 -ml-2 text-slate-500 hover:text-orange-600 border-none bg-transparent transition-colors">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                  </button>
-                )}
-                <div className="w-10 h-10 rounded-xl bg-orange-600/10 flex items-center justify-center text-orange-600 font-black">
-                  {activeView === 'lounge' ? '#' : (activeConversation?.display_name?.[0]?.toUpperCase() || 'C')}
+          <div className="flex-1 flex flex-row min-h-0 bg-white dark:bg-black">
+            {/* Chat Column */}
+            <div className="flex-1 flex flex-col min-w-0 border-r border-slate-200 dark:border-white/5">
+              <header className="px-8 py-5 border-b border-slate-200 dark:border-white/5 flex items-center justify-between bg-white dark:bg-black flex-shrink-0">
+                <div className="flex items-center gap-4">
+                  {(activeView === 'dms' || activeView === 'groups') && (
+                    <button onClick={() => setActiveConversation(null)} className="md:hidden p-2 -ml-2 text-slate-500 hover:text-orange-600 border-none bg-transparent transition-colors">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    </button>
+                  )}
+                  <div className="w-10 h-10 rounded-xl bg-orange-600/10 flex items-center justify-center text-orange-600 font-black">
+                    {activeView === 'lounge' ? '#' : (activeConversation?.display_name?.[0]?.toUpperCase() || 'C')}
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black uppercase tracking-widest dark:text-white">{activeView === 'lounge' ? 'Lounge' : (activeConversation?.display_name || 'Chat')}</h3>
+                    <div className="flex items-center gap-1.5"><span className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse" /><span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Active Relay</span></div>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-sm font-black uppercase tracking-widest dark:text-white">{activeView === 'lounge' ? 'Lounge' : (activeConversation?.display_name || 'Chat')}</h3>
-                  <div className="flex items-center gap-1.5"><span className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse" /><span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Active</span></div>
-                </div>
-              </div>
-            </header>
+              </header>
 
-            <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6 no-scrollbar bg-white dark:bg-black scroll-smooth">
-              {isLoading ? (
-                <div className="flex items-center justify-center h-full opacity-30 text-[10px] font-black uppercase tracking-widest animate-pulse">Syncing...</div>
-              ) : messages.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full opacity-20 text-center py-10"><p className="text-[10px] font-black uppercase tracking-widest">Empty log.</p></div>
-              ) : messages.map((msg, i) => {
-                const isMe = msg.sender_id === userProfile?.id;
-                const isEditing = editingMessageId === msg.id;
-                return (
-                  <div key={msg.id || `temp-${i}`} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} msg-animate group`}>
-                    <div className={`flex items-center gap-2 mb-1.5 px-1 ${isMe ? 'flex-row-reverse' : ''}`}>
-                       {!isMe && <span className="text-[9px] font-black text-orange-600 uppercase tracking-tight">@{msg.sender_name}</span>}
-                       <span className="text-[8px] font-bold text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                       </span>
-                    </div>
-                    <div className={`flex items-center gap-2 ${isMe ? 'flex-row-reverse' : ''} max-w-[85%] md:max-w-[70%]`}>
-                      <div className={`relative px-5 py-3 rounded-[24px] text-sm font-medium shadow-sm transition-all ${isMe ? 'bg-orange-600 text-white rounded-tr-none' : 'bg-slate-100 dark:bg-[#111111] text-slate-800 dark:text-slate-200 border border-transparent dark:border-white/5 rounded-tl-none'}`}>
-                        {isEditing ? (
-                          <div className="flex flex-col gap-2 min-w-[200px]">
-                            <textarea value={editValue} onChange={(e) => setEditValue(e.target.value)} className="w-full bg-black/20 text-white border-none rounded-lg p-2 text-xs outline-none resize-none" rows={2} autoFocus />
-                            <div className="flex justify-end gap-2">
-                              <button onClick={() => setEditingMessageId(null)} className="text-[8px] uppercase font-black opacity-60 border-none bg-transparent text-white p-0">Undo</button>
-                              <button onClick={() => handleEditMessage(msg.id!)} className="text-[8px] uppercase font-black border-none bg-transparent text-white p-0">Save</button>
-                            </div>
-                          </div>
-                        ) : <span>{msg.text}</span>}
+              <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6 no-scrollbar bg-white dark:bg-black scroll-smooth">
+                {isLoading ? (
+                  <div className="flex items-center justify-center h-full opacity-30 text-[10px] font-black uppercase tracking-widest animate-pulse">Establishing link...</div>
+                ) : messages.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full opacity-20 text-center py-10"><p className="text-[10px] font-black uppercase tracking-widest">Awaiting Transmission.</p></div>
+                ) : messages.map((msg, i) => {
+                  const isMe = msg.sender_id === userProfile?.id;
+                  const isEditing = editingMessageId === msg.id;
+                  return (
+                    <div key={msg.id || `temp-${i}`} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} msg-animate group`}>
+                      <div className={`flex items-center gap-2 mb-1.5 px-1 ${isMe ? 'flex-row-reverse' : ''}`}>
+                         {!isMe && <span className="text-[9px] font-black text-orange-600 uppercase tracking-tight">@{msg.sender_name}</span>}
+                         <span className="text-[8px] font-bold text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                         </span>
                       </div>
-                      {isMe && !isEditing && (
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                          <button onClick={() => { setEditingMessageId(msg.id!); setEditValue(msg.text); }} className="p-1 text-slate-400 hover:text-orange-500 border-none bg-transparent transition-colors">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                          </button>
-                          <button onClick={() => handleDeleteMessage(msg.id!)} className="p-1 text-slate-400 hover:text-red-500 border-none bg-transparent transition-colors">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
-                          </button>
+                      <div className={`flex items-center gap-2 ${isMe ? 'flex-row-reverse' : ''} max-w-[85%] lg:max-w-[70%]`}>
+                        <div className={`relative px-5 py-3 rounded-[24px] text-sm font-medium shadow-sm transition-all ${isMe ? 'bg-orange-600 text-white rounded-tr-none' : 'bg-slate-100 dark:bg-[#111111] text-slate-800 dark:text-slate-200 border border-transparent dark:border-white/5 rounded-tl-none'}`}>
+                          {isEditing ? (
+                            <div className="flex flex-col gap-2 min-w-[200px]">
+                              <textarea value={editValue} onChange={(e) => setEditValue(e.target.value)} className="w-full bg-black/20 text-white border-none rounded-lg p-2 text-xs outline-none resize-none" rows={2} autoFocus />
+                              <div className="flex justify-end gap-2">
+                                <button onClick={() => setEditingMessageId(null)} className="text-[8px] uppercase font-black opacity-60 border-none bg-transparent text-white p-0">Cancel</button>
+                                <button onClick={() => handleEditMessage(msg.id!)} className="text-[8px] uppercase font-black border-none bg-transparent text-white p-0">Update</button>
+                              </div>
+                            </div>
+                          ) : <span>{msg.text}</span>}
                         </div>
-                      )}
+                        {isMe && !isEditing && (
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                            <button onClick={() => { setEditingMessageId(msg.id!); setEditValue(msg.text); }} className="p-1 text-slate-400 hover:text-orange-500 border-none bg-transparent transition-colors">
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            </button>
+                            <button onClick={() => handleDeleteMessage(msg.id!)} className="p-1 text-slate-400 hover:text-red-500 border-none bg-transparent transition-colors">
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              
+              <div className="p-6 bg-white dark:bg-black border-t border-slate-200 dark:border-white/5 flex-shrink-0">
+                <form onSubmit={handleSendMessage} className="flex gap-3 bg-slate-50 dark:bg-[#080808] p-2 rounded-[28px] border border-slate-200 dark:border-white/5 shadow-inner max-w-4xl mx-auto w-full">
+                  <input 
+                    type="text" value={inputText} onChange={(e) => setInputText(e.target.value)}
+                    placeholder={userProfile ? "Type transmission..." : "Log in to relay"} disabled={!userProfile || isSending}
+                    className="flex-1 bg-transparent border-none px-6 py-4 text-sm font-bold dark:text-white outline-none"
+                  />
+                  <button 
+                    type="submit" disabled={!userProfile || isSending || !inputText.trim()}
+                    className="bg-orange-600 hover:bg-orange-700 text-white w-12 h-12 rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-all disabled:opacity-50 border-none"
+                  >
+                    {isSending ? <div className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin" /> : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>}
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            {/* Sidebar Column (Visible on Lounge Only) */}
+            {activeView === 'lounge' && (
+              <div className="hidden lg:flex w-[280px] flex-col bg-slate-50 dark:bg-[#050505] p-8 border-l border-slate-200 dark:border-white/5 overflow-y-auto no-scrollbar">
+                <header className="mb-8">
+                  <h3 className="text-xl font-black tracking-tighter uppercase dark:text-white">Protocol</h3>
+                  <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest mt-1">Lounge Intelligence</p>
+                </header>
+
+                <div className="space-y-8">
+                  {/* Guidelines Section */}
+                  <div className="glass-panel p-6 rounded-[32px] border dark:border-white/5 bg-white dark:bg-black/40">
+                    <h4 className="text-[10px] font-black uppercase text-orange-600 tracking-widest mb-6">Guidelines</h4>
+                    <ul className="space-y-4">
+                      {[
+                        { icon: "🛡️", title: "Integrity", text: "Maintain academic professionalism." },
+                        { icon: "⚡", title: "Global", text: "Relay open to all campus Vertos." },
+                        { icon: "🔒", title: "Ownership", text: "Only you can modify your logs." }
+                      ].map((rule, idx) => (
+                        <li key={idx} className="flex gap-3">
+                          <span className="text-base">{rule.icon}</span>
+                          <div>
+                            <p className="text-[9px] font-black dark:text-white uppercase leading-none mb-1">{rule.title}</p>
+                            <p className="text-[8px] font-bold text-slate-500 leading-tight uppercase">{rule.text}</p>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Nexus Core Card */}
+                  <div className="p-8 bg-black text-white rounded-[40px] shadow-2xl relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-orange-600 opacity-20 blur-[50px] rounded-full -mr-16 -mt-16 group-hover:opacity-40 transition-opacity" />
+                    <h4 className="text-xs font-black uppercase tracking-[0.3em] mb-4 text-orange-500">Nexus Core</h4>
+                    <p className="text-[10px] font-medium leading-relaxed opacity-70">
+                      Synchronized real-time hub. Logs are cryptographically secured and distributed via authenticated relay nodes.
+                    </p>
+                    <div className="mt-6 pt-6 border-t border-white/10 flex justify-between items-center">
+                       <span className="text-[8px] font-black uppercase opacity-40">Ver 4.2.0</span>
+                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4 text-orange-600"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-            
-            <div className="p-6 bg-white dark:bg-black border-t border-slate-200 dark:border-white/5 flex-shrink-0">
-              <form onSubmit={handleSendMessage} className="flex gap-3 bg-slate-50 dark:bg-[#080808] p-2 rounded-[28px] border border-slate-200 dark:border-white/5 shadow-inner">
-                <input 
-                  type="text" value={inputText} onChange={(e) => setInputText(e.target.value)}
-                  placeholder={userProfile ? "Say something..." : "Sign in to chat"} disabled={!userProfile || isSending}
-                  className="flex-1 bg-transparent border-none px-6 py-4 text-sm font-bold dark:text-white outline-none"
-                />
-                <button 
-                  type="submit" disabled={!userProfile || isSending || !inputText.trim()}
-                  className="bg-orange-600 hover:bg-orange-700 text-white w-12 h-12 rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-all disabled:opacity-50 border-none"
-                >
-                  {isSending ? <div className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin" /> : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>}
-                </button>
-              </form>
-            </div>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="flex-1 flex flex-col min-h-0">
             <div className="md:hidden h-full">{conversationListContent}</div>
             <div className="hidden md:flex flex-1 flex-col items-center justify-center text-center p-12 bg-white dark:bg-black animate-fade-in">
                <div className="w-20 h-20 bg-slate-50 dark:bg-white/5 rounded-[40px] flex items-center justify-center mb-8 text-slate-200 dark:text-slate-800"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="w-10 h-10"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
-               <h3 className="text-xl font-black uppercase tracking-tight dark:text-white mb-2">Select a chat</h3>
-               <button onClick={() => setActiveView('directory')} className="mt-8 px-8 py-3 bg-black text-orange-600 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-orange-600 hover:text-white transition-all border-none">Directory</button>
+               <h3 className="text-xl font-black uppercase tracking-tight dark:text-white mb-2">Initialize Communication</h3>
+               <button onClick={() => setActiveView('directory')} className="mt-8 px-8 py-3 bg-black text-orange-600 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-orange-600 hover:text-white transition-all border-none">Browse Directory</button>
             </div>
           </div>
         )}
@@ -563,7 +611,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
               <button onClick={() => setShowGroupModal(false)} className="text-slate-400 hover:text-white border-none bg-transparent p-0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             </header>
             <div className="space-y-6">
-              <input type="text" placeholder="Squad Name..." value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} className="w-full bg-slate-100 dark:bg-black rounded-2xl p-4 text-sm font-bold dark:text-white border-none outline-none focus:ring-2 focus:ring-orange-600" />
+              <input type="text" placeholder="Squad Designation..." value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} className="w-full bg-slate-100 dark:bg-black rounded-2xl p-4 text-sm font-bold dark:text-white border-none outline-none focus:ring-2 focus:ring-orange-600" />
               <div className="max-h-40 overflow-y-auto no-scrollbar space-y-2 p-1">
                 {friends.map(p => (
                   <button key={p.id} onClick={() => setSelectedUsers(prev => prev.includes(p.id) ? prev.filter(uid => uid !== p.id) : [...prev, p.id])} className={`w-full p-3 rounded-xl flex items-center justify-between transition-all border-none ${selectedUsers.includes(p.id) ? 'bg-orange-600 text-white' : 'bg-slate-100 dark:bg-white/5 text-slate-500'}`}>
