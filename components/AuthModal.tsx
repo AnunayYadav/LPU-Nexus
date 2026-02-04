@@ -38,7 +38,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
     if (loading) return;
 
     if (!NexusServer.isConfigured()) {
-      setError("Registry Offline: Environment variables (SUPABASE_URL/KEY) are missing or invalid.");
+      setError("Registry Offline: Database credentials (URL/KEY) are missing in the environment.");
       return;
     }
 
@@ -50,9 +50,10 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
         if (!identifier.trim()) throw new Error("Email or Username required.");
         if (!password.trim()) throw new Error("Password required.");
         
-        const { error: signInErr } = await NexusServer.signIn(identifier, password);
-        if (signInErr) throw signInErr;
+        const result = await NexusServer.signIn(identifier, password);
+        if (result.error) throw result.error;
         
+        // Success: Close modal
         onClose();
       } else {
         if (!email.trim()) throw new Error("Official email is required.");
@@ -60,13 +61,16 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
         if (usernameStatus === 'taken') throw new Error("This username is already claimed.");
         if (password.length < 6) throw new Error("Password must be at least 6 characters.");
         
-        const { error: signUpErr } = await NexusServer.signUp(email, password, username);
-        if (signUpErr) throw signUpErr;
+        const result = await NexusServer.signUp(email, password, username);
+        if (result.error) throw result.error;
         
+        // Success
         onClose();
       }
     } catch (err: any) {
-      setError(err.message || "The Hub registry is unresponsive. Please try again later.");
+      console.error("Auth Failure:", err);
+      setError(err.message || "Authentication protocol failed. Check your network or identity parameters.");
+    } finally {
       setLoading(false);
     }
   };
@@ -83,7 +87,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
         <div className="absolute -top-24 -right-24 w-48 h-48 bg-orange-600/10 blur-[64px] rounded-full pointer-events-none group-focus-within:bg-orange-600/20 transition-colors" />
 
         <div className="bg-black p-8 text-white text-center relative rounded-t-[48px]">
-          <button onClick={onClose} className="absolute top-6 right-6 p-2 text-white/30 hover:text-white transition-colors">
+          <button onClick={onClose} className="absolute top-6 right-6 p-2 text-white/30 hover:text-white transition-colors border-none bg-transparent">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><path d="M18 6L6 18M6 6l12 12"/></svg>
           </button>
           
@@ -187,7 +191,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
           <button 
             type="button" 
             onClick={() => { setIsLogin(!isLogin); setError(null); }} 
-            className="w-full text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-orange-600 transition-colors py-4 bg-transparent border-none"
+            className="w-full text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-orange-500 transition-colors py-4 bg-transparent border-none"
           >
             {isLogin ? "New Verto? Create Instance" : "Found Identity? Log In"}
           </button>

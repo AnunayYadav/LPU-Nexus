@@ -5,7 +5,10 @@ import { LibraryFile, UserProfile, Folder, ChatMessage } from '../types.ts';
 const getEnvVar = (name: string): string => {
   try {
     const g = (typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : ({} as any));
-    if (g.process?.env?.[name]) return g.process.env[name];
+    const processEnv = g.process?.env?.[name];
+    if (processEnv) return processEnv;
+    
+    // Fallback for VITE environments
     const metaEnv = (import.meta as any).env;
     if (metaEnv) {
       if (metaEnv[`VITE_${name}`]) return metaEnv[`VITE_${name}`];
@@ -21,16 +24,18 @@ const getSupabase = () => {
   if (supabaseInstance) return supabaseInstance;
   const url = getEnvVar('SUPABASE_URL');
   const key = getEnvVar('SUPABASE_ANON_KEY');
+  
   if (!url || !key) {
-    console.error("Nexus Registry Configuration Missing: Please ensure SUPABASE_URL and SUPABASE_ANON_KEY are set.");
+    console.warn("Nexus Registry Config Missing: SUPABASE_URL or SUPABASE_ANON_KEY is not defined.");
     return null;
   }
+  
   try {
     supabaseInstance = createClient(url, key);
     return supabaseInstance;
-  } catch (e) { 
-    console.error("Failed to initialize Supabase:", e);
-    return null; 
+  } catch (e) {
+    console.error("Supabase Init Error:", e);
+    return null;
   }
 };
 
@@ -45,8 +50,8 @@ class NexusServer {
     const SESSION_KEY = 'nexus_session_logged';
     if (!sessionStorage.getItem(SESSION_KEY)) {
       try {
-        const { error } = await client.from('site_visits').insert([{}]);
-        if (!error) sessionStorage.setItem(SESSION_KEY, 'true');
+        await client.from('site_visits').insert([{}]);
+        sessionStorage.setItem(SESSION_KEY, 'true');
       } catch (e) {}
     }
   }
@@ -63,23 +68,30 @@ class NexusServer {
 
   static async signIn(identifier: string, pass: string) {
     const client = getSupabase();
-    if (!client) throw new Error("Registry Offline: Check Environment Config.");
+    if (!client) throw new Error("Registry is offline.");
     
     let email = identifier.trim();
-    // If not an email, try to resolve username
+    
+    // Resolve username to email if identifier is not an email format
     if (!identifier.includes('@')) {
       try {
-        const { data: profile, error } = await client
+        const { data, error } = await client
           .from('profiles')
           .select('email')
           .eq('username', identifier.toLowerCase().trim())
           .maybeSingle();
         
-        if (error) throw error;
-        if (!profile) throw new Error("Verto Identity not found.");
-        email = profile.email;
+        if (error) {
+          console.error("Identity lookup failed:", error);
+        } else if (data?.email) {
+          email = data.email;
+        } else {
+          throw new Error("No Verto found with that username.");
+        }
       } catch (e: any) {
-        throw new Error(e.message || "Failed to resolve identity.");
+        if (e.message.includes("No Verto found")) throw e;
+        // If it's a DB error, we can't resolve, so we must stop.
+        throw new Error("Terminal connection failed. Please use your official email.");
       }
     }
     
@@ -88,11 +100,16 @@ class NexusServer {
 
   static async signUp(email: string, pass: string, username: string) {
     const client = getSupabase();
-    if (!client) throw new Error("Registry Offline: Check Environment Config.");
+    if (!client) throw new Error("Registry is offline.");
+    
+    // Signup process
     return await client.auth.signUp({ 
       email: email.trim(), 
       password: pass, 
-      options: { data: { username: username.toLowerCase().trim() } }
+      options: { 
+        data: { username: username.toLowerCase().trim() },
+        emailRedirectTo: window.location.origin 
+      }
     });
   }
 
@@ -105,15 +122,25 @@ class NexusServer {
   static onAuthStateChange(callback: (user: User | null) => void) {
     const client = getSupabase();
     if (!client) return () => {};
-    const { data: { subscription } } = client.auth.onAuthStateChange((_event, session) => callback(session?.user ?? null));
+    const { data: { subscription } } = client.auth.onAuthStateChange((_event, session) => {
+      callback(session?.user ?? null);
+    });
     return () => subscription.unsubscribe();
   }
 
   static async getProfile(userId: string): Promise<UserProfile | null> {
     const client = getSupabase();
     if (!client) return null;
-    const { data } = await client.from('profiles').select('*').eq('id', userId).maybeSingle();
-    return data;
+    try {
+      const { data, error } = await client.from('profiles').select('*').eq('id', userId).maybeSingle();
+      if (error) {
+        console.error("Profile fetch error:", error);
+        return null;
+      }
+      return data;
+    } catch (e) {
+      return null;
+    }
   }
 
   static async updateProfile(userId: string, updates: Partial<UserProfile>): Promise<void> {
@@ -125,18 +152,20 @@ class NexusServer {
   static async searchProfiles(query: string): Promise<UserProfile[]> {
     const client = getSupabase();
     if (!client || !query.trim()) return [];
-    const { data, error } = await client
-      .from('profiles')
-      .select('*')
-      .eq('is_public', true)
-      .ilike('username', `%${query.trim()}%`)
-      .limit(20);
-    
-    if (error) {
-      console.error("Directory Search Error:", error);
+    try {
+      const { data, error } = await client
+        .from('profiles')
+        .select('*')
+        .eq('is_public', true)
+        .ilike('username', `%${query.trim()}%`)
+        .limit(20);
+      
+      if (error) throw error;
+      return data || [];
+    } catch (e) {
+      console.error("Directory search failure:", e);
       return [];
     }
-    return data || [];
   }
 
   static async fetchPublicProfiles(): Promise<UserProfile[]> {
@@ -144,6 +173,62 @@ class NexusServer {
     if (!client) return [];
     const { data } = await client.from('profiles').select('*').eq('is_public', true).order('username').limit(20);
     return data || [];
+  }
+
+  // Social & Realtime
+  static async sendSocialMessage(senderId: string, senderName: string, text: string) {
+    const client = getSupabase();
+    if (!client) return;
+    await client.from('social_messages').insert([{ sender_id: senderId, sender_name: senderName, text }]);
+  }
+
+  static async fetchSocialMessages(): Promise<ChatMessage[]> {
+    const client = getSupabase();
+    if (!client) return [];
+    const { data } = await client.from('social_messages').select('*').order('created_at', { ascending: false }).limit(50);
+    return (data || []).reverse().map(m => ({
+      id: m.id, role: 'user', text: m.text, timestamp: new Date(m.created_at).getTime(), sender_name: m.sender_name, sender_id: m.sender_id
+    }));
+  }
+
+  static subscribeToSocialChat(onMessage: (msg: ChatMessage) => void) {
+    const client = getSupabase();
+    if (!client) return () => {};
+    const channel = client.channel('global-social').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_messages' }, (payload) => {
+      onMessage({ id: payload.new.id, role: 'user', text: payload.new.text, timestamp: new Date(payload.new.created_at).getTime(), sender_name: payload.new.sender_name, sender_id: payload.new.sender_id });
+    }).subscribe();
+    return () => client.removeChannel(channel);
+  }
+
+  // Folders & History
+  static async checkUsernameAvailability(username: string): Promise<boolean> {
+    const client = getSupabase();
+    if (!client) return true;
+    try {
+      const { data } = await client.from('profiles').select('username').eq('username', username.toLowerCase().trim()).maybeSingle();
+      return !data;
+    } catch (e) {
+      return true;
+    }
+  }
+
+  static async saveRecord(userId: string | null, type: string, label: string, content: any): Promise<void> {
+    const client = getSupabase();
+    if (userId && client) await client.from('user_history').insert([{ user_id: userId, type, label, content }]);
+  }
+
+  static async fetchRecords(userId: string | null, type: string): Promise<any[]> {
+    const client = getSupabase();
+    if (userId && client) {
+      const { data } = await client.from('user_history').select('*').eq('user_id', userId).eq('type', type).order('created_at', { ascending: false });
+      return data || [];
+    }
+    return [];
+  }
+
+  static async deleteRecord(id: string, _type: string, userId: string | null): Promise<void> {
+    const client = getSupabase();
+    if (userId && client) await client.from('user_history').delete().eq('id', id);
   }
 
   // Conversation Methods
@@ -182,31 +267,6 @@ class NexusServer {
     await client.from('messages').insert([{ conversation_id: conversationId, sender_id: userId, text }]);
   }
 
-  // Realtime
-  static async sendSocialMessage(senderId: string, senderName: string, text: string) {
-    const client = getSupabase();
-    if (!client) return;
-    await client.from('social_messages').insert([{ sender_id: senderId, sender_name: senderName, text }]);
-  }
-
-  static async fetchSocialMessages(): Promise<ChatMessage[]> {
-    const client = getSupabase();
-    if (!client) return [];
-    const { data } = await client.from('social_messages').select('*').order('created_at', { ascending: false }).limit(50);
-    return (data || []).reverse().map(m => ({
-      id: m.id, role: 'user', text: m.text, timestamp: new Date(m.created_at).getTime(), sender_name: m.sender_name, sender_id: m.sender_id
-    }));
-  }
-
-  static subscribeToSocialChat(onMessage: (msg: ChatMessage) => void) {
-    const client = getSupabase();
-    if (!client) return () => {};
-    const channel = client.channel('global-social').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_messages' }, (payload) => {
-      onMessage({ id: payload.new.id, role: 'user', text: payload.new.text, timestamp: new Date(payload.new.created_at).getTime(), sender_name: payload.new.sender_name, sender_id: payload.new.sender_id });
-    }).subscribe();
-    return () => client.removeChannel(channel);
-  }
-
   static subscribeToConversation(conversationId: string, onMessage: (msg: ChatMessage) => void) {
     const client = getSupabase();
     if (!client) return () => {};
@@ -219,32 +279,7 @@ class NexusServer {
     return () => client.removeChannel(channel);
   }
 
-  static async checkUsernameAvailability(username: string): Promise<boolean> {
-    const client = getSupabase();
-    if (!client) return true;
-    const { data } = await client.from('profiles').select('username').eq('username', username.toLowerCase().trim()).maybeSingle();
-    return !data;
-  }
-
-  static async saveRecord(userId: string | null, type: string, label: string, content: any): Promise<void> {
-    const client = getSupabase();
-    if (userId && client) await client.from('user_history').insert([{ user_id: userId, type, label, content }]);
-  }
-
-  static async fetchRecords(userId: string | null, type: string): Promise<any[]> {
-    const client = getSupabase();
-    if (userId && client) {
-      const { data } = await client.from('user_history').select('*').eq('user_id', userId).eq('type', type).order('created_at', { ascending: false });
-      return data || [];
-    }
-    return [];
-  }
-
-  static async deleteRecord(id: string, _type: string, userId: string | null): Promise<void> {
-    const client = getSupabase();
-    if (userId && client) await client.from('user_history').delete().eq('id', id);
-  }
-
+  // Content Library
   static async fetchFolders(): Promise<Folder[]> {
     const client = getSupabase();
     if (!client) return [];
