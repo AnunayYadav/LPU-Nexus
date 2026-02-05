@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { UserProfile, ChatMessage, FriendRequest, MessageReaction } from '../types.ts';
 import NexusServer from '../services/nexusServer.ts';
@@ -609,7 +608,10 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
                           {editingMessage ? (
                              <polyline points="20 6 9 17 4 12" />
                           ) : (
-                             <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                             <>
+                               <line x1="22" y1="2" x2="11" y2="13"/>
+                               <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                             </>
                           )}
                         </svg>
                       </button>
