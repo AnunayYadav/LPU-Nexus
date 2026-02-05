@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { ModuleType, UserProfile } from '../types';
 import NexusServer from '../services/nexusServer.ts';
@@ -8,7 +9,6 @@ interface SidebarProps {
   isMobileMenuOpen: boolean;
   toggleMobileMenu: () => void;
   userProfile: UserProfile | null;
-  notificationCounts?: { social: number };
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ 
@@ -17,7 +17,6 @@ const Sidebar: React.FC<SidebarProps> = ({
   isMobileMenuOpen, 
   toggleMobileMenu, 
   userProfile,
-  notificationCounts = { social: 0 }
 }) => {
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [feedbackText, setFeedbackText] = useState("");
@@ -67,12 +66,6 @@ const Sidebar: React.FC<SidebarProps> = ({
       id: ModuleType.GLOBAL, 
       label: 'Global Gateway', 
       icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> 
-    },
-    { 
-      id: ModuleType.SOCIAL, 
-      label: 'Social Hub', 
-      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
-      badge: notificationCounts.social
     },
     { 
       id: ModuleType.FRESHERS, 
@@ -178,13 +171,6 @@ const Sidebar: React.FC<SidebarProps> = ({
               <div className="flex items-center space-x-3">
                 <span className="flex-shrink-0">{item.icon}</span>
                 <span className="font-bold text-sm tracking-tight">{item.label}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                {!!item.badge && item.badge > 0 && (
-                  <span className="bg-orange-600 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-lg border border-white/10">
-                    {item.badge > 9 ? '9+' : item.badge}
-                  </span>
-                )}
               </div>
             </button>
           ))}

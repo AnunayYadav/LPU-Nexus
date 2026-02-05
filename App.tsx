@@ -13,7 +13,6 @@ import ShareReport from './components/ShareReport.tsx';
 import AboutUs from './components/AboutUs.tsx';
 import AuthModal from './components/AuthModal.tsx';
 import ProfileSection from './components/ProfileSection.tsx';
-import SocialHub from './components/SocialHub.tsx';
 import { ModuleType, UserProfile } from './types.ts';
 import NexusServer from './services/nexusServer.ts';
 import { Analytics } from "@vercel/analytics/react";
@@ -31,7 +30,6 @@ const getModuleFromPath = (path: string): ModuleType => {
   if (p.endsWith('/help')) return ModuleType.HELP;
   if (p.endsWith('/about')) return ModuleType.ABOUT;
   if (p.endsWith('/profile')) return ModuleType.PROFILE;
-  if (p.endsWith('/social')) return ModuleType.SOCIAL;
   return ModuleType.DASHBOARD;
 };
 
@@ -47,7 +45,6 @@ const getPathFromModule = (module: ModuleType): string => {
     case ModuleType.HELP: return '/help';
     case ModuleType.ABOUT: return '/about';
     case ModuleType.PROFILE: return '/profile';
-    case ModuleType.SOCIAL: return '/social';
     case ModuleType.DASHBOARD: return '/';
     case ModuleType.SHARE_CGPA: return '/share-cgpa';
     default: return '/';
@@ -65,7 +62,6 @@ const Dashboard: React.FC<{ setModule: (m: ModuleType) => void }> = ({ setModule
 
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {[
-        { id: ModuleType.SOCIAL, title: "Social Hub", desc: "Connect with fellow Vertos, join squads, and chat in the lounge.", color: "hover:border-orange-500/50" },
         { id: ModuleType.CGPA, title: "CGPA Calculator", desc: "Calculate your SGPA and CGPA based on LPU grading standards.", color: "hover:border-orange-500/50" },
         { id: ModuleType.ATTENDANCE, title: "Attendance Tracker", desc: "Monitor your attendance and hit that 75% threshold with ease.", color: "hover:border-green-500/50" },
         { id: ModuleType.PLACEMENT, title: "Placement Prefect", desc: "Resume ATS matching & optimization tailored for campus drives.", color: "hover:border-orange-500/50" },
@@ -88,22 +84,6 @@ const App: React.FC = () => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
-  
-  const [socialUnreadCount, setSocialUnreadCount] = useState(0);
-
-  const refreshUnreadCounts = useCallback(async () => {
-    if (!userProfile) {
-      setSocialUnreadCount(0);
-      return;
-    }
-    try {
-      const convos = await NexusServer.fetchConversations(userProfile.id);
-      const total = convos.reduce((sum, c) => sum + (c.unread_count || 0), 0);
-      setSocialUnreadCount(total);
-    } catch (e) {
-      console.error("Failed to refresh unread counts", e);
-    }
-  }, [userProfile]);
 
   useEffect(() => {
     NexusServer.recordVisit();
@@ -126,17 +106,6 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!userProfile) return;
-    refreshUnreadCounts();
-    const unsubscribeMessages = NexusServer.subscribeToUserMessages(userProfile.id, () => {
-      refreshUnreadCounts();
-    });
-    return () => {
-      unsubscribeMessages();
-    };
-  }, [userProfile, refreshUnreadCounts]);
-
-  useEffect(() => {
     const handlePopState = () => setCurrentModule(getModuleFromPath(window.location.pathname));
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
@@ -157,7 +126,6 @@ const App: React.FC = () => {
 
   const renderModule = () => {
     switch (currentModule) {
-      case ModuleType.SOCIAL: return <SocialHub userProfile={userProfile} onUnreadChange={refreshUnreadCounts} />;
       case ModuleType.PLACEMENT: return <PlacementPrefect userProfile={userProfile} />;
       case ModuleType.LIBRARY: return <ContentLibrary userProfile={userProfile} />;
       case ModuleType.CAMPUS: return <CampusNavigator />;
@@ -173,8 +141,6 @@ const App: React.FC = () => {
     }
   };
 
-  const isSocialHub = currentModule === ModuleType.SOCIAL;
-
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-black text-slate-900 dark:text-slate-200 transition-colors duration-300">
       <Sidebar 
@@ -183,7 +149,6 @@ const App: React.FC = () => {
         isMobileMenuOpen={isMobileMenuOpen} 
         toggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
         userProfile={userProfile}
-        notificationCounts={{ social: socialUnreadCount }}
       />
       <main className="flex-1 flex flex-col h-screen overflow-hidden relative">
         <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-white/5 bg-white dark:bg-black z-10">
@@ -251,8 +216,8 @@ const App: React.FC = () => {
              </div>
           </div>
         </div>
-        <div id="main-content-area" className={`flex-1 overflow-y-auto relative scroll-smooth ${isSocialHub ? 'p-0' : 'p-4 md:p-8'}`}>
-           <div className={`relative z-0 ${isSocialHub ? 'max-w-none h-full' : 'max-w-7xl mx-auto'}`}>{renderModule()}</div>
+        <div id="main-content-area" className="flex-1 overflow-y-auto relative scroll-smooth p-4 md:p-8">
+           <div className="relative z-0 max-w-7xl mx-auto">{renderModule()}</div>
            {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
         </div>
       </main>

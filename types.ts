@@ -11,8 +11,7 @@ export enum ModuleType {
   ATTENDANCE = 'ATTENDANCE',
   SHARE_CGPA = 'SHARE_CGPA',
   ABOUT = 'ABOUT',
-  PROFILE = 'PROFILE',
-  SOCIAL = 'SOCIAL'
+  PROFILE = 'PROFILE'
 }
 
 export interface UserProfile {
