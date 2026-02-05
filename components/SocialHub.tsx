@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { UserProfile, ChatMessage, FriendRequest } from '../types.ts';
 import NexusServer from '../services/nexusServer.ts';
@@ -18,7 +17,7 @@ const filterProfanity = (text: string) => {
 
 // Read Receipt Component
 const ReadReceipt = ({ isRead }: { isRead: boolean }) => (
-  <div className={`flex items-center ml-1 ${isRead ? 'text-orange-500' : 'text-slate-400 opacity-60'}`}>
+  <div className={`flex items-center ml-1 ${isRead ? 'text-orange-500' : 'text-white/20'}`}>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3">
       <polyline points="20 6 9 17 4 12" />
       {isRead && <polyline points="20 12 11 21 6 16" className="-ml-1" />}
@@ -28,7 +27,7 @@ const ReadReceipt = ({ isRead }: { isRead: boolean }) => (
 
 // Skeleton Loader Components
 const ConvoSkeleton = () => (
-  <div className="w-full p-4 rounded-3xl flex items-center gap-3 bg-slate-50/50 dark:bg-white/[0.02] animate-pulse">
+  <div className="w-full p-4 rounded-3xl flex items-center gap-3 bg-slate-50/50 dark:bg-white/[0.01] animate-pulse">
     <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-white/5 shimmer" />
     <div className="flex-1 space-y-2">
       <div className="h-3 w-24 bg-slate-200 dark:bg-white/5 rounded-md shimmer" />
@@ -45,7 +44,7 @@ const MessageSkeleton = ({ isMe }: { isMe: boolean }) => (
 );
 
 const UserCardSkeleton = () => (
-  <div className="p-6 rounded-[32px] border border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02] animate-pulse">
+  <div className="p-6 rounded-[32px] border border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.01] animate-pulse">
     <div className="flex items-center gap-4 mb-4">
       <div className="w-12 h-12 rounded-2xl bg-slate-200 dark:bg-white/5 shimmer" />
       <div className="space-y-2">
@@ -592,7 +591,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
               onClick={() => selectConversation(convo)}
               className={`w-full p-4 rounded-[24px] text-left transition-all flex items-center gap-4 border-none bg-transparent relative ${activeConversation?.id === convo.id ? 'bg-slate-100 dark:bg-white/[0.05]' : 'hover:bg-slate-50 dark:hover:bg-white/[0.02]'}`}
             >
-              <div className={`w-14 h-14 rounded-full flex items-center justify-center font-black flex-shrink-0 bg-gradient-to-tr ${activeConversation?.id === convo.id ? 'from-orange-500 to-red-600' : 'from-slate-200 to-slate-300 dark:from-slate-800 dark:to-slate-700'} text-white shadow-sm overflow-hidden`}>
+              <div className={`w-14 h-14 rounded-full flex items-center justify-center font-black flex-shrink-0 bg-gradient-to-tr ${activeConversation?.id === convo.id ? 'from-orange-500 to-red-600' : 'from-slate-200 to-slate-300 dark:from-white/10 dark:to-white/5'} text-white shadow-sm overflow-hidden`}>
                 {convo.display_name?.[0]?.toUpperCase() || 'V'}
               </div>
               <div className="flex-1 min-w-0">
@@ -608,7 +607,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
               )}
             </button>
             
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 flex opacity-0 group-hover/convo:opacity-100 transition-opacity">
+            <div className={`absolute right-4 top-1/2 -translate-y-1/2 flex transition-opacity duration-200 ${openMenuId === convo.id ? 'opacity-100 z-50' : 'opacity-0 group-hover/convo:opacity-100'}`}>
               <div className="relative">
                 <button 
                   onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === convo.id ? null : convo.id); }}
@@ -619,9 +618,9 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
                 {openMenuId === convo.id && (
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setOpenMenuId(null)} />
-                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-100 dark:border-white/10 z-50 overflow-hidden animate-fade-in py-2">
-                       <button onClick={(e) => { e.stopPropagation(); deleteChat(convo.id); setOpenMenuId(null); }} className="w-full text-left px-4 py-2.5 text-[10px] font-black uppercase text-red-500 hover:bg-red-50 transition-colors border-none bg-transparent">Delete Chat</button>
-                       <button onClick={(e) => { e.stopPropagation(); report(convo.is_group ? 'group' : 'user', convo.id); setOpenMenuId(null); }} className="w-full text-left px-4 py-2.5 text-[10px] font-black uppercase text-slate-500 hover:bg-slate-50 transition-colors border-none bg-transparent">Report</button>
+                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-black rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.6)] border border-slate-100 dark:border-white/10 z-50 overflow-hidden animate-fade-in py-2">
+                       <button onClick={(e) => { e.stopPropagation(); deleteChat(convo.id); setOpenMenuId(null); }} className="w-full text-left px-4 py-2.5 text-[10px] font-black uppercase text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors border-none bg-transparent">Delete Chat</button>
+                       <button onClick={(e) => { e.stopPropagation(); report(convo.is_group ? 'group' : 'user', convo.id); setOpenMenuId(null); }} className="w-full text-left px-4 py-2.5 text-[10px] font-black uppercase text-slate-500 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors border-none bg-transparent">Report</button>
                     </div>
                   </>
                 )}
@@ -656,7 +655,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
           right: -128px;
           width: 512px;
           height: 512px;
-          background: radial-gradient(circle, rgba(234, 88, 12, 0.1) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(234, 88, 12, 0.08) 0%, transparent 70%);
           pointer-events: none;
           z-index: 0;
         }
@@ -712,7 +711,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
                     <div className="relative w-full md:w-96 animate-fade-in group">
                       <input 
                         type="text" placeholder="Search handles..." value={searchQuery} onChange={(e) => handleUserSearch(e.target.value)}
-                        className="w-full bg-slate-50 dark:bg-[#0a0a0a] border border-slate-200 dark:border-white/10 rounded-full px-12 py-4 text-sm font-bold dark:text-white outline-none focus:ring-4 focus:ring-orange-600/10 transition-all shadow-inner"
+                        className="w-full bg-slate-50 dark:bg-black border border-slate-200 dark:border-white/10 rounded-full px-12 py-4 text-sm font-bold dark:text-white outline-none focus:ring-4 focus:ring-orange-600/10 transition-all shadow-inner"
                       />
                       <div className="absolute left-4 top-1/2 -translate-y-1/2">
                         {isSearching ? <div className="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /> : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5 text-slate-400 group-focus-within:text-orange-600"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>}
@@ -741,7 +740,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
                   const isFriend = friends.some(f => f.id === profile.id);
                   const isPending = friendRequests.some(r => r.sender_id === userProfile?.id && r.receiver_id === profile.id && r.status === 'pending');
                   return (
-                    <div key={profile.id} className="p-8 rounded-[40px] border border-slate-100 dark:border-white/5 bg-white/80 dark:bg-white/[0.02] backdrop-blur-xl hover:border-orange-500/50 transition-all group flex flex-col relative overflow-hidden shadow-sm hover:shadow-2xl">
+                    <div key={profile.id} className="p-8 rounded-[40px] border border-slate-100 dark:border-white/5 bg-white/80 dark:bg-white/[0.01] backdrop-blur-xl hover:border-orange-500/50 transition-all group flex flex-col relative overflow-hidden shadow-sm hover:shadow-2xl">
                       <div className="flex items-center gap-5 mb-6">
                         <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-orange-500 to-red-600 text-white flex items-center justify-center font-black text-2xl shadow-xl">{profile.username?.[0]?.toUpperCase()}</div>
                         <div className="min-w-0">
@@ -769,7 +768,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
                 <div className="col-span-full animate-fade-in max-w-5xl">
                    <h3 className="text-xs font-black text-orange-600 uppercase tracking-[0.4em] mb-12 flex items-center gap-4"><span className="w-12 h-px bg-orange-600/20" />Pending Signals</h3>
                    {inboundRequests.length === 0 ? (
-                     <div className="py-32 text-center bg-slate-50/50 dark:bg-white/[0.02] backdrop-blur-sm rounded-[60px] border-4 border-dashed border-slate-100 dark:border-white/5">
+                     <div className="py-32 text-center bg-slate-50/50 dark:bg-white/[0.01] backdrop-blur-sm rounded-[60px] border-4 border-dashed border-slate-100 dark:border-white/5">
                        <p className="text-slate-400 text-xs font-black uppercase tracking-[0.3em] opacity-60 italic">Zero signals incoming.</p>
                        <button onClick={() => setDirectorySubView('search')} className="mt-8 px-12 py-4 bg-orange-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:shadow-2xl transition-all border-none shadow-xl shadow-orange-600/20">Expand Discovery</button>
                      </div>
@@ -832,13 +831,13 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
                       {showHeaderMenu && (
                         <>
                           <div className="fixed inset-0 z-40" onClick={() => setShowHeaderMenu(false)} />
-                          <div className="absolute right-0 mt-3 w-56 bg-white dark:bg-slate-900 rounded-[32px] shadow-[0_20px_60px_rgba(0,0,0,0.4)] border border-slate-100 dark:border-white/10 z-50 overflow-hidden animate-fade-in py-3">
+                          <div className="absolute right-0 mt-3 w-56 bg-white dark:bg-black rounded-[32px] shadow-[0_20px_60px_rgba(0,0,0,0.8)] border border-slate-100 dark:border-white/10 z-50 overflow-hidden animate-fade-in py-3">
                              {activeConversation.is_group ? (
-                               <button onClick={() => { leaveGroup(activeConversation.id); setShowHeaderMenu(false); }} className="w-full text-left px-6 py-3 text-[10px] font-black uppercase text-red-500 hover:bg-red-50 transition-colors border-none bg-transparent">Leave Squad</button>
+                               <button onClick={() => { leaveGroup(activeConversation.id); setShowHeaderMenu(false); }} className="w-full text-left px-6 py-3 text-[10px] font-black uppercase text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors border-none bg-transparent">Leave Squad</button>
                              ) : (
-                               <button onClick={() => { deleteChat(activeConversation.id); setShowHeaderMenu(false); }} className="w-full text-left px-6 py-3 text-[10px] font-black uppercase text-red-500 hover:bg-red-50 transition-colors border-none bg-transparent">End Session</button>
+                               <button onClick={() => { deleteChat(activeConversation.id); setShowHeaderMenu(false); }} className="w-full text-left px-6 py-3 text-[10px] font-black uppercase text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors border-none bg-transparent">End Session</button>
                              )}
-                             <button onClick={() => { report(activeConversation.is_group ? 'group' : 'user', activeConversation.id); setShowHeaderMenu(false); }} className="w-full text-left px-6 py-3 text-[10px] font-black uppercase text-slate-500 hover:bg-slate-50 transition-colors border-none bg-transparent">Report Hub</button>
+                             <button onClick={() => { report(activeConversation.is_group ? 'group' : 'user', activeConversation.id); setShowHeaderMenu(false); }} className="w-full text-left px-6 py-3 text-[10px] font-black uppercase text-slate-500 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors border-none bg-transparent">Report Hub</button>
                           </div>
                         </>
                       )}
@@ -923,7 +922,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
               </div>
               
               <div className="p-6 md:p-10 bg-white/80 dark:bg-black/80 backdrop-blur-xl border-t border-slate-100 dark:border-white/5 flex-shrink-0 relative z-20">
-                <form onSubmit={handleSendMessage} className="flex gap-4 bg-slate-50 dark:bg-[#080808] p-3 rounded-[40px] border border-slate-200 dark:border-white/10 shadow-inner max-w-5xl mx-auto w-full group/input focus-within:ring-4 focus-within:ring-orange-600/10 transition-all">
+                <form onSubmit={handleSendMessage} className="flex gap-4 bg-slate-50 dark:bg-black p-3 rounded-[40px] border border-slate-200 dark:border-white/10 shadow-inner max-w-5xl mx-auto w-full group/input focus-within:ring-4 focus-within:ring-orange-600/10 transition-all">
                   <input 
                     type="text" value={inputText} onChange={(e) => setInputText(e.target.value)}
                     placeholder={userProfile ? "Message..." : "Identity required..."} disabled={!userProfile}
@@ -941,13 +940,13 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
 
             {/* Side Sidebar - Lounge Guidelines */}
             {activeView === 'lounge' && (
-              <div className="hidden xl:flex w-[320px] flex-col bg-slate-50/50 dark:bg-[#050505] p-10 border-l border-slate-100 dark:border-white/5 overflow-y-auto no-scrollbar backdrop-blur-sm relative z-10">
+              <div className="hidden xl:flex w-[320px] flex-col bg-slate-50/50 dark:bg-black p-10 border-l border-slate-100 dark:border-white/5 overflow-y-auto no-scrollbar backdrop-blur-sm relative z-10">
                 <header className="mb-12">
                   <h3 className="text-2xl font-black tracking-tighter uppercase dark:text-white leading-none">Global</h3>
                   <p className="text-[10px] font-black text-orange-600 uppercase tracking-[0.4em] mt-3">LPU Common Core</p>
                 </header>
 
-                <div className="relative p-10 rounded-[60px] shadow-2xl bg-black text-white overflow-hidden group">
+                <div className="relative p-10 rounded-[60px] shadow-2xl bg-black text-white border border-white/5 overflow-hidden group">
                   <div className="absolute top-0 right-0 w-48 h-48 bg-orange-600 opacity-20 blur-[80px] rounded-full -mr-24 -mt-24 group-hover:opacity-40 transition-opacity" />
                   
                   <ul className="relative z-10 space-y-6">
@@ -993,7 +992,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
       {/* Advanced Modals */}
       {showGroupModal && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-fade-in">
-          <div className="bg-white dark:bg-[#0a0a0a] rounded-[60px] w-full max-w-md shadow-[0_40px_100px_rgba(0,0,0,0.5)] border border-white/10 p-12 flex flex-col relative">
+          <div className="bg-white dark:bg-black rounded-[60px] w-full max-w-md shadow-[0_40px_100px_rgba(0,0,0,0.5)] border border-white/10 p-12 flex flex-col relative">
             <header className="mb-10 flex justify-between items-center">
               <h3 className="text-3xl font-black uppercase tracking-tighter dark:text-white">New Squad</h3>
               <button onClick={() => setShowGroupModal(false)} className="p-3 text-slate-400 hover:text-white border-none bg-transparent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-7 h-7"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
@@ -1001,7 +1000,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
             <div className="space-y-8">
               <div>
                 <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 ml-2">Squad Identification</label>
-                <input type="text" placeholder="e.g. CSE-Section-K22" value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} className="w-full bg-slate-50 dark:bg-black rounded-3xl p-5 text-sm font-bold dark:text-white border-none outline-none focus:ring-4 focus:ring-orange-600/10 shadow-inner" />
+                <input type="text" placeholder="e.g. CSE-Section-K22" value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} className="w-full bg-slate-50 dark:bg-black border border-white/5 rounded-3xl p-5 text-sm font-bold dark:text-white outline-none focus:ring-4 focus:ring-orange-600/10 shadow-inner" />
               </div>
               <div>
                 <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 ml-2">Member Matrix</label>
@@ -1022,7 +1021,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
 
       {showReportModal && (
         <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4 bg-black/95 backdrop-blur-3xl animate-fade-in">
-          <div className="bg-white dark:bg-[#0a0a0a] rounded-[50px] w-full max-w-sm shadow-2xl border border-red-500/20 p-10 flex flex-col relative overflow-hidden">
+          <div className="bg-white dark:bg-black rounded-[50px] w-full max-w-sm shadow-2xl border border-red-500/20 p-10 flex flex-col relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1 bg-red-600 animate-pulse" />
             <header className="mb-8">
               <h3 className="text-2xl font-black uppercase tracking-tighter text-red-600">Integrity Breach</h3>

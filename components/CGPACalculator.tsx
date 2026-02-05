@@ -256,7 +256,7 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
            {history.length === 0 ? <p className="text-xs text-slate-400 font-bold py-8 text-center uppercase tracking-widest opacity-40">Zero snapshots in registry.</p> : (
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                {history.map(h => (
-                  <div key={h.id} onClick={() => loadSnapshot(h)} className="p-5 bg-white dark:bg-black/40 border border-slate-100 dark:border-white/5 rounded-3xl cursor-pointer hover:border-orange-500/50 transition-all group flex items-center justify-between shadow-sm hover:shadow-xl">
+                  <div key={h.id} onClick={() => loadSnapshot(h)} className="p-5 bg-white dark:bg-black border border-slate-100 dark:border-white/5 rounded-3xl cursor-pointer hover:border-orange-500/50 transition-all group flex items-center justify-between shadow-sm hover:shadow-xl">
                      <div>
                         <p className="text-xs font-black uppercase tracking-tight dark:text-white group-hover:text-orange-600 transition-colors">{h.label}</p>
                         <p className="text-[8px] font-bold text-slate-400 uppercase mt-1 tracking-widest">{new Date(h.created_at).toLocaleDateString()}</p>
@@ -271,12 +271,12 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
 
       <div className="flex flex-wrap items-center gap-4 mb-8">
          <div className="relative" ref={semDropdownRef}>
-            <button onClick={() => setIsSemDropdownOpen(!isSemDropdownOpen)} className={`flex items-center justify-between min-w-[160px] px-6 py-3 rounded-2xl border transition-all duration-300 font-black text-[10px] uppercase tracking-widest ${isSemDropdownOpen ? 'bg-white dark:bg-slate-950 border-orange-500 shadow-xl' : 'bg-slate-100 dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-700 dark:text-white'}`}>
+            <button onClick={() => setIsSemDropdownOpen(!isSemDropdownOpen)} className={`flex items-center justify-between min-w-[160px] px-6 py-3 rounded-2xl border transition-all duration-300 font-black text-[10px] uppercase tracking-widest ${isSemDropdownOpen ? 'bg-white dark:bg-black border-orange-500 shadow-xl' : 'bg-slate-100 dark:bg-black border-slate-200 dark:border-white/10 text-slate-700 dark:text-white'}`}>
               <span>Semester {currentSemester}</span>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className={`w-3 h-3 ml-2 transition-transform ${isSemDropdownOpen ? 'rotate-180' : ''}`}><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             {isSemDropdownOpen && (
-              <div className="absolute top-full left-0 mt-2 w-full z-[100] glass-panel rounded-2xl overflow-hidden shadow-2xl border dark:border-white/10 bg-white dark:bg-slate-950">
+              <div className="absolute top-full left-0 mt-2 w-full z-[100] glass-panel rounded-2xl overflow-hidden shadow-2xl border dark:border-white/10 bg-white dark:bg-black">
                 <div className="py-1 max-h-60 overflow-y-auto no-scrollbar">
                   {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
                     <button key={sem} onClick={() => { setCurrentSemester(sem); setIsSemDropdownOpen(false); setManualAdjustments({}); }} className={`w-full text-left px-6 py-3.5 text-[10px] font-black uppercase tracking-widest transition-colors border-none ${currentSemester === sem ? 'bg-orange-600 text-white' : 'hover:bg-orange-500/10 dark:text-white'}`}>Semester {sem}</button>
@@ -286,12 +286,12 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
             )}
          </div>
          <div className="relative" ref={modeDropdownRef}>
-          <button onClick={() => setIsModeDropdownOpen(!isModeDropdownOpen)} className={`flex items-center justify-between min-w-[160px] px-6 py-3 rounded-2xl border transition-all duration-300 font-black text-[10px] uppercase tracking-widest ${isModeDropdownOpen ? 'bg-white dark:bg-slate-950 border-orange-500 shadow-xl' : 'bg-slate-100 dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-700 dark:text-white'}`}>
+          <button onClick={() => setIsModeDropdownOpen(!isModeDropdownOpen)} className={`flex items-center justify-between min-w-[160px] px-6 py-3 rounded-2xl border transition-all duration-300 font-black text-[10px] uppercase tracking-widest ${isModeDropdownOpen ? 'bg-white dark:bg-black border-orange-500 shadow-xl' : 'bg-slate-100 dark:bg-black border-slate-200 dark:border-white/10 text-slate-700 dark:text-white'}`}>
             <span>Input: {inputMode === 'marks' ? 'Marks' : 'Grades'}</span>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className={`w-3 h-3 ml-2 transition-transform ${isModeDropdownOpen ? 'rotate-180' : ''}`}><polyline points="6 9 12 15 18 9"/></svg>
           </button>
           {isModeDropdownOpen && (
-            <div className="absolute top-full left-0 mt-2 w-full z-[100] glass-panel rounded-2xl overflow-hidden shadow-2xl border dark:border-white/10 bg-white dark:bg-slate-950">
+            <div className="absolute top-full left-0 mt-2 w-full z-[100] glass-panel rounded-2xl overflow-hidden shadow-2xl border dark:border-white/10 bg-white dark:bg-black">
               <div className="py-1">
                 <button onClick={() => { setInputMode('marks'); setIsModeDropdownOpen(false); }} className={`w-full text-left px-6 py-3.5 text-[10px] font-black uppercase tracking-widest transition-colors border-none ${inputMode === 'marks' ? 'bg-orange-600 text-white' : 'hover:bg-orange-500/10 dark:text-white'}`}>By Marks</button>
                 <button onClick={() => { setInputMode('grades'); setIsModeDropdownOpen(false); }} className={`w-full text-left px-6 py-3.5 text-[10px] font-black uppercase tracking-widest transition-colors border-none ${inputMode === 'grades' ? 'bg-orange-600 text-white' : 'hover:bg-orange-500/10 dark:text-white'}`}>By Grades</button>
@@ -303,7 +303,7 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <div className="glass-panel p-8 rounded-[40px] space-y-6 shadow-sm border dark:border-white/5 bg-white dark:bg-slate-950/50 relative overflow-hidden">
+          <div className="glass-panel p-8 rounded-[40px] space-y-6 shadow-sm border dark:border-white/5 bg-white dark:bg-black/40 relative overflow-hidden">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Semester Ledger</h3>
               <button onClick={addCourse} className="text-[10px] font-black uppercase tracking-widest text-orange-600 bg-orange-600/5 hover:bg-orange-600/10 px-6 py-2.5 rounded-xl border border-orange-600/20 transition-all border-none">+ Add Course</button>
@@ -324,7 +324,7 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
                       <p className="text-[8px] font-black uppercase text-slate-400 mb-1 ml-1 tracking-widest text-center">{inputMode === 'marks' ? 'Marks %' : 'Grade'}</p>
                       {inputMode === 'marks' ? <input type="number" min="0" max="100" value={c.marks} onChange={(e) => updateCourse(c.id, 'marks', parseInt(e.target.value) || 0)} className="w-full bg-white dark:bg-white/5 border dark:border-white/10 rounded-2xl px-3 py-3 text-xs text-center font-black dark:text-white outline-none" /> : <select value={c.grade} onChange={(e) => updateCourse(c.id, 'grade', e.target.value)} className="w-full bg-white dark:bg-white/5 border dark:border-white/10 rounded-2xl px-3 py-3 text-xs text-center font-black dark:text-white outline-none appearance-none cursor-pointer">{Object.keys(GRADE_POINTS).map(g => <option key={g} value={g}>{g}</option>)}</select>}
                     </div>
-                    <button onClick={() => removeCourse(c.id)} className="p-3 mt-4 text-red-500/20 hover:text-red-500 hover:bg-red-500/5 rounded-xl transition-all border-none bg-transparent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>
+                    <button onClick={() => removeCourse(c.id)} className="p-3 mt-4 text-red-500/20 hover:text-red-500 hover:bg-red-500/5 rounded-xl transition-all border-none bg-transparent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>
                   </div>
                 </div>
               ))}</div>
@@ -333,8 +333,8 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
 
           {currentSemester > 1 && (
             <div className="glass-panel p-8 rounded-[40px] grid grid-cols-2 gap-6 border border-orange-500/10 bg-orange-500/[0.02]">
-              <div><p className="text-[9px] font-black uppercase text-slate-400 mb-2 ml-1 tracking-widest">Archived CGPA (till Sem {currentSemester - 1})</p><input type="number" step="0.01" value={prevCGPA || ''} onChange={(e) => setPrevCGPA(parseFloat(e.target.value) || 0)} className="w-full bg-white dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-2xl px-6 py-4 text-sm font-black dark:text-white outline-none focus:ring-4 focus:ring-orange-600/10 transition-all shadow-inner" placeholder="8.45" /></div>
-              <div><p className="text-[9px] font-black uppercase text-slate-400 mb-2 ml-1 tracking-widest">Total Credits Archived</p><input type="number" value={prevTotalCredits || ''} onChange={(e) => setPrevTotalCredits(parseInt(e.target.value) || 0)} className="w-full bg-white dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-2xl px-6 py-4 text-sm font-black dark:text-white outline-none focus:ring-4 focus:ring-orange-600/10 transition-all shadow-inner" placeholder="48" /></div>
+              <div><p className="text-[9px] font-black uppercase text-slate-400 mb-2 ml-1 tracking-widest">Archived CGPA (till Sem {currentSemester - 1})</p><input type="number" step="0.01" value={prevCGPA || ''} onChange={(e) => setPrevCGPA(parseFloat(e.target.value) || 0)} className="w-full bg-white dark:bg-black border border-slate-200 dark:border-white/5 rounded-2xl px-6 py-4 text-sm font-black dark:text-white outline-none focus:ring-4 focus:ring-orange-600/10 transition-all shadow-inner" placeholder="8.45" /></div>
+              <div><p className="text-[9px] font-black uppercase text-slate-400 mb-2 ml-1 tracking-widest">Total Credits Archived</p><input type="number" value={prevTotalCredits || ''} onChange={(e) => setPrevTotalCredits(parseInt(e.target.value) || 0)} className="w-full bg-white dark:bg-black border border-slate-200 dark:border-white/5 rounded-2xl px-6 py-4 text-sm font-black dark:text-white outline-none focus:ring-4 focus:ring-orange-600/10 transition-all shadow-inner" placeholder="48" /></div>
             </div>
           )}
 
@@ -421,7 +421,7 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
             <p className="text-[10px] font-black opacity-70 uppercase tracking-widest relative z-10">Load efficiency: {currentStats.totalCredits} PTS</p>
           </div>
 
-          <div className="glass-panel p-10 rounded-[56px] text-center shadow-2xl bg-gradient-to-br from-slate-800 to-slate-950 text-white border-none relative overflow-hidden group">
+          <div className="glass-panel p-10 rounded-[56px] text-center shadow-2xl bg-gradient-to-br from-slate-800 to-black text-white border-none relative overflow-hidden group">
             <h3 className="text-[10px] font-black uppercase tracking-[0.4em] opacity-80 mb-4 relative z-10">Cumulative CGPA</h3>
             <p className="text-6xl font-black tracking-tighter mb-6 relative z-10">{overallCGPA}</p>
             <div className="h-2.5 bg-white/20 rounded-full overflow-hidden mb-6 relative z-10">
@@ -430,7 +430,7 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
             <p className="text-[10px] font-black opacity-70 uppercase tracking-widest relative z-10">Sem {currentSemester} Standing</p>
           </div>
 
-          <div className="glass-panel p-8 rounded-[40px] bg-white dark:bg-slate-950 border dark:border-white/5">
+          <div className="glass-panel p-8 rounded-[40px] bg-white dark:bg-black border dark:border-white/5">
              <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] mb-6 text-center">Reference Matrix</h4>
             <div className="grid grid-cols-2 gap-4">
               {Object.entries(GRADE_POINTS).map(([g, p]) => (
@@ -445,7 +445,7 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
       </div>
 
       <footer className="pt-10 pb-4 text-center">
-        <div className="inline-flex items-start gap-4 p-6 bg-slate-100 dark:bg-slate-950/50 rounded-[32px] border border-slate-200 dark:border-white/10 max-w-2xl text-left">
+        <div className="inline-flex items-start gap-4 p-6 bg-slate-100 dark:bg-black/40 rounded-[32px] border border-slate-200 dark:border-white/10 max-w-2xl text-left">
            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5 text-orange-500 mt-0.5 flex-shrink-0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
            <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed uppercase tracking-widest">
              Note: LPU follows a relative grading system. This calculator utilizes the standard 10-point scale for estimation protocols. Actual results may vary based on your specific batch trajectory and the relative performance curve.
@@ -455,7 +455,7 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
 
       {isShareModalOpen && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
-          <div ref={shareModalRef} className="bg-white dark:bg-slate-950 rounded-[48px] p-12 w-full max-w-lg shadow-[0_40px_100px_-20px_rgba(0,0,0,0.5)] border border-white/10 relative text-center">
+          <div ref={shareModalRef} className="bg-white dark:bg-black rounded-[48px] p-12 w-full max-w-lg shadow-[0_40px_100px_-20px_rgba(0,0,0,0.5)] border border-white/10 relative text-center">
             <button onClick={() => setIsShareModalOpen(false)} className="absolute top-10 right-10 text-slate-400 hover:text-slate-900 transition-all border-none bg-transparent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             <div className="w-24 h-24 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-8"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-12 h-12 text-emerald-500"><polyline points="20 6 9 17 4 12"/></svg></div>
             <h3 className="text-3xl font-black dark:text-white mb-4 uppercase tracking-tighter">Academic ID Ready</h3>
