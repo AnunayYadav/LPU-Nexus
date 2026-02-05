@@ -529,6 +529,9 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
 
   const inboundRequests = friendRequests.filter(r => r.receiver_id === userProfile?.id && r.status === 'pending');
 
+  const dmUnreadTotal = conversations.filter(c => !c.is_group).reduce((acc, c) => acc + (c.unread_count || 0), 0);
+  const groupUnreadTotal = conversations.filter(c => c.is_group).reduce((acc, c) => acc + (c.unread_count || 0), 0);
+
   const conversationListContent = (
     <div className="flex-1 flex flex-col h-full bg-slate-50 dark:bg-[#080808]">
       <div className="p-6 border-b border-slate-200 dark:border-white/5 flex items-center justify-between">
@@ -563,8 +566,8 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
               <p className="text-xs font-black uppercase tracking-tight">{convo.display_name || "User"}</p>
               <p className={`text-[8px] font-bold uppercase tracking-widest opacity-60 ${activeConversation?.id === convo.id ? 'text-white' : ''}`}>{convo.is_group ? 'Group' : 'Direct'}</p>
             </div>
-            {convo.unread_count > 0 && activeConversation?.id !== convo.id && (
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 bg-orange-600 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white/10 shadow-lg animate-fade-in">
+            {!!convo.unread_count && convo.unread_count > 0 && activeConversation?.id !== convo.id && (
+              <span className="bg-orange-600 text-white text-[8px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-slate-50 dark:border-black shadow-lg animate-fade-in">
                 {convo.unread_count > 9 ? '9+' : convo.unread_count}
               </span>
             )}
@@ -608,20 +611,15 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
       {/* Side Navigation */}
       <div className="w-16 md:w-20 bg-slate-50 dark:bg-[#050505] border-r border-slate-200 dark:border-white/5 flex flex-col items-center py-8 space-y-6 flex-shrink-0">
         {[
-          { id: 'lounge', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>, label: 'Lounge' },
-          { id: 'dms', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>, label: 'Chats' },
-          { id: 'groups', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>, label: 'Groups' },
-          { id: 'directory', icon: (
-            <div className="relative">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-              {inboundRequests.length > 0 && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-orange-600 rounded-full border-2 border-slate-50 dark:border-black" />}
-            </div>
-          ), label: 'People' },
+          { id: 'lounge', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>, label: 'Lounge', unread: 0 },
+          { id: 'dms', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>, label: 'Chats', unread: dmUnreadTotal },
+          { id: 'groups', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>, label: 'Groups', unread: groupUnreadTotal },
+          { id: 'directory', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>, label: 'People', unread: inboundRequests.length },
         ].map(item => (
           <button 
             key={item.id} 
             onClick={() => handleViewChange(item.id as SocialView)}
-            className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all border-none ${
+            className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all border-none relative ${
               activeView === item.id 
                 ? 'bg-orange-600 text-white shadow-[0_0_20px_rgba(234,88,12,0.5)] scale-110' 
                 : 'bg-transparent text-slate-400 hover:text-orange-500 hover:bg-orange-500/5'
@@ -629,6 +627,11 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
             title={item.label}
           >
             {item.icon}
+            {!!item.unread && item.unread > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-orange-600 text-white text-[8px] font-black rounded-full flex items-center justify-center border-2 border-slate-50 dark:border-[#050505] shadow-lg animate-fade-in">
+                {item.unread > 9 ? '9+' : item.unread}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -671,11 +674,11 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
 
                   <button 
                     onClick={() => setDirectorySubView(directorySubView === 'requests' ? 'search' : 'requests')}
-                    className={`relative w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-sm ${directorySubView === 'requests' ? 'bg-orange-600 text-white shadow-[0_0_15px_rgba(234,88,12,0.4)]' : 'bg-orange-600/20 text-white hover:bg-orange-600/40 border-none'}`}
+                    className={`relative w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-sm ${directorySubView === 'requests' ? 'bg-orange-600 text-white shadow-[0_0_15px_rgba(234,88,12,0.4)]' : 'bg-orange-600 text-white opacity-40 hover:opacity-100 border-none'}`}
                     title="Requests"
                   >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-6 h-6"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                    {inboundRequests.length > 0 && (
+                    {!!inboundRequests.length && inboundRequests.length > 0 && (
                       <span className="absolute -top-1 -right-1 flex h-5 w-5">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-5 w-5 bg-orange-600 text-white items-center justify-center text-[8px] font-black">{inboundRequests.length}</span>

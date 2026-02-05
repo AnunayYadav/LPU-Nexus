@@ -180,7 +180,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <span className="font-bold text-sm tracking-tight">{item.label}</span>
               </div>
               <div className="flex items-center gap-2">
-                {item.badge && item.badge > 0 && (
+                {!!item.badge && item.badge > 0 && (
                   <span className="bg-orange-600 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-lg border border-white/10">
                     {item.badge > 9 ? '9+' : item.badge}
                   </span>
