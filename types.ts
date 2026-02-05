@@ -23,6 +23,7 @@ export interface UserProfile {
   program?: string;
   batch?: string;
   bio?: string;
+  avatar_url?: string;
   is_public?: boolean;
   last_seen?: string;
   blocked_users?: string[];
@@ -51,6 +52,7 @@ export interface ChatMessage {
   timestamp: number;
   sender_name?: string;
   sender_id?: string;
+  sender_avatar_url?: string;
   reply_to?: ChatMessage;
   reactions?: MessageReaction[];
   is_deleted_everyone?: boolean;

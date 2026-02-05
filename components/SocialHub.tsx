@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { UserProfile, ChatMessage, FriendRequest, MessageReaction } from '../types.ts';
 import NexusServer from '../services/nexusServer.ts';
@@ -254,7 +255,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
     if (!convo) convo = await NexusServer.createConversation(userProfile.id, null, false, [other.id]);
     await loadConversations();
     setActiveView('chats');
-    selectConversation({ ...convo, display_name: other.username, other_user_id: other.id });
+    selectConversation({ ...convo, display_name: other.username, other_user_id: other.id, avatar_url: other.avatar_url });
   };
 
   const handleAddFriend = async (targetId: string) => {
@@ -318,8 +319,12 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
                   onClick={() => selectConversation(convo)}
                   className={`w-full p-3 rounded-2xl flex items-center gap-3 transition-all border-none text-left ${activeConversation?.id === convo.id ? 'bg-white/5' : 'hover:bg-white/[0.02]'}`}
                 >
-                  <div className={`w-11 h-11 rounded-full flex items-center justify-center text-xs font-black bg-gradient-to-br ${activeConversation?.id === convo.id ? 'from-orange-500 to-red-600' : 'from-white/10 to-white/5'} shadow-md`}>
-                    {convo.display_name?.[0]?.toUpperCase()}
+                  <div className={`w-11 h-11 rounded-full flex items-center justify-center overflow-hidden transition-all ${activeConversation?.id === convo.id ? 'bg-gradient-to-br from-orange-500 to-red-600' : 'bg-white/10'} shadow-md`}>
+                    {convo.avatar_url ? (
+                      <img src={convo.avatar_url} className="w-full h-full object-cover" alt="" />
+                    ) : (
+                      <span className="text-xs font-black uppercase">{convo.display_name?.[0]}</span>
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-center mb-0.5">
@@ -389,8 +394,12 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
                     {searchResults.map(p => (
                       <div key={p.id} className="p-6 rounded-[32px] border border-white/5 bg-white/[0.02] flex flex-col items-center text-center group hover:border-orange-500/30 transition-all">
                         <div className="w-16 h-16 rounded-full bg-insta-gradient p-[2.5px] mb-5 shadow-lg">
-                          <div className="w-full h-full bg-black rounded-full flex items-center justify-center font-black text-2xl">
-                            {p.username?.[0]?.toUpperCase()}
+                          <div className="w-full h-full bg-black rounded-full overflow-hidden flex items-center justify-center font-black text-2xl">
+                            {p.avatar_url ? (
+                              <img src={p.avatar_url} className="w-full h-full object-cover" alt="" />
+                            ) : (
+                              <span>{p.username?.[0]?.toUpperCase()}</span>
+                            )}
                           </div>
                         </div>
                         <h4 className="text-lg font-black uppercase tracking-tighter mb-0.5">@{p.username}</h4>
@@ -412,7 +421,13 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
                    ) : incomingRequests.map(req => (
                      <div key={req.id} className="p-5 rounded-[24px] bg-white/5 border border-white/10 flex items-center justify-between animate-fade-in">
                         <div className="flex items-center gap-3.5">
-                           <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center font-black text-xs">{req.sender?.username?.[0]?.toUpperCase()}</div>
+                           <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center overflow-hidden font-black text-xs uppercase">
+                              {req.sender?.avatar_url ? (
+                                <img src={req.sender.avatar_url} className="w-full h-full object-cover" alt="" />
+                              ) : (
+                                <span>{req.sender?.username?.[0]}</span>
+                              )}
+                           </div>
                            <div>
                               <p className="text-xs font-black uppercase">@{req.sender?.username}</p>
                               <p className="text-[8px] text-white/40 uppercase font-bold tracking-widest">Wants to connect</p>
@@ -433,8 +448,14 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
             <header className="px-6 py-5 border-b border-white/5 flex items-center justify-between bg-black/80 backdrop-blur-xl z-20">
               <div className="flex items-center gap-4 cursor-pointer group/header" onClick={loadDetails}>
                 <div className="w-10 h-10 rounded-full bg-insta-gradient p-[1.5px] shadow-md group-hover/header:scale-105 transition-transform">
-                  <div className="w-full h-full bg-black rounded-full flex items-center justify-center font-black text-xs">
-                    {activeView === 'lounge' ? '#' : activeConversation?.display_name?.[0]?.toUpperCase()}
+                  <div className="w-full h-full bg-black rounded-full overflow-hidden flex items-center justify-center font-black text-xs uppercase">
+                    {activeView === 'lounge' ? '#' : (
+                      activeConversation?.avatar_url ? (
+                        <img src={activeConversation.avatar_url} className="w-full h-full object-cover" alt="" />
+                      ) : (
+                        <span>{activeConversation?.display_name?.[0]}</span>
+                      )
+                    )}
                   </div>
                 </div>
                 <div>
@@ -461,8 +482,12 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
                   <div className="max-w-xl mx-auto w-full space-y-12">
                     <div className="text-center">
                       <div className="w-24 h-24 rounded-full bg-insta-gradient p-[3px] mx-auto mb-6 shadow-2xl">
-                        <div className="w-full h-full bg-black rounded-full flex items-center justify-center text-4xl font-black">
-                          {activeConversation?.display_name?.[0]?.toUpperCase()}
+                        <div className="w-full h-full bg-black rounded-full overflow-hidden flex items-center justify-center text-4xl font-black uppercase">
+                          {activeConversation?.avatar_url ? (
+                            <img src={activeConversation.avatar_url} className="w-full h-full object-cover" alt="" />
+                          ) : (
+                            <span>{activeConversation?.display_name?.[0]}</span>
+                          )}
                         </div>
                       </div>
                       <h2 className="text-3xl font-black uppercase tracking-tighter">{activeConversation?.display_name}</h2>
@@ -480,7 +505,13 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
                             <div className="space-y-2">
                               {groupMembers.map(m => (
                                 <div key={m.id} className="flex items-center gap-4 p-4 bg-white/[0.02] border border-white/5 rounded-[24px]">
-                                  <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center font-black text-xs uppercase">{m.username?.[0] || m.email[0]}</div>
+                                  <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center overflow-hidden font-black text-xs uppercase">
+                                    {m.avatar_url ? (
+                                      <img src={m.avatar_url} className="w-full h-full object-cover" alt="" />
+                                    ) : (
+                                      <span>{m.username?.[0] || m.email[0]}</span>
+                                    )}
+                                  </div>
                                   <div className="flex-1 min-w-0">
                                     <p className="text-xs font-black uppercase truncate">@{m.username || 'Verto'}</p>
                                     <p className="text-[8px] font-bold text-white/30 uppercase tracking-widest">{m.program || 'Active Member'}</p>
@@ -534,7 +565,18 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
 
                       return (
                         <div key={msg.id || i} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} msg-pop group/msg relative`}>
-                          {!isMe && <span className="text-[8px] font-black text-orange-500 uppercase tracking-tighter mb-1 ml-0.5">@{msg.sender_name}</span>}
+                          {!isMe && (
+                            <div className="flex items-center gap-1.5 mb-1.5 ml-0.5">
+                              <div className="w-4 h-4 rounded-full overflow-hidden bg-white/10 flex items-center justify-center font-black text-[6px] uppercase">
+                                {msg.sender_avatar_url ? (
+                                  <img src={msg.sender_avatar_url} className="w-full h-full object-cover" alt="" />
+                                ) : (
+                                  <span>{msg.sender_name?.[0]}</span>
+                                )}
+                              </div>
+                              <span className="text-[8px] font-black text-orange-500 uppercase tracking-tighter">@{msg.sender_name}</span>
+                            </div>
+                          )}
                           
                           <div className={`flex items-center gap-1 ${isMe ? 'flex-row-reverse' : ''} max-w-[85%] md:max-w-[70%]`}>
                             <div 

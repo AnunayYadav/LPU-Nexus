@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import Sidebar from './components/Sidebar.tsx';
 import PlacementPrefect from './components/PlacementPrefect.tsx';
@@ -202,8 +203,14 @@ const App: React.FC = () => {
              </button>
              <div className="relative">
                {userProfile ? (
-                 <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="w-10 h-10 rounded-full bg-gradient-to-tr from-orange-600 to-red-700 flex items-center justify-center text-white font-black border-none shadow-lg hover:scale-110 transition-all overflow-hidden">
-                   <span>{userProfile.username?.[0]?.toUpperCase() || userProfile.email[0].toUpperCase()}</span>
+                 <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="w-10 h-10 rounded-full bg-insta-gradient p-[1.5px] border-none shadow-lg hover:scale-110 transition-all overflow-hidden cursor-pointer group">
+                   <div className="w-full h-full bg-black rounded-full overflow-hidden flex items-center justify-center text-white font-black">
+                     {userProfile.avatar_url ? (
+                       <img src={userProfile.avatar_url} className="w-full h-full object-cover" alt="" />
+                     ) : (
+                       <span>{userProfile.username?.[0]?.toUpperCase() || userProfile.email[0].toUpperCase()}</span>
+                     )}
+                   </div>
                  </button>
                ) : (
                  <button onClick={() => setShowAuthModal(true)} className="w-10 h-10 rounded-full border-none bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400 hover:text-orange-500 transition-all shadow-sm active:scale-95">
@@ -214,13 +221,22 @@ const App: React.FC = () => {
                  <>
                    <div className="fixed inset-0 z-40" onClick={() => setIsProfileMenuOpen(false)} />
                    <div className="absolute top-full right-0 mt-3 w-64 glass-panel rounded-3xl border border-slate-200 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden animate-fade-in z-50 bg-white dark:bg-black">
-                     <div className="p-5 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02]">
-                       <p className="text-[10px] font-black uppercase text-orange-600 tracking-[0.2em] mb-1">Authenticated</p>
-                       <p className="text-sm font-black truncate dark:text-white uppercase tracking-tight">{userProfile.username || 'Citizen Verto'}</p>
-                       <p className="text-[9px] font-bold text-slate-400 truncate mt-0.5">{userProfile.email}</p>
+                     <div className="p-5 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02] flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full overflow-hidden bg-black flex items-center justify-center font-black text-lg border border-white/10">
+                          {userProfile.avatar_url ? (
+                            <img src={userProfile.avatar_url} className="w-full h-full object-cover" alt="" />
+                          ) : (
+                            <span className="text-orange-600">{userProfile.username?.[0]?.toUpperCase()}</span>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-black uppercase text-orange-600 tracking-[0.2em]">Verified Identity</p>
+                          <p className="text-sm font-black truncate dark:text-white uppercase tracking-tight">{userProfile.username || 'Citizen Verto'}</p>
+                          <p className="text-[9px] font-bold text-slate-400 truncate">{userProfile.email}</p>
+                        </div>
                      </div>
                      <div className="py-2">
-                       <button onClick={() => { navigateToModule(ModuleType.PROFILE); setIsProfileMenuOpen(false); }} className="w-full text-left px-5 py-3.5 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:orange-600/10 hover:text-orange-600 flex items-center space-x-3 transition-all border-none bg-transparent">
+                       <button onClick={() => { navigateToModule(ModuleType.PROFILE); setIsProfileMenuOpen(false); }} className="w-full text-left px-5 py-3.5 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-orange-600/10 hover:text-orange-600 flex items-center space-x-3 transition-all border-none bg-transparent">
                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                          <span>Profile Terminal</span>
                        </button>

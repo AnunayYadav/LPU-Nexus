@@ -105,6 +105,18 @@ class NexusServer {
     await client.from('profiles').update(updates).eq('id', userId);
   }
 
+  static async uploadAvatar(userId: string, file: File): Promise<string> {
+    const client = getSupabase();
+    if (!client) throw new Error("Registry offline.");
+    const fileExt = file.name.split('.').pop();
+    const filePath = `avatars/${userId}/${Math.random()}.${fileExt}`;
+    const { error: uploadError } = await client.storage.from('nexus-documents').upload(filePath, file);
+    if (uploadError) throw uploadError;
+    const { data: { publicUrl } } = client.storage.from('nexus-documents').getPublicUrl(filePath);
+    await this.updateProfile(userId, { avatar_url: publicUrl });
+    return publicUrl;
+  }
+
   static async blockUser(myId: string, targetId: string) {
     const client = getSupabase();
     if (!client) return;
@@ -168,6 +180,7 @@ class NexusServer {
         if (other) {
           const profile = await this.getProfile(other.user_id);
           entry.display_name = profile?.username || "Verto";
+          entry.avatar_url = profile?.avatar_url;
           entry.other_user_id = other.user_id;
         }
       } else { entry.display_name = c.name || "Squad"; }
@@ -227,11 +240,11 @@ class NexusServer {
     const { data: msgs } = await client.from('messages').select('*').eq('conversation_id', conversationId).order('created_at', { ascending: true });
     if (!msgs) return [];
     const senderIds = Array.from(new Set(msgs.map(m => m.sender_id)));
-    const { data: profiles } = await client.from('profiles').select('id, username').in('id', senderIds);
-    const pMap = (profiles || []).reduce((acc: any, p: any) => ({ ...acc, [p.id]: p.username }), {});
+    const { data: profiles } = await client.from('profiles').select('id, username, avatar_url').in('id', senderIds);
+    const pMap = (profiles || []).reduce((acc: any, p: any) => ({ ...acc, [p.id]: { name: p.username, avatar: p.avatar_url } }), {});
     return msgs.map(m => ({
-      id: m.id, role: 'user', text: m.text, timestamp: new Date(m.created_at).getTime(), sender_id: m.sender_id, sender_name: pMap[m.sender_id] || 'Verto',
-      reactions: m.reactions, is_deleted_everyone: m.is_deleted_everyone
+      id: m.id, role: 'user', text: m.text, timestamp: new Date(m.created_at).getTime(), sender_id: m.sender_id, sender_name: pMap[m.sender_id]?.name || 'Verto',
+      sender_avatar_url: pMap[m.sender_id]?.avatar, reactions: m.reactions, is_deleted_everyone: m.is_deleted_everyone
     }));
   }
 
@@ -254,7 +267,15 @@ class NexusServer {
     const client = getSupabase();
     if (!client) return [];
     const { data } = await client.from('social_messages').select('*').order('created_at', { ascending: false }).limit(50);
-    return (data || []).reverse().map(m => ({ id: m.id, role: 'user', text: m.text, timestamp: new Date(m.created_at).getTime(), sender_name: m.sender_name, sender_id: m.sender_id }));
+    if (!data) return [];
+    const senderIds = Array.from(new Set(data.map(m => m.sender_id)));
+    const { data: profiles } = await client.from('profiles').select('id, avatar_url').in('id', senderIds);
+    const aMap = (profiles || []).reduce((acc: any, p: any) => ({ ...acc, [p.id]: p.avatar_url }), {});
+    
+    return data.reverse().map(m => ({ 
+      id: m.id, role: 'user', text: m.text, timestamp: new Date(m.created_at).getTime(), 
+      sender_name: m.sender_name, sender_id: m.sender_id, sender_avatar_url: aMap[m.sender_id] 
+    }));
   }
 
   static subscribeToSocialChat(onMsg: (payload: any) => void) {
@@ -403,7 +424,7 @@ class NexusServer {
   static async fetchUserFiles(uid: string): Promise<LibraryFile[]> {
     const client = getSupabase();
     if (!client) return [];
-    const { data } = await client.from('documents').select('*, profiles(username)').eq('uploader_id', uid);
+    const { data = [] } = await client.from('documents').select('*, profiles(username)').eq('uploader_id', uid);
     return (data || []).map(item => ({
       id: item.id, name: item.name, subject: item.subject, semester: item.semester, type: item.type,
       uploadDate: new Date(item.created_at).getTime(), size: item.size, status: item.status, storage_path: item.storage_path,
