@@ -189,13 +189,13 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
         }
       }
 
-      // Handle read status updates
-      if (payload.table === 'conversation_members' && eventType === 'UPDATE' && activeConversation) {
+      // Handle read status updates - Broaden check to catch any update to conversation_members in this convo
+      if (payload.table === 'conversation_members' && activeConversation) {
         NexusServer.fetchMemberReadStatuses(activeConversation.id).then(statuses => {
           if (currentContextRef.current !== activeConversation.id) return;
           const statusMap = statuses.reduce((acc: any, s: any) => ({
             ...acc,
-            [s.user_id]: new Date(s.last_read_at).getTime()
+            [s.user_id]: s.last_read_at ? new Date(s.last_read_at).getTime() : 0
           }), {});
           setMemberReadStatus(statusMap);
         });
@@ -210,7 +210,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
         if (currentContextRef.current !== activeConversation.id) return;
         const statusMap = statuses.reduce((acc: any, s: any) => ({
           ...acc,
-          [s.user_id]: new Date(s.last_read_at).getTime()
+          [s.user_id]: s.last_read_at ? new Date(s.last_read_at).getTime() : 0
         }), {});
         setMemberReadStatus(statusMap);
       });
@@ -785,7 +785,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
                   const isMe = msg.sender_id === userProfile?.id;
                   const isEditing = editingMessageId === msg.id;
                   
-                  // Read status logic
+                  // Read status logic - check if any other member has a last_read_at >= message timestamp
                   const isRead = activeView !== 'lounge' && Object.entries(memberReadStatus).some(([uid, time]) => 
                     uid !== msg.sender_id && time >= msg.timestamp
                   );
