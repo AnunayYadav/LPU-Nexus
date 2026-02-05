@@ -51,31 +51,97 @@ const getPathFromModule = (module: ModuleType): string => {
   }
 };
 
-const Dashboard: React.FC<{ setModule: (m: ModuleType) => void }> = ({ setModule }) => (
-  <div className="max-w-6xl mx-auto animate-fade-in pb-20">
-    <div className="mb-10 text-center py-10">
-      <h2 className="text-4xl md:text-5xl font-extrabold text-slate-900 dark:text-white mb-4 tracking-tighter">
-        Welcome to <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600">LPU-Nexus</span>
-      </h2>
-      <p className="text-slate-600 dark:text-slate-400 text-lg md:text-xl font-medium">Your AI-Powered Campus Assistant</p>
-    </div>
+const Dashboard: React.FC<{ setModule: (m: ModuleType) => void }> = ({ setModule }) => {
+  const cards = [
+    { 
+      id: ModuleType.CGPA, 
+      title: "CGPA Calculator", 
+      desc: "Precision SGPA & CGPA forecasting based on LPU standards.", 
+      color: "from-orange-500/20 to-red-500/20",
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="16" y1="14" x2="16" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>
+    },
+    { 
+      id: ModuleType.ATTENDANCE, 
+      title: "Attendance Tracker", 
+      desc: "Monitor sessions and hit that 75% threshold with ease.", 
+      color: "from-emerald-500/20 to-teal-500/20",
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+    },
+    { 
+      id: ModuleType.PLACEMENT, 
+      title: "Placement Prefect", 
+      desc: "AI Resume optimization tailored for LPU campus drives.", 
+      color: "from-blue-500/20 to-indigo-500/20",
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+    },
+    { 
+      id: ModuleType.LIBRARY, 
+      title: "Content Library", 
+      desc: "Centralized registry for notes, pyqs and study materials.", 
+      color: "from-amber-500/20 to-orange-500/20",
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M8 8h10M8 12h10"/></svg>
+    },
+    { 
+      id: ModuleType.CAMPUS, 
+      title: "Campus Navigator", 
+      desc: "Interactive 3D maps and latest mess menu cycles.", 
+      color: "from-purple-500/20 to-pink-500/20",
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+    },
+    { 
+      id: ModuleType.GLOBAL, 
+      title: "Global Gateway", 
+      desc: "Explore international masters and scholarship protocols.", 
+      color: "from-cyan-500/20 to-blue-500/20",
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+    }
+  ];
 
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {[
-        { id: ModuleType.CGPA, title: "CGPA Calculator", desc: "Calculate your SGPA and CGPA based on LPU grading standards.", color: "hover:border-orange-500/50" },
-        { id: ModuleType.ATTENDANCE, title: "Attendance Tracker", desc: "Monitor your attendance and hit that 75% threshold with ease.", color: "hover:border-green-500/50" },
-        { id: ModuleType.PLACEMENT, title: "Placement Prefect", desc: "Resume ATS matching & optimization tailored for campus drives.", color: "hover:border-orange-500/50" },
-        { id: ModuleType.LIBRARY, title: "Content Library", desc: "Centralized hub for all your lectures, question banks and notes.", color: "hover:border-orange-500/50" },
-        { id: ModuleType.CAMPUS, title: "Campus Navigator", desc: "Interactive 3D maps and latest mess menu cycles.", color: "hover:border-emerald-500/50" }
-      ].map(card => (
-        <div key={card.id} onClick={() => setModule(card.id)} className={`group relative p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/50 ${card.color} transition-all cursor-pointer hover:shadow-2xl overflow-hidden min-h-[160px]`}>
-          <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">{card.title}</h3>
-          <p className="text-slate-600 dark:text-slate-400 text-sm">{card.desc}</p>
-        </div>
-      ))}
+  return (
+    <div className="max-w-6xl mx-auto animate-fade-in pb-20 px-4">
+      <div className="mb-10 text-center py-10">
+        <h2 className="text-4xl md:text-5xl font-extrabold text-slate-900 dark:text-white mb-4 tracking-tighter">
+          Welcome to <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600">LPU-Nexus</span>
+        </h2>
+        <p className="text-slate-600 dark:text-slate-400 text-lg md:text-xl font-medium">Your AI-Powered Campus Assistant</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {cards.map(card => (
+          <div 
+            key={card.id} 
+            onClick={() => setModule(card.id)} 
+            className="group relative p-8 rounded-[40px] bg-white dark:bg-black border border-slate-100 dark:border-white/5 transition-all cursor-pointer hover:shadow-[0_20px_50px_rgba(0,0,0,0.2)] dark:hover:shadow-[0_20px_50px_rgba(234,88,12,0.1)] hover:border-orange-500/30 overflow-hidden min-h-[160px] flex flex-col justify-between"
+          >
+            {/* Background Glow */}
+            <div className={`absolute -right-10 -bottom-10 w-40 h-40 bg-gradient-to-br ${card.color} blur-[60px] opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+            
+            {/* Background Icon */}
+            <div className="absolute -right-4 -bottom-4 w-32 h-32 text-slate-100 dark:text-white/[0.03] transform rotate-12 group-hover:rotate-6 group-hover:scale-110 transition-all duration-700 pointer-events-none">
+              {card.icon}
+            </div>
+
+            <div className="relative z-10">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-white/5 flex items-center justify-center text-slate-400 dark:text-slate-500 group-hover:text-orange-500 group-hover:bg-orange-500/10 transition-all duration-300">
+                  <div className="w-5 h-5">{card.icon}</div>
+                </div>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none group-hover:text-orange-600 transition-colors">
+                  {card.title}
+                </h3>
+              </div>
+              <p className="text-slate-500 dark:text-slate-400 text-sm font-bold leading-relaxed max-w-[90%]">{card.desc}</p>
+            </div>
+
+            <div className="relative z-10 mt-6 flex items-center gap-2 text-orange-600 opacity-0 group-hover:opacity-100 transform translate-x-[-10px] group-hover:translate-x-0 transition-all">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const App: React.FC = () => {
   const [currentModule, setCurrentModule] = useState<ModuleType>(() => getModuleFromPath(window.location.pathname));
