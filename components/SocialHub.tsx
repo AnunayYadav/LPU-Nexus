@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { UserProfile, ChatMessage, FriendRequest, MessageReaction } from '../types.ts';
 import NexusServer from '../services/nexusServer.ts';
 
-type SocialView = 'lounge' | 'dms' | 'groups' | 'directory';
+type SocialView = 'lounge' | 'chats' | 'groups' | 'search';
 
 const EMOJIS = ['❤️', '😂', '😮', '😢', '🔥', '👍', '🙏'];
 
@@ -28,7 +28,7 @@ const ReadReceipt = ({ isRead }: { isRead: boolean }) => (
 
 const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: () => void }> = ({ userProfile, onUnreadChange }) => {
   const [activeView, setActiveView] = useState<SocialView>('lounge');
-  const [directorySubView, setDirectorySubView] = useState<'search' | 'requests'>('search');
+  const [searchSubView, setSearchSubView] = useState<'find' | 'requests'>('find');
   const [conversations, setConversations] = useState<any[]>([]);
   const [activeConversation, setActiveConversation] = useState<any | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -94,16 +94,16 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
     return () => unsubscribe();
   }, [activeView, activeConversation, userProfile]);
 
-  /**
-   * Fix: Added missing handleViewChange function to switch between lounge, dms, and directory.
-   */
   const handleViewChange = (view: SocialView) => {
     setActiveView(view);
     setOpenMenuId(null);
     setReactionMenuId(null);
     if (view === 'lounge') {
       loadLounge();
-    } else if (view !== 'directory') {
+    } else if (view === 'search') {
+      setSearchSubView('find');
+      loadFriendData();
+    } else {
       setActiveConversation(null);
       if (userProfile) loadConversations();
     }
@@ -197,9 +197,28 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
     let convo = await NexusServer.findExistingDM(userProfile.id, other.id);
     if (!convo) convo = await NexusServer.createConversation(userProfile.id, null, false, [other.id]);
     await loadConversations();
-    setActiveView('dms');
+    setActiveView('chats');
     selectConversation({ ...convo, display_name: other.username });
   };
+
+  const handleAddFriend = async (targetId: string) => {
+    if (!userProfile) return;
+    try {
+      await NexusServer.sendFriendRequest(userProfile.id, targetId);
+      alert("Request sent.");
+      loadFriendData();
+    } catch (e) { alert("Action failed."); }
+  };
+
+  const handleRequest = async (id: string, status: 'accepted' | 'declined') => {
+    try {
+      await NexusServer.updateFriendRequest(id, status);
+      loadFriendData();
+      loadConversations();
+    } catch (e) { console.error(e); }
+  };
+
+  const incomingRequests = friendRequests.filter(r => r.receiver_id === userProfile?.id && r.status === 'pending');
 
   return (
     <div className="flex h-full w-full bg-black text-white overflow-hidden animate-fade-in relative">
@@ -210,27 +229,30 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
         .bg-insta-gradient { background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); }
       `}</style>
 
-      {/* Primary Navigation Icon Bar */}
+      {/* Navigation Icons */}
       <div className="w-16 md:w-20 border-r border-white/5 flex flex-col items-center py-10 space-y-8 flex-shrink-0 bg-black">
-        {['lounge', 'dms', 'groups', 'directory'].map(v => (
+        {[
+          { id: 'lounge', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>, count: 0 },
+          { id: 'chats', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>, count: conversations.filter(c => !c.is_group).reduce((acc, c) => acc + (c.unread_count || 0), 0) },
+          { id: 'groups', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>, count: conversations.filter(c => c.is_group).reduce((acc, c) => acc + (c.unread_count || 0), 0) },
+          { id: 'search', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>, count: incomingRequests.length }
+        ].map(item => (
           <button 
-            key={v} 
-            onClick={() => handleViewChange(v as SocialView)}
-            className={`w-12 h-12 rounded-full flex items-center justify-center transition-all border-none relative ${activeView === v ? 'bg-orange-600 shadow-[0_0_20px_rgba(234,88,12,0.4)] scale-110' : 'text-white/40 hover:text-orange-500'}`}
+            key={item.id} 
+            onClick={() => handleViewChange(item.id as SocialView)}
+            className={`w-12 h-12 rounded-full flex items-center justify-center transition-all border-none relative ${activeView === item.id ? 'bg-orange-600 shadow-xl scale-110' : 'text-white/40 hover:text-orange-500'}`}
           >
-            {v === 'lounge' && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>}
-            {v === 'dms' && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>}
-            {v === 'groups' && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>}
-            {v === 'directory' && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>}
+            {item.icon}
+            {item.count > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-orange-600 rounded-full flex items-center justify-center text-[8px] font-black border border-black">{item.count > 9 ? '9+' : item.count}</span>}
           </button>
         ))}
       </div>
 
-      {/* Chat Selection List */}
-      {(activeView === 'dms' || activeView === 'groups') && (
+      {/* Chat/Group Lists */}
+      {(activeView === 'chats' || activeView === 'groups') && (
         <div className="w-72 md:w-96 border-r border-white/5 hidden md:flex flex-col bg-black">
           <div className="p-8 flex items-center justify-between">
-            <h3 className="text-2xl font-black uppercase tracking-tighter">{activeView === 'dms' ? 'Direct' : 'Squads'}</h3>
+            <h3 className="text-2xl font-black uppercase tracking-tighter">{activeView === 'chats' ? 'Chats' : 'Groups'}</h3>
             <button onClick={loadConversations} className="p-2 hover:bg-white/5 rounded-full border-none bg-transparent text-white/40"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></button>
           </div>
           <div className="flex-1 overflow-y-auto px-4 space-y-1 no-scrollbar">
@@ -256,7 +278,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
                   </button>
                   {openMenuId === convo.id && (
-                    <div className="absolute right-0 mt-2 w-48 bg-black rounded-2xl border border-white/10 shadow-2xl overflow-hidden py-2 animate-fade-in">
+                    <div className="absolute right-0 mt-2 w-48 bg-[#111] rounded-2xl border border-white/10 shadow-2xl overflow-hidden py-2 animate-fade-in">
                        <button onClick={() => NexusServer.deleteConversation(convo.id).then(loadConversations)} className="w-full text-left px-4 py-2.5 text-[10px] font-black uppercase text-red-500 hover:bg-red-500/10 border-none bg-transparent">Delete Chat</button>
                        <button onClick={() => setOpenMenuId(null)} className="w-full text-left px-4 py-2.5 text-[10px] font-black uppercase text-white/40 hover:bg-white/5 border-none bg-transparent">Archive</button>
                     </div>
@@ -268,9 +290,87 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
         </div>
       )}
 
-      {/* Main Chat Interface */}
+      {/* Main View Area */}
       <div className="flex-1 flex flex-col min-w-0 bg-black relative">
-        {(activeView === 'lounge' || activeConversation) ? (
+        {activeView === 'search' ? (
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <header className="p-8 border-b border-white/5 flex items-center justify-between">
+              <div>
+                <h2 className="text-4xl font-black uppercase tracking-tighter">Search</h2>
+                <p className="text-[10px] font-black text-orange-500 uppercase tracking-[0.4em] mt-2">Connect with Vertos</p>
+              </div>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setSearchSubView('find')}
+                  className={`px-6 py-2 rounded-full font-black text-[10px] uppercase tracking-widest transition-all ${searchSubView === 'find' ? 'bg-orange-600 text-white' : 'bg-white/5 text-white/40 border-none'}`}
+                >
+                  Find
+                </button>
+                <button 
+                  onClick={() => setSearchSubView('requests')}
+                  className={`relative px-6 py-2 rounded-full font-black text-[10px] uppercase tracking-widest transition-all ${searchSubView === 'requests' ? 'bg-orange-600 text-white' : 'bg-white/5 text-white/40 border-none'}`}
+                >
+                  Requests
+                  {incomingRequests.length > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-orange-600 rounded-full flex items-center justify-center text-[8px]">{incomingRequests.length}</span>}
+                </button>
+              </div>
+            </header>
+            
+            <div className="flex-1 overflow-y-auto p-8 no-scrollbar">
+              {searchSubView === 'find' ? (
+                <div className="max-w-4xl mx-auto space-y-12">
+                  <div className="relative group">
+                    <input 
+                      type="text" placeholder="Search usernames..." value={searchQuery} onChange={e => handleUserSearch(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-full px-14 py-6 text-xl font-black focus:ring-4 focus:ring-orange-600/10 transition-all outline-none"
+                    />
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="absolute left-6 top-1/2 -translate-y-1/2 w-6 h-6 text-white/20 group-focus-within:text-orange-500 transition-colors"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {searchResults.map(p => (
+                      <div key={p.id} className="p-8 rounded-[40px] border border-white/5 bg-white/[0.02] flex flex-col items-center text-center group hover:border-orange-500/30 transition-all">
+                        <div className="w-20 h-20 rounded-full bg-insta-gradient p-[3px] mb-6 shadow-xl">
+                          <div className="w-full h-full bg-black rounded-full flex items-center justify-center font-black text-3xl">
+                            {p.username?.[0]?.toUpperCase()}
+                          </div>
+                        </div>
+                        <h4 className="text-xl font-black uppercase tracking-tighter mb-1">@{p.username}</h4>
+                        <p className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-8">{p.program || 'Active Verto'}</p>
+                        <div className="flex gap-2 w-full">
+                          <button onClick={() => startDM(p)} className="flex-1 py-4 bg-orange-600 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl border-none">Message</button>
+                          <button onClick={() => handleAddFriend(p.id)} className="px-5 py-4 bg-white/5 rounded-2xl font-black text-[10px] uppercase tracking-widest border-none text-white/60 hover:text-white">+</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="max-w-2xl mx-auto space-y-6">
+                   {incomingRequests.length === 0 ? (
+                     <div className="py-20 text-center opacity-30">
+                        <p className="text-xs font-black uppercase tracking-widest">No pending requests.</p>
+                     </div>
+                   ) : incomingRequests.map(req => (
+                     <div key={req.id} className="p-6 rounded-[32px] bg-white/5 border border-white/10 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                           <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center font-black">{req.sender?.username?.[0]?.toUpperCase()}</div>
+                           <div>
+                              <p className="text-sm font-black uppercase">@{req.sender?.username}</p>
+                              <p className="text-[10px] text-white/40 uppercase font-bold tracking-widest">Wants to connect</p>
+                           </div>
+                        </div>
+                        <div className="flex gap-2">
+                           <button onClick={() => handleRequest(req.id, 'declined')} className="p-3 bg-white/5 text-white/40 rounded-xl hover:text-red-500 border-none transition-colors"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+                           <button onClick={() => handleRequest(req.id, 'accepted')} className="p-3 bg-orange-600 text-white rounded-xl shadow-lg border-none hover:scale-105 transition-all"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><polyline points="20 6 9 17 4 12"/></svg></button>
+                        </div>
+                     </div>
+                   ))}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (activeView === 'lounge' || activeConversation) ? (
           <>
             <header className="px-8 py-6 border-b border-white/5 flex items-center justify-between bg-black/80 backdrop-blur-xl z-20">
               <div className="flex items-center gap-5">
@@ -280,10 +380,10 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
                   </div>
                 </div>
                 <div>
-                  <h3 className="text-base font-black uppercase tracking-tight">{activeView === 'lounge' ? 'Nexus Lounge' : activeConversation?.display_name}</h3>
+                  <h3 className="text-base font-black uppercase tracking-tight">{activeView === 'lounge' ? 'Lounge' : activeConversation?.display_name}</h3>
                   <div className="flex items-center gap-1.5 mt-1">
                     <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
-                    <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">Active Connection</span>
+                    <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">Active Pulse</span>
                   </div>
                 </div>
               </div>
@@ -347,12 +447,12 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
               <form onSubmit={handleSendMessage} className="flex gap-4 bg-white/5 p-3 rounded-[40px] border border-white/10 group focus-within:ring-4 focus-within:ring-orange-600/10 transition-all max-w-5xl mx-auto w-full">
                 <input 
                   type="text" value={inputText} onChange={e => setInputText(e.target.value)}
-                  placeholder="Message Verto..."
+                  placeholder="Message..."
                   className="flex-1 bg-transparent border-none px-6 py-4 text-sm font-bold text-white outline-none"
                 />
                 <button 
                   type="submit" disabled={!inputText.trim()}
-                  className="w-14 h-14 bg-orange-600 rounded-full flex items-center justify-center shadow-xl shadow-orange-600/20 active:scale-90 transition-all disabled:opacity-30 border-none"
+                  className="w-14 h-14 bg-orange-600 rounded-full flex items-center justify-center shadow-xl shadow-orange-600/20 active:scale-95 transition-all disabled:opacity-30 border-none"
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                 </button>
@@ -362,48 +462,12 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center p-20 text-center animate-fade-in">
              <div className="w-24 h-24 bg-orange-600/10 rounded-[50px] flex items-center justify-center mb-10 text-orange-600 shadow-[0_32px_64px_rgba(234,88,12,0.1)] border border-orange-600/20"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-10 h-10"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
-             <h3 className="text-3xl font-black uppercase tracking-tighter mb-4">Nexus Terminal Ready</h3>
-             <p className="text-white/40 text-sm font-medium max-w-xs mx-auto leading-relaxed">Initialize a direct sync or join a squad to begin communication protocol.</p>
-             <button onClick={() => setActiveView('directory')} className="mt-12 px-12 py-5 bg-orange-600 rounded-[32px] font-black text-[10px] uppercase tracking-widest shadow-2xl transition-all border-none">Browse Vertos</button>
+             <h3 className="text-3xl font-black uppercase tracking-tighter mb-4">Registry Ready</h3>
+             <p className="text-white/40 text-sm font-medium max-w-xs mx-auto leading-relaxed">Choose a chat or start a search to begin.</p>
+             <button onClick={() => handleViewChange('search')} className="mt-12 px-12 py-5 bg-orange-600 rounded-[32px] font-black text-[10px] uppercase tracking-widest shadow-2xl transition-all border-none">Find People</button>
           </div>
         )}
       </div>
-
-      {/* Directory Modal for User Search */}
-      {activeView === 'directory' && (
-        <div className="absolute inset-0 z-[100] bg-black animate-fade-in flex flex-col">
-          <header className="p-8 border-b border-white/5 flex items-center justify-between">
-            <div>
-              <h2 className="text-4xl font-black uppercase tracking-tighter">Directory</h2>
-              <p className="text-[10px] font-black text-orange-500 uppercase tracking-[0.4em] mt-2">Connecting the Nexus</p>
-            </div>
-            <button onClick={() => setActiveView('lounge')} className="p-4 bg-white/5 rounded-full border-none bg-transparent text-white hover:bg-orange-600 transition-all"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-          </header>
-          <div className="p-8 max-w-5xl mx-auto w-full flex-1 overflow-y-auto no-scrollbar">
-            <div className="relative mb-12 group">
-              <input 
-                type="text" placeholder="Search Verto handles..." value={searchQuery} onChange={e => handleUserSearch(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-full px-14 py-6 text-xl font-black focus:ring-4 focus:ring-orange-600/10 transition-all outline-none"
-              />
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="absolute left-6 top-1/2 -translate-y-1/2 w-6 h-6 text-white/20 group-focus-within:text-orange-500 transition-colors"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {searchResults.map(p => (
-                <div key={p.id} className="p-8 rounded-[40px] border border-white/5 bg-black flex flex-col items-center text-center group hover:border-orange-500/30 transition-all">
-                  <div className="w-20 h-20 rounded-full bg-insta-gradient p-[3px] mb-6 shadow-xl">
-                    <div className="w-full h-full bg-black rounded-full flex items-center justify-center font-black text-3xl">
-                      {p.username?.[0]?.toUpperCase()}
-                    </div>
-                  </div>
-                  <h4 className="text-xl font-black uppercase tracking-tighter mb-1">@{p.username}</h4>
-                  <p className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-8">{p.program || 'Active Verto'}</p>
-                  <button onClick={() => startDM(p)} className="w-full py-4 bg-orange-600 rounded-3xl font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition-all border-none">Message</button>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
