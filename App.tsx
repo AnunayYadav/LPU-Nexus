@@ -111,7 +111,7 @@ const Dashboard: React.FC<{ setModule: (m: ModuleType) => void }> = ({ setModule
           <div 
             key={card.id} 
             onClick={() => setModule(card.id)} 
-            className="group relative p-8 rounded-[40px] bg-white dark:bg-black border border-slate-100 dark:border-white/5 transition-all cursor-pointer hover:shadow-[0_20px_50px_rgba(0,0,0,0.2)] dark:hover:shadow-[0_20px_50px_rgba(234,88,12,0.1)] hover:border-orange-500/30 overflow-hidden min-h-[160px] flex flex-col justify-between"
+            className="group relative p-8 rounded-[40px] bg-white dark:bg-black border border-slate-100 dark:border-white/5 transition-all cursor-pointer hover:shadow-[0_20px_50px_rgba(0,0,0,0.2)] dark:hover:shadow-[0_20px_50px_rgba(234,88,12,0.1)] hover:border-orange-500/30 overflow-hidden flex flex-col"
           >
             {/* Background Glow */}
             <div className={`absolute -right-10 -bottom-10 w-40 h-40 bg-gradient-to-br ${card.color} blur-[60px] opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
@@ -126,15 +126,11 @@ const Dashboard: React.FC<{ setModule: (m: ModuleType) => void }> = ({ setModule
                 <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-white/5 flex items-center justify-center text-slate-400 dark:text-slate-500 group-hover:text-orange-500 group-hover:bg-orange-500/10 transition-all duration-300">
                   <div className="w-5 h-5">{card.icon}</div>
                 </div>
-                <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none group-hover:text-orange-600 transition-colors">
+                <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tighter leading-none group-hover:text-orange-600 transition-colors">
                   {card.title}
                 </h3>
               </div>
               <p className="text-slate-500 dark:text-slate-400 text-sm font-bold leading-relaxed max-w-[90%]">{card.desc}</p>
-            </div>
-
-            <div className="relative z-10 mt-6 flex items-center gap-2 text-orange-600 opacity-0 group-hover:opacity-100 transform translate-x-[-10px] group-hover:translate-x-0 transition-all">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             </div>
           </div>
         ))}
