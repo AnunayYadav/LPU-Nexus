@@ -13,7 +13,7 @@ const AboutUs: React.FC = () => {
         setStats(data);
       } catch (e) {
         console.error("Failed to fetch impact stats");
-        setStats({ registered: 124, visitors: 1450 });
+        setStats({ registered: 0, visitors: 0 });
       } finally {
         setLoading(false);
       }

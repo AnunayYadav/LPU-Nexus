@@ -46,12 +46,12 @@ class NexusServer {
 
   static async getSiteStats(): Promise<{ registered: number; visitors: number }> {
     const client = getSupabase();
-    if (!client) return { registered: 0, visitors: 1450 };
+    if (!client) return { registered: 0, visitors: 0 };
     try {
       const { count: reg } = await client.from('profiles').select('*', { count: 'exact', head: true });
       const { count: vis } = await client.from('site_visits').select('*', { count: 'exact', head: true });
-      return { registered: reg || 0, visitors: (vis || 0) + 1450 };
-    } catch (e) { return { registered: 0, visitors: 1450 }; }
+      return { registered: reg || 0, visitors: vis || 0 };
+    } catch (e) { return { registered: 0, visitors: 0 }; }
   }
 
   static async signIn(identifier: string, pass: string) {
@@ -247,20 +247,12 @@ class NexusServer {
     }));
   }
 
-  // Social & Chat Implementation Fixes
-
-  /**
-   * Fix: Implement missing markConversationAsRead method for SocialHub.
-   */
   static async markConversationAsRead(userId: string, conversationId: string) {
     const client = getSupabase();
     if (!client) return;
     await client.from('conversation_members').update({ last_read_at: new Date().toISOString() }).eq('conversation_id', conversationId).eq('user_id', userId);
   }
 
-  /**
-   * Fix: Implement missing subscribeToSocialChat method for SocialHub.
-   */
   static subscribeToSocialChat(callback: (payload: any) => void) {
     const client = getSupabase();
     if (!client) return () => {};
@@ -270,9 +262,6 @@ class NexusServer {
     return () => { client.removeChannel(channel); };
   }
 
-  /**
-   * Fix: Implement missing subscribeToConversation method for SocialHub.
-   */
   static subscribeToConversation(conversationId: string, callback: (payload: any) => void) {
     const client = getSupabase();
     if (!client) return () => {};
@@ -283,9 +272,6 @@ class NexusServer {
     return () => { client.removeChannel(channel); };
   }
 
-  /**
-   * Fix: Implement missing subscribeToUserMessages method for SocialHub.
-   */
   static subscribeToUserMessages(userId: string, callback: (payload: any) => void) {
     const client = getSupabase();
     if (!client) return () => {};
@@ -295,9 +281,6 @@ class NexusServer {
     return () => { client.removeChannel(channel); };
   }
 
-  /**
-   * Fix: Implement missing fetchMemberReadStatuses method for SocialHub.
-   */
   static async fetchMemberReadStatuses(conversationId: string) {
     const client = getSupabase();
     if (!client) return [];
@@ -305,9 +288,6 @@ class NexusServer {
     return data || [];
   }
 
-  /**
-   * Fix: Implement missing fetchSocialMessages method for SocialHub.
-   */
   static async fetchSocialMessages(): Promise<ChatMessage[]> {
     const client = getSupabase();
     if (!client) return [];
@@ -323,9 +303,6 @@ class NexusServer {
     }));
   }
 
-  /**
-   * Fix: Implement missing fetchMessages method for SocialHub.
-   */
   static async fetchMessages(conversationId: string): Promise<ChatMessage[]> {
     const client = getSupabase();
     if (!client) return [];
@@ -343,9 +320,6 @@ class NexusServer {
     }));
   }
 
-  /**
-   * Fix: Implement missing fetchConversations method for SocialHub.
-   */
   static async fetchConversations(userId: string) {
     const client = getSupabase();
     if (!client) return [];
@@ -353,9 +327,6 @@ class NexusServer {
     return data || [];
   }
 
-  /**
-   * Fix: Implement missing getFriendRequests method for SocialHub.
-   */
   static async getFriendRequests(userId: string): Promise<FriendRequest[]> {
     const client = getSupabase();
     if (!client) return [];
@@ -363,9 +334,6 @@ class NexusServer {
     return data || [];
   }
 
-  /**
-   * Fix: Implement missing getFriends method for SocialHub.
-   */
   static async getFriends(userId: string): Promise<UserProfile[]> {
     const client = getSupabase();
     if (!client) return [];
@@ -373,41 +341,26 @@ class NexusServer {
     return (data || []).map(d => d.profiles);
   }
 
-  /**
-   * Fix: Implement missing updateSocialMessage method for SocialHub.
-   */
   static async updateSocialMessage(id: string, userId: string, text: string) {
     const client = getSupabase();
     if (client) await client.from('social_messages').update({ text }).eq('id', id).eq('sender_id', userId);
   }
 
-  /**
-   * Fix: Implement missing updateMessage method for SocialHub.
-   */
   static async updateMessage(id: string, userId: string, text: string) {
     const client = getSupabase();
     if (client) await client.from('messages').update({ text }).eq('id', id).eq('sender_id', userId);
   }
 
-  /**
-   * Fix: Implement missing sendSocialMessage method for SocialHub.
-   */
   static async sendSocialMessage(userId: string, username: string, text: string) {
     const client = getSupabase();
     if (client) await client.from('social_messages').insert([{ sender_id: userId, text }]);
   }
 
-  /**
-   * Fix: Implement missing sendMessage method for SocialHub.
-   */
   static async sendMessage(userId: string, conversationId: string, text: string, replyToId?: string) {
     const client = getSupabase();
     if (client) await client.from('messages').insert([{ sender_id: userId, conversation_id: conversationId, text, reply_to_id: replyToId }]);
   }
 
-  /**
-   * Fix: Implement missing toggleReaction method for SocialHub.
-   */
   static async toggleReaction(messageId: string, userId: string, emoji: string) {
     const client = getSupabase();
     if (!client) return;
@@ -416,33 +369,21 @@ class NexusServer {
     else await client.from('message_reactions').insert([{ message_id: messageId, user_id: userId, emoji }]);
   }
 
-  /**
-   * Fix: Implement missing reportContent method for SocialHub.
-   */
   static async reportContent(userId: string, type: string, targetId: string, details: string) {
     const client = getSupabase();
     if (client) await client.from('reports').insert([{ reporter_id: userId, type, target_id: targetId, details }]);
   }
 
-  /**
-   * Fix: Implement missing deleteSocialMessage method for SocialHub.
-   */
   static async deleteSocialMessage(id: string, userId: string) {
     const client = getSupabase();
     if (client) await client.from('social_messages').delete().eq('id', id).eq('sender_id', userId);
   }
 
-  /**
-   * Fix: Implement missing deleteMessageEveryone method for SocialHub.
-   */
   static async deleteMessageEveryone(id: string, userId: string) {
     const client = getSupabase();
     if (client) await client.from('messages').update({ is_deleted_everyone: true, text: 'This message was deleted' }).eq('id', id).eq('sender_id', userId);
   }
 
-  /**
-   * Fix: Implement missing searchProfiles method for SocialHub.
-   */
   static async searchProfiles(query: string): Promise<UserProfile[]> {
     const client = getSupabase();
     if (!client) return [];
@@ -450,9 +391,6 @@ class NexusServer {
     return data || [];
   }
 
-  /**
-   * Fix: Implement missing findExistingDM method for SocialHub.
-   */
   static async findExistingDM(user1Id: string, user2Id: string) {
     const client = getSupabase();
     if (!client) return null;
@@ -460,9 +398,6 @@ class NexusServer {
     return data;
   }
 
-  /**
-   * Fix: Implement missing createConversation method for SocialHub.
-   */
   static async createConversation(ownerId: string, name: string | null, isGroup: boolean, memberIds: string[]) {
     const client = getSupabase();
     if (!client) return null;
@@ -473,17 +408,11 @@ class NexusServer {
     return convo;
   }
 
-  /**
-   * Fix: Implement missing sendFriendRequest method for SocialHub.
-   */
   static async sendFriendRequest(senderId: string, receiverId: string) {
     const client = getSupabase();
     if (client) await client.from('friend_requests').insert([{ sender_id: senderId, receiver_id: receiverId, status: 'pending' }]);
   }
 
-  /**
-   * Fix: Implement missing updateFriendRequest method for SocialHub.
-   */
   static async updateFriendRequest(id: string, status: 'accepted' | 'declined') {
     const client = getSupabase();
     if (!client) return;
@@ -499,25 +428,16 @@ class NexusServer {
     }
   }
 
-  /**
-   * Fix: Implement missing deleteConversation method for SocialHub.
-   */
   static async deleteConversation(id: string) {
     const client = getSupabase();
     if (client) await client.from('conversations').delete().eq('id', id);
   }
 
-  /**
-   * Fix: Implement missing leaveGroup method for SocialHub.
-   */
   static async leaveGroup(userId: string, conversationId: string) {
     const client = getSupabase();
     if (client) await client.from('conversation_members').delete().eq('conversation_id', conversationId).eq('user_id', userId);
   }
 
-  /**
-   * Fix: Implement missing blockUser method for SocialHub.
-   */
   static async blockUser(userId: string, targetId: string) {
     const client = getSupabase();
     if (client) await client.from('blocked_users').insert([{ user_id: userId, blocked_user_id: targetId }]);
