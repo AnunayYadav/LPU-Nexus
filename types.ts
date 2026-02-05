@@ -24,6 +24,8 @@ export interface UserProfile {
   batch?: string;
   bio?: string;
   is_public?: boolean;
+  last_seen?: string;
+  blocked_users?: string[];
 }
 
 export interface FriendRequest {
@@ -36,6 +38,11 @@ export interface FriendRequest {
   receiver?: UserProfile;
 }
 
+export interface MessageReaction {
+  emoji: string;
+  user_id: string;
+}
+
 export interface ChatMessage {
   id?: string;
   role: 'user' | 'model' | 'system';
@@ -44,24 +51,11 @@ export interface ChatMessage {
   timestamp: number;
   sender_name?: string;
   sender_id?: string;
+  reply_to?: ChatMessage;
+  reactions?: MessageReaction[];
+  is_deleted_everyone?: boolean;
+  forwarded?: boolean;
 }
-
-export interface ResumeAnalysisResult {
-  matchScore: number;
-  missingKeywords: string[];
-  phrasingAdvice: string[];
-  projectFeedback: string;
-  summary: string;
-}
-
-export interface GroundingChunk {
-  web?: {
-    uri: string;
-    title: string;
-  };
-}
-
-export type FileStatus = 'pending' | 'approved' | 'rejected';
 
 export interface LibraryFile {
   id: string;
@@ -72,7 +66,7 @@ export interface LibraryFile {
   type: string;
   uploadDate: number;
   size: string;
-  status: FileStatus;
+  status: 'pending' | 'approved' | 'rejected';
   storage_path: string;
   uploader_id?: string;
   uploader_username?: string;
@@ -98,6 +92,31 @@ export interface Folder {
 export interface Flashcard {
   front: string;
   back: string;
+}
+
+/**
+ * Fix: Added missing ResumeAnalysisResult interface for placement analysis module.
+ */
+export interface ResumeAnalysisResult {
+  matchScore: number;
+  missingKeywords: string[];
+  phrasingAdvice: string[];
+  projectFeedback: string;
+  summary: string;
+}
+
+/**
+ * Fix: Added missing GroundingChunk interface for Google Search grounding modules.
+ */
+export interface GroundingChunk {
+  web?: {
+    uri?: string;
+    title?: string;
+  };
+  maps?: {
+    uri?: string;
+    title?: string;
+  };
 }
 
 declare global {
