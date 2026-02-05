@@ -427,6 +427,29 @@ class NexusServer {
     return convo;
   }
 
+  static async deleteConversation(convoId: string) {
+    const client = getSupabase();
+    if (!client) return;
+    // This will cascade delete memberships and messages if DB is setup with CASCADE
+    return await client.from('conversations').delete().eq('id', convoId);
+  }
+
+  static async leaveGroup(userId: string, convoId: string) {
+    const client = getSupabase();
+    if (!client) return;
+    return await client.from('conversation_members').delete().eq('conversation_id', convoId).eq('user_id', userId);
+  }
+
+  static async reportContent(reporterId: string, targetType: 'user' | 'message' | 'group', targetId: string, reason: string) {
+    const client = getSupabase();
+    if (!client) return;
+    // We can reuse the feedback table or assume a reports table exists
+    return await client.from('feedback').insert([{ 
+      text: `REPORT [${targetType.toUpperCase()} ID: ${targetId}]: ${reason}`, 
+      user_id: reporterId 
+    }]);
+  }
+
   static async markConversationAsRead(userId: string, conversationId: string) {
     const client = getSupabase();
     if (!client || !userId || !conversationId) return;
