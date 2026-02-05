@@ -60,7 +60,7 @@ const UserCardSkeleton = () => (
   </div>
 );
 
-const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile }) => {
+const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: () => void }> = ({ userProfile, onUnreadChange }) => {
   const [activeView, setActiveView] = useState<SocialView>('lounge');
   const [directorySubView, setDirectorySubView] = useState<'search' | 'requests'>('search');
   const [conversations, setConversations] = useState<any[]>([]);
@@ -103,9 +103,13 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
   // Mark active conversation as read
   useEffect(() => {
     if (userProfile && activeConversation) {
-      NexusServer.markConversationAsRead(userProfile.id, activeConversation.id);
+      NexusServer.markConversationAsRead(userProfile.id, activeConversation.id).then(() => {
+        // Reset unread locally
+        setConversations(prev => prev.map(c => c.id === activeConversation.id ? { ...c, unread_count: 0 } : c));
+        onUnreadChange?.();
+      });
     }
-  }, [activeConversation, messages, userProfile]);
+  }, [activeConversation, messages, userProfile, onUnreadChange]);
 
   // Real-time subscriptions
   useEffect(() => {
@@ -116,7 +120,14 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
 
     const handlePayload = (payload: any) => {
       // Check if the update belongs to the context that is CURRENTLY visible to the user
-      if (currentContextRef.current !== targetContextId) return;
+      if (currentContextRef.current !== targetContextId) {
+        // If it's a message for another conversation, we might want to refresh convo list counts
+        if (payload.table === 'messages' && payload.eventType === 'INSERT') {
+          loadConversations();
+          onUnreadChange?.();
+        }
+        return;
+      }
 
       const eventType = payload.eventType;
       const newRecord = payload.new;
@@ -203,9 +214,12 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
         }), {});
         setMemberReadStatus(statusMap);
       });
+    } else if (userProfile) {
+      // If no active convo, subscribe to user messages to catch notifications
+      unsubscribe = NexusServer.subscribeToUserMessages(userProfile.id, handlePayload);
     }
     return () => unsubscribe();
-  }, [activeView, activeConversation]);
+  }, [activeView, activeConversation, userProfile]);
 
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
     if (scrollRef.current) {
@@ -528,7 +542,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
       <div className="p-4 border-b border-slate-200 dark:border-white/5">
         <button 
           onClick={() => activeView === 'groups' ? setShowGroupModal(true) : setActiveView('directory')}
-          className="w-full py-2.5 bg-black text-orange-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-orange-600 hover:text-white transition-all border-none shadow-sm"
+          className="w-full py-3 bg-orange-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-orange-700 transition-all border-none shadow-lg shadow-orange-600/20 active:scale-95"
         >
           {activeView === 'groups' ? '+ New Group' : '+ Find People'}
         </button>
@@ -540,15 +554,20 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
           <button 
             key={convo.id} 
             onClick={() => selectConversation(convo)}
-            className={`w-full p-4 rounded-3xl text-left transition-all flex items-center gap-3 border-none bg-transparent ${activeConversation?.id === convo.id ? 'bg-orange-600 text-white shadow-xl' : 'hover:bg-slate-100 dark:hover:bg-white/5 text-slate-600 dark:text-slate-400'}`}
+            className={`w-full p-4 rounded-3xl text-left transition-all flex items-center gap-3 border-none bg-transparent relative ${activeConversation?.id === convo.id ? 'bg-orange-600 text-white shadow-xl' : 'hover:bg-orange-600/10 text-slate-600 dark:text-slate-400'}`}
           >
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black ${activeConversation?.id === convo.id ? 'bg-white/20' : 'bg-black text-orange-500'}`}>
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black flex-shrink-0 ${activeConversation?.id === convo.id ? 'bg-white/20' : 'bg-orange-600 text-white shadow-sm'}`}>
                {convo.is_group ? (convo.name?.[0]?.toUpperCase() || 'G') : (convo.display_name?.[0]?.toUpperCase() || 'U')}
             </div>
             <div className="flex-1 truncate">
               <p className="text-xs font-black uppercase tracking-tight">{convo.display_name || "User"}</p>
               <p className={`text-[8px] font-bold uppercase tracking-widest opacity-60 ${activeConversation?.id === convo.id ? 'text-white' : ''}`}>{convo.is_group ? 'Group' : 'Direct'}</p>
             </div>
+            {convo.unread_count > 0 && activeConversation?.id !== convo.id && (
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 bg-orange-600 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white/10 shadow-lg animate-fade-in">
+                {convo.unread_count > 9 ? '9+' : convo.unread_count}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -565,6 +584,25 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
         .msg-animate { animation: messagePop 0.3s ease-out forwards; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .chat-gradient {
+          background: #000;
+          position: relative;
+          overflow: hidden;
+        }
+        .chat-gradient::before {
+          content: "";
+          position: absolute;
+          top: -64px;
+          right: -64px;
+          width: 256px;
+          height: 256px;
+          background: rgba(234, 88, 12, 0.15);
+          filter: blur(60px);
+          border-radius: 100%;
+          pointer-events: none;
+          z-index: 0;
+        }
       `}</style>
 
       {/* Side Navigation */}
@@ -583,7 +621,11 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
           <button 
             key={item.id} 
             onClick={() => handleViewChange(item.id as SocialView)}
-            className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all bg-transparent border-none ${activeView === item.id ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/30 scale-110' : 'text-slate-400 hover:text-orange-500 hover:bg-orange-500/5'}`}
+            className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all border-none ${
+              activeView === item.id 
+                ? 'bg-orange-600 text-white shadow-[0_0_20px_rgba(234,88,12,0.5)] scale-110' 
+                : 'bg-transparent text-slate-400 hover:text-orange-500 hover:bg-orange-500/5'
+            }`}
             title={item.label}
           >
             {item.icon}
@@ -600,14 +642,14 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col bg-white dark:bg-black min-w-0">
         {activeView === 'directory' ? (
-          <div className="flex-1 flex flex-col p-8 md:p-12 overflow-y-auto no-scrollbar">
-            <header className="mb-12 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex-1 flex flex-col p-8 md:p-12 overflow-y-auto no-scrollbar chat-gradient">
+            <header className="mb-12 flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
                <div className="flex items-center gap-4">
                   <h2 className="text-3xl font-black tracking-tighter uppercase dark:text-white">People</h2>
                   {directorySubView === 'requests' && (
                     <button 
                       onClick={() => setDirectorySubView('search')}
-                      className="px-3 py-1 bg-slate-100 dark:bg-white/5 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-orange-600 transition-colors"
+                      className="px-4 py-2 bg-orange-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-orange-700 transition-all border-none shadow-lg active:scale-95"
                     >
                       ← Back to Search
                     </button>
@@ -629,7 +671,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
 
                   <button 
                     onClick={() => setDirectorySubView(directorySubView === 'requests' ? 'search' : 'requests')}
-                    className={`relative w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-sm ${directorySubView === 'requests' ? 'bg-orange-600 text-white shadow-lg' : 'bg-slate-100 dark:bg-white/5 text-slate-500 hover:text-orange-600 border-none'}`}
+                    className={`relative w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-sm ${directorySubView === 'requests' ? 'bg-orange-600 text-white shadow-[0_0_15px_rgba(234,88,12,0.4)]' : 'bg-orange-600/20 text-white hover:bg-orange-600/40 border-none'}`}
                     title="Requests"
                   >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-6 h-6"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -643,17 +685,17 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                </div>
             </header>
 
-            {directorySubView === 'search' ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
-                {isSearching ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-20 relative z-10">
+              {directorySubView === 'search' ? (
+                isSearching ? (
                   Array.from({ length: 6 }).map((_, i) => <UserCardSkeleton key={i} />)
                 ) : (searchQuery || searchResults.length > 0) ? searchResults.map(profile => {
                   const isFriend = friends.some(f => f.id === profile.id);
                   const isPending = friendRequests.some(r => r.sender_id === userProfile?.id && r.receiver_id === profile.id && r.status === 'pending');
                   return (
-                    <div key={profile.id} className="p-6 rounded-[32px] border border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02] hover:border-orange-500 transition-all group flex flex-col relative overflow-hidden">
+                    <div key={profile.id} className="p-6 rounded-[32px] border border-slate-100 dark:border-white/5 bg-slate-50/80 dark:bg-white/[0.02] backdrop-blur-md hover:border-orange-500 transition-all group flex flex-col relative overflow-hidden">
                       <div className="flex items-center gap-4 mb-4">
-                        <div className="w-12 h-12 rounded-2xl bg-black flex items-center justify-center text-orange-600 font-black text-xl">{profile.username?.[0]?.toUpperCase()}</div>
+                        <div className="w-12 h-12 rounded-2xl bg-orange-600 text-white flex items-center justify-center font-black text-xl shadow-lg">{profile.username?.[0]?.toUpperCase()}</div>
                         <div>
                           <h4 className="font-black text-slate-800 dark:text-white uppercase tracking-tight truncate">@{profile.username}</h4>
                           {profile.is_public ? <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{profile.batch || 'Verto'}</p> : <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Private</p>}
@@ -661,61 +703,61 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                       </div>
                       <div className="min-h-[48px] mb-6"><p className="text-xs text-slate-500 dark:text-slate-400 font-medium line-clamp-2 leading-relaxed italic">{profile.is_public ? `"${profile.bio || "No bio set."}"` : "Details hidden."}</p></div>
                       <div className="mt-auto flex gap-2">
-                        <button onClick={() => startDM(profile)} className="flex-1 py-3 bg-black text-white rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-orange-600 transition-all border-none shadow-lg active:scale-95">Chat</button>
-                        {!isFriend && !isPending && <button onClick={() => sendRequest(profile.id)} className="px-4 py-3 bg-orange-600/10 text-orange-600 rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-orange-600 hover:text-white transition-all border-none">Add</button>}
-                        {isPending && <span className="px-4 py-3 bg-slate-100 dark:bg-white/5 text-slate-400 rounded-xl font-black text-[9px] uppercase tracking-widest">Sent</span>}
+                        <button onClick={() => startDM(profile)} className="flex-1 py-3 bg-orange-600 text-white rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-orange-700 transition-all border-none shadow-lg active:scale-95">Chat</button>
+                        {!isFriend && !isPending && <button onClick={() => sendRequest(profile.id)} className="px-4 py-3 bg-orange-600 text-white rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-orange-700 transition-all border-none shadow-lg">Add</button>}
+                        {isPending && <span className="px-4 py-3 bg-orange-600/10 text-orange-600/60 rounded-xl font-black text-[9px] uppercase tracking-widest">Sent</span>}
                       </div>
                     </div>
                   );
                 }) : (
                   <div className="col-span-full py-20 text-center opacity-30">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="w-20 h-20 mx-auto mb-6"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="w-20 h-20 mx-auto mb-6 text-orange-600"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
                     <p className="text-sm font-black uppercase tracking-widest">Search to find other students.</p>
                   </div>
-                )}
-              </div>
-            ) : (
-              <div className="animate-fade-in max-w-4xl">
-                 <h3 className="text-[10px] font-black text-orange-600 uppercase tracking-[0.3em] mb-8 flex items-center gap-3"><span className="w-8 h-px bg-orange-600/20" />Pending Requests</h3>
-                 {inboundRequests.length === 0 ? (
-                   <div className="py-20 text-center bg-slate-50 dark:bg-white/[0.02] rounded-[40px] border-4 border-dashed border-slate-100 dark:border-white/5">
-                     <p className="text-slate-500 text-xs font-black uppercase tracking-widest opacity-40">No incoming requests.</p>
-                     <button onClick={() => setDirectorySubView('search')} className="mt-6 px-8 py-3 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-orange-600 transition-all border-none">Browse People</button>
-                   </div>
-                 ) : (
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                     {inboundRequests.map(req => (
-                       <div key={req.id} className="p-8 rounded-[40px] bg-white dark:bg-[#050505] border border-slate-200 dark:border-white/5 flex items-center justify-between shadow-xl animate-fade-in">
-                          <div className="flex items-center gap-5">
-                            <div className="w-14 h-14 rounded-3xl bg-black text-orange-500 flex items-center justify-center font-black text-2xl shadow-lg">{req.sender?.username?.[0]?.toUpperCase()}</div>
-                            <div>
-                               <p className="text-sm font-black dark:text-white uppercase tracking-tight">@{req.sender?.username}</p>
-                               <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">{req.sender?.program || 'Student'}</p>
+                )
+              ) : (
+                <div className="col-span-full animate-fade-in max-w-4xl">
+                   <h3 className="text-[10px] font-black text-orange-600 uppercase tracking-[0.3em] mb-8 flex items-center gap-3"><span className="w-8 h-px bg-orange-600/20" />Pending Requests</h3>
+                   {inboundRequests.length === 0 ? (
+                     <div className="py-20 text-center bg-slate-50/50 dark:bg-white/[0.02] backdrop-blur-sm rounded-[40px] border-4 border-dashed border-slate-100 dark:border-white/5">
+                       <p className="text-slate-500 text-xs font-black uppercase tracking-widest opacity-40">No incoming requests.</p>
+                       <button onClick={() => setDirectorySubView('search')} className="mt-6 px-8 py-3 bg-orange-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-orange-700 transition-all border-none shadow-lg">Browse People</button>
+                     </div>
+                   ) : (
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                       {inboundRequests.map(req => (
+                         <div key={req.id} className="p-8 rounded-[40px] bg-white dark:bg-[#050505] border border-slate-200 dark:border-white/5 flex items-center justify-between shadow-xl animate-fade-in">
+                            <div className="flex items-center gap-5">
+                              <div className="w-14 h-14 rounded-3xl bg-orange-600 text-white flex items-center justify-center font-black text-2xl shadow-lg">{req.sender?.username?.[0]?.toUpperCase()}</div>
+                              <div>
+                                 <p className="text-sm font-black dark:text-white uppercase tracking-tight">@{req.sender?.username}</p>
+                                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">{req.sender?.program || 'Student'}</p>
+                              </div>
                             </div>
-                          </div>
-                          <div className="flex gap-3">
-                             <button onClick={() => respondToRequest(req.id, 'declined')} className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-red-500 hover:bg-red-500/10 transition-all border-none shadow-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-                             <button onClick={() => respondToRequest(req.id, 'accepted')} className="w-12 h-12 rounded-2xl bg-orange-600 text-white shadow-lg shadow-orange-600/30 hover:scale-105 active:scale-95 transition-all border-none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><polyline points="20 6 9 17 4 12"/></svg></button>
-                          </div>
-                       </div>
-                     ))}
-                   </div>
-                 )}
-              </div>
-            )}
+                            <div className="flex gap-3">
+                               <button onClick={() => respondToRequest(req.id, 'declined')} className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-red-500 hover:bg-red-500/10 transition-all border-none shadow-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+                               <button onClick={() => respondToRequest(req.id, 'accepted')} className="w-12 h-12 rounded-2xl bg-orange-600 text-white shadow-lg shadow-orange-600/30 hover:scale-105 active:scale-95 transition-all border-none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><polyline points="20 6 9 17 4 12"/></svg></button>
+                            </div>
+                         </div>
+                       ))}
+                     </div>
+                   )}
+                </div>
+              )}
+            </div>
           </div>
         ) : (activeView === 'lounge' || activeConversation) ? (
-          <div className="flex-1 flex flex-row min-h-0 bg-white dark:bg-black">
+          <div className="flex-1 flex flex-row min-h-0 bg-white dark:bg-black chat-gradient">
             {/* Chat Column */}
-            <div className="flex-1 flex flex-col min-w-0 border-r border-slate-200 dark:border-white/5">
-              <header className="px-8 py-5 border-b border-slate-200 dark:border-white/5 flex items-center justify-between bg-white dark:bg-black flex-shrink-0">
+            <div className="flex-1 flex flex-col min-w-0 border-r border-slate-200 dark:border-white/5 relative z-10">
+              <header className="px-8 py-5 border-b border-slate-200 dark:border-white/5 flex items-center justify-between bg-white/60 dark:bg-black/60 backdrop-blur-xl flex-shrink-0">
                 <div className="flex items-center gap-4">
                   {(activeView === 'dms' || activeView === 'groups') && (
                     <button onClick={() => setActiveConversation(null)} className="md:hidden p-2 -ml-2 text-slate-500 hover:text-orange-600 border-none bg-transparent transition-colors">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
                     </button>
                   )}
-                  <div className="w-10 h-10 rounded-xl bg-orange-600/10 flex items-center justify-center text-orange-600 font-black">
+                  <div className="w-10 h-10 rounded-xl bg-orange-600 text-white flex items-center justify-center font-black shadow-lg">
                     {activeView === 'lounge' ? '#' : (activeConversation?.display_name?.[0]?.toUpperCase() || 'C')}
                   </div>
                   <div>
@@ -725,7 +767,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                 </div>
               </header>
 
-              <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6 no-scrollbar bg-white dark:bg-black scroll-smooth">
+              <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6 no-scrollbar bg-transparent scroll-smooth">
                 {isLoading ? (
                   <div className="space-y-8">
                     <MessageSkeleton isMe={false} />
@@ -792,7 +834,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                 })}
               </div>
               
-              <div className="p-6 bg-white dark:bg-black border-t border-slate-200 dark:border-white/5 flex-shrink-0">
+              <div className="p-6 bg-white/60 dark:bg-black/60 backdrop-blur-xl border-t border-slate-200 dark:border-white/5 flex-shrink-0">
                 <form onSubmit={handleSendMessage} className="flex gap-3 bg-slate-50 dark:bg-[#080808] p-2 rounded-[28px] border border-slate-200 dark:border-white/5 shadow-inner max-w-4xl mx-auto w-full">
                   <input 
                     type="text" value={inputText} onChange={(e) => setInputText(e.target.value)}
@@ -811,7 +853,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
 
             {/* Simple Sidebar (Visible on Lounge Only) */}
             {activeView === 'lounge' && (
-              <div className="hidden lg:flex w-[260px] flex-col bg-slate-50 dark:bg-[#050505] p-8 border-l border-slate-200 dark:border-white/5 overflow-y-auto no-scrollbar">
+              <div className="hidden lg:flex w-[260px] flex-col bg-slate-50/50 dark:bg-[#050505] p-8 border-l border-slate-200 dark:border-white/5 overflow-y-auto no-scrollbar backdrop-blur-sm relative z-10">
                 <header className="mb-8">
                   <h3 className="text-xl font-black tracking-tighter uppercase dark:text-white leading-none">Lounge</h3>
                   <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest mt-2">Guidelines</p>
@@ -848,12 +890,12 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
             )}
           </div>
         ) : (
-          <div className="flex-1 flex flex-col min-h-0">
+          <div className="flex-1 flex flex-col min-h-0 bg-transparent chat-gradient">
             <div className="md:hidden h-full">{conversationListContent}</div>
-            <div className="hidden md:flex flex-1 flex-col items-center justify-center text-center p-12 bg-white dark:bg-black animate-fade-in">
-               <div className="w-20 h-20 bg-slate-50 dark:bg-white/5 rounded-[40px] flex items-center justify-center mb-8 text-slate-200 dark:text-slate-800"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="w-10 h-10"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+            <div className="hidden md:flex flex-1 flex-col items-center justify-center text-center p-12 bg-transparent animate-fade-in relative z-10">
+               <div className="w-20 h-20 bg-orange-600/10 rounded-[40px] flex items-center justify-center mb-8 text-orange-600 shadow-xl shadow-orange-600/5"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-10 h-10"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
                <h3 className="text-xl font-black uppercase tracking-tight dark:text-white mb-2">Select a Conversation</h3>
-               <button onClick={() => setActiveView('directory')} className="mt-8 px-8 py-3 bg-black text-orange-600 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-orange-600 hover:text-white transition-all border-none">Find People</button>
+               <button onClick={() => setActiveView('directory')} className="mt-8 px-10 py-4 bg-orange-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-orange-700 transition-all border-none shadow-xl shadow-orange-600/20 active:scale-95">Find People</button>
             </div>
           </div>
         )}
@@ -868,16 +910,16 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
               <button onClick={() => setShowGroupModal(false)} className="text-slate-400 hover:text-white border-none bg-transparent p-0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             </header>
             <div className="space-y-6">
-              <input type="text" placeholder="Group Name..." value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} className="w-full bg-slate-100 dark:bg-black rounded-2xl p-4 text-sm font-bold dark:text-white border-none outline-none focus:ring-2 focus:ring-orange-600" />
+              <input type="text" placeholder="Group Name..." value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} className="w-full bg-slate-100 dark:bg-black rounded-2xl p-4 text-sm font-bold dark:text-white border-none outline-none focus:ring-2 focus:ring-orange-600 shadow-inner" />
               <div className="max-h-40 overflow-y-auto no-scrollbar space-y-2 p-1">
                 {friends.length === 0 ? <p className="text-xs text-slate-500 font-bold uppercase py-4">No friends found yet.</p> : friends.map(p => (
-                  <button key={p.id} onClick={() => setSelectedUsers(prev => prev.includes(p.id) ? prev.filter(uid => uid !== p.id) : [...prev, p.id])} className={`w-full p-3 rounded-xl flex items-center justify-between transition-all border-none ${selectedUsers.includes(p.id) ? 'bg-orange-600 text-white' : 'bg-slate-100 dark:bg-white/5 text-slate-500'}`}>
+                  <button key={p.id} onClick={() => setSelectedUsers(prev => prev.includes(p.id) ? prev.filter(uid => uid !== p.id) : [...prev, p.id])} className={`w-full p-3 rounded-xl flex items-center justify-between transition-all border-none ${selectedUsers.includes(p.id) ? 'bg-orange-600 text-white shadow-md' : 'bg-slate-100 dark:bg-white/5 text-slate-500'}`}>
                     <span className="text-[10px] font-black uppercase">@{p.username}</span>
                     {selectedUsers.includes(p.id) && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="w-3 h-3"><polyline points="20 6 9 17 4 12"/></svg>}
                   </button>
                 ))}
               </div>
-              <button onClick={handleCreateGroup} disabled={!newGroupName.trim() || selectedUsers.length === 0 || isLoading} className="w-full bg-orange-600 text-white py-5 rounded-[24px] font-black text-xs uppercase shadow-2xl active:scale-95 disabled:opacity-50 border-none transition-all">Create Group</button>
+              <button onClick={handleCreateGroup} disabled={!newGroupName.trim() || selectedUsers.length === 0 || isLoading} className="w-full bg-orange-600 text-white py-5 rounded-[24px] font-black text-xs uppercase shadow-2xl shadow-orange-600/20 active:scale-95 disabled:opacity-50 border-none transition-all">Create Group</button>
             </div>
           </div>
         </div>

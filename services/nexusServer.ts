@@ -303,7 +303,7 @@ class NexusServer {
     
     const { data: memberships, error: memError } = await client
       .from('conversation_members')
-      .select('conversation_id')
+      .select('conversation_id, last_read_at')
       .eq('user_id', userId);
 
     if (memError || !memberships) {
@@ -323,6 +323,18 @@ class NexusServer {
 
     const finalConvos = [];
     for (const convo of convos) {
+      const memberInfo = memberships.find(m => m.conversation_id === convo.id);
+      convo.last_read_at = memberInfo?.last_read_at;
+
+      // Fetch unread count
+      const { count } = await client
+        .from('messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('conversation_id', convo.id)
+        .gt('created_at', convo.last_read_at);
+      
+      convo.unread_count = count || 0;
+
       if (!convo.is_group) {
         const { data: otherMember } = await client
           .from('conversation_members')
@@ -402,7 +414,8 @@ class NexusServer {
     const membersList = [...new Set([...participants, userId])];
     const memberInserts = membersList.map(pid => ({ 
       conversation_id: convo.id, 
-      user_id: pid 
+      user_id: pid,
+      last_read_at: new Date().toISOString()
     }));
 
     const { error: memberError } = await client.from('conversation_members').insert(memberInserts);
@@ -490,6 +503,21 @@ class NexusServer {
       })
       .on('postgres_changes', {
         event: 'UPDATE', schema: 'public', table: 'conversation_members', filter: `conversation_id=eq.${conversationId}`
+      }, (payload) => {
+        onUpdate(payload);
+      })
+      .subscribe();
+    return () => client.removeChannel(channel);
+  }
+
+  static subscribeToUserMessages(userId: string, onUpdate: (payload: any) => void) {
+    const client = getSupabase();
+    if (!client || !userId) return () => {};
+    // Subscribing to messages table to catch notifications for any conversation the user is in.
+    // Supabase standard RLS will ensure the user only sees messages for their conversations.
+    const channel = client.channel(`user-notifications-${userId}`)
+      .on('postgres_changes', { 
+        event: 'INSERT', schema: 'public', table: 'messages'
       }, (payload) => {
         onUpdate(payload);
       })

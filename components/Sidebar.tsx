@@ -8,9 +8,17 @@ interface SidebarProps {
   isMobileMenuOpen: boolean;
   toggleMobileMenu: () => void;
   userProfile: UserProfile | null;
+  notificationCounts?: { social: number };
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentModule, setModule, isMobileMenuOpen, toggleMobileMenu, userProfile }) => {
+const Sidebar: React.FC<SidebarProps> = ({ 
+  currentModule, 
+  setModule, 
+  isMobileMenuOpen, 
+  toggleMobileMenu, 
+  userProfile,
+  notificationCounts = { social: 0 }
+}) => {
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [feedbackText, setFeedbackText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -63,7 +71,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentModule, setModule, isMobileMen
     { 
       id: ModuleType.SOCIAL, 
       label: 'Social Hub', 
-      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> 
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+      badge: notificationCounts.social
     },
     { 
       id: ModuleType.FRESHERS, 
@@ -159,7 +168,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentModule, setModule, isMobileMen
                 setModule(item.id);
                 if (window.innerWidth < 768) toggleMobileMenu();
               }}
-              className={`w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all duration-200 border-none text-left
+              className={`w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all duration-200 border-none text-left relative
                 ${currentModule === item.id 
                   ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/20' 
                   : 'text-slate-600 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-slate-200'
@@ -169,6 +178,13 @@ const Sidebar: React.FC<SidebarProps> = ({ currentModule, setModule, isMobileMen
               <div className="flex items-center space-x-3">
                 <span className="flex-shrink-0">{item.icon}</span>
                 <span className="font-bold text-sm tracking-tight">{item.label}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {item.badge && item.badge > 0 && (
+                  <span className="bg-orange-600 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-lg border border-white/10">
+                    {item.badge > 9 ? '9+' : item.badge}
+                  </span>
+                )}
               </div>
             </button>
           ))}
@@ -180,8 +196,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentModule, setModule, isMobileMen
             <span>Feedback</span>
           </button>
           <div className="bg-gradient-to-br from-orange-600 to-red-700 rounded-2xl p-5 border border-white/10 shadow-xl shadow-orange-600/10">
-            <h3 className="text-xs font-black text-white uppercase tracking-widest mb-1">Nexus Pro</h3>
-            <p className="text-[10px] text-orange-100 mb-3 font-medium">Unlimited Scans & Deep AI Analysis</p>
+            <h3 className="text-xs font-black text-white uppercase tracking-widest mb-1">Pro</h3>
+            <p className="text-[10px] text-orange-100 mb-3 font-medium">Get deeper AI insights.</p>
             <button className="w-full text-xs bg-white text-orange-600 py-2.5 rounded-xl font-black transition-transform hover:scale-105 shadow-lg active:scale-95 border-none">UPGRADE</button>
           </div>
         </div>

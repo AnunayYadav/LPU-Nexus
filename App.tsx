@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Sidebar from './components/Sidebar.tsx';
 import PlacementPrefect from './components/PlacementPrefect.tsx';
 import ContentLibrary from './components/ContentLibrary.tsx';
@@ -65,12 +64,12 @@ const Dashboard: React.FC<{ setModule: (m: ModuleType) => void }> = ({ setModule
 
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {[
+        { id: ModuleType.SOCIAL, title: "Social Hub", desc: "Connect with fellow Vertos, join squads, and chat in the lounge.", color: "hover:border-orange-500/50" },
         { id: ModuleType.CGPA, title: "CGPA Calculator", desc: "Calculate your SGPA and CGPA based on LPU grading standards.", color: "hover:border-orange-500/50" },
         { id: ModuleType.ATTENDANCE, title: "Attendance Tracker", desc: "Monitor your attendance and hit that 75% threshold with ease.", color: "hover:border-green-500/50" },
         { id: ModuleType.PLACEMENT, title: "Placement Prefect", desc: "Resume ATS matching & optimization tailored for campus drives.", color: "hover:border-orange-500/50" },
         { id: ModuleType.LIBRARY, title: "Content Library", desc: "Centralized hub for all your lectures, question banks and notes.", color: "hover:border-orange-500/50" },
-        { id: ModuleType.CAMPUS, title: "Campus Navigator", desc: "Mess menu checker and interactive 3D map.", color: "hover:border-indigo-500/50" },
-        { id: ModuleType.SOCIAL, title: "Social Hub", desc: "Connect with fellow Vertos, join squads, and chat in the lounge.", color: "hover:border-orange-500/50" }
+        { id: ModuleType.CAMPUS, title: "Campus Navigator", desc: "Interactive 3D maps and latest mess menu cycles.", color: "hover:border-emerald-500/50" }
       ].map(card => (
         <div key={card.id} onClick={() => setModule(card.id)} className={`group relative p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/50 ${card.color} transition-all cursor-pointer hover:shadow-2xl overflow-hidden min-h-[160px]`}>
           <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">{card.title}</h3>
@@ -88,6 +87,22 @@ const App: React.FC = () => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  
+  const [socialUnreadCount, setSocialUnreadCount] = useState(0);
+
+  const refreshUnreadCounts = useCallback(async () => {
+    if (!userProfile) {
+      setSocialUnreadCount(0);
+      return;
+    }
+    try {
+      const convos = await NexusServer.fetchConversations(userProfile.id);
+      const total = convos.reduce((sum, c) => sum + (c.unread_count || 0), 0);
+      setSocialUnreadCount(total);
+    } catch (e) {
+      console.error("Failed to refresh unread counts", e);
+    }
+  }, [userProfile]);
 
   useEffect(() => {
     NexusServer.recordVisit();
@@ -97,7 +112,7 @@ const App: React.FC = () => {
       document.documentElement.classList.toggle('dark', savedTheme === 'dark');
     }
     
-    const unsubscribe = NexusServer.onAuthStateChange(async (user) => {
+    const unsubscribeAuth = NexusServer.onAuthStateChange(async (user) => {
       if (user) {
         const profile = await NexusServer.getProfile(user.id);
         setUserProfile(profile || { id: user.id, email: user.email!, is_admin: false });
@@ -105,8 +120,20 @@ const App: React.FC = () => {
         setUserProfile(null); 
       }
     });
-    return () => unsubscribe();
+
+    return () => unsubscribeAuth();
   }, []);
+
+  useEffect(() => {
+    if (!userProfile) return;
+    refreshUnreadCounts();
+    const unsubscribeMessages = NexusServer.subscribeToUserMessages(userProfile.id, () => {
+      refreshUnreadCounts();
+    });
+    return () => {
+      unsubscribeMessages();
+    };
+  }, [userProfile, refreshUnreadCounts]);
 
   useEffect(() => {
     const handlePopState = () => setCurrentModule(getModuleFromPath(window.location.pathname));
@@ -129,7 +156,7 @@ const App: React.FC = () => {
 
   const renderModule = () => {
     switch (currentModule) {
-      case ModuleType.SOCIAL: return <SocialHub userProfile={userProfile} />;
+      case ModuleType.SOCIAL: return <SocialHub userProfile={userProfile} onUnreadChange={refreshUnreadCounts} />;
       case ModuleType.PLACEMENT: return <PlacementPrefect userProfile={userProfile} />;
       case ModuleType.LIBRARY: return <ContentLibrary userProfile={userProfile} />;
       case ModuleType.CAMPUS: return <CampusNavigator />;
@@ -149,7 +176,14 @@ const App: React.FC = () => {
 
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-black text-slate-900 dark:text-slate-200 transition-colors duration-300">
-      <Sidebar currentModule={currentModule} setModule={navigateToModule} isMobileMenuOpen={isMobileMenuOpen} toggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)} userProfile={userProfile} />
+      <Sidebar 
+        currentModule={currentModule} 
+        setModule={navigateToModule} 
+        isMobileMenuOpen={isMobileMenuOpen} 
+        toggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
+        userProfile={userProfile}
+        notificationCounts={{ social: socialUnreadCount }}
+      />
       <main className="flex-1 flex flex-col h-screen overflow-hidden relative">
         <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-white/5 bg-white dark:bg-black z-10">
           <div className="flex items-center">
