@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { UserProfile, ChatMessage, FriendRequest, MessageReaction } from '../types.ts';
 import NexusServer from '../services/nexusServer.ts';
@@ -248,7 +247,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
         ))}
       </div>
 
-      {/* Chat/Group Lists */}
+      {/* Sidebar List (Chats / Groups) */}
       {(activeView === 'chats' || activeView === 'groups') && (
         <div className="w-72 md:w-96 border-r border-white/5 hidden md:flex flex-col bg-black">
           <div className="p-8 flex items-center justify-between">
@@ -299,21 +298,26 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
                 <h2 className="text-4xl font-black uppercase tracking-tighter">Search</h2>
                 <p className="text-[10px] font-black text-orange-500 uppercase tracking-[0.4em] mt-2">Connect with Vertos</p>
               </div>
-              <div className="flex gap-2">
-                <button 
-                  onClick={() => setSearchSubView('find')}
-                  className={`px-6 py-2 rounded-full font-black text-[10px] uppercase tracking-widest transition-all ${searchSubView === 'find' ? 'bg-orange-600 text-white' : 'bg-white/5 text-white/40 border-none'}`}
-                >
-                  Find
-                </button>
-                <button 
-                  onClick={() => setSearchSubView('requests')}
-                  className={`relative px-6 py-2 rounded-full font-black text-[10px] uppercase tracking-widest transition-all ${searchSubView === 'requests' ? 'bg-orange-600 text-white' : 'bg-white/5 text-white/40 border-none'}`}
-                >
-                  Requests
-                  {incomingRequests.length > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-orange-600 rounded-full flex items-center justify-center text-[8px]">{incomingRequests.length}</span>}
-                </button>
-              </div>
+              
+              <button 
+                onClick={() => setSearchSubView(searchSubView === 'find' ? 'requests' : 'find')}
+                className="flex items-center gap-2 py-2 text-white/60 hover:text-orange-500 transition-colors border-none bg-transparent relative"
+              >
+                {searchSubView === 'requests' ? (
+                  <>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    <span className="text-[10px] font-black uppercase tracking-widest">Back to Search</span>
+                  </>
+                ) : (
+                  <>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    <span className="text-[10px] font-black uppercase tracking-widest">Requests</span>
+                    {incomingRequests.length > 0 && (
+                      <span className="bg-orange-600 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-black">{incomingRequests.length}</span>
+                    )}
+                  </>
+                )}
+              </button>
             </header>
             
             <div className="flex-1 overflow-y-auto p-8 no-scrollbar">
@@ -352,7 +356,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
                         <p className="text-xs font-black uppercase tracking-widest">No pending requests.</p>
                      </div>
                    ) : incomingRequests.map(req => (
-                     <div key={req.id} className="p-6 rounded-[32px] bg-white/5 border border-white/10 flex items-center justify-between">
+                     <div key={req.id} className="p-6 rounded-[32px] bg-white/5 border border-white/10 flex items-center justify-between animate-fade-in">
                         <div className="flex items-center gap-4">
                            <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center font-black">{req.sender?.username?.[0]?.toUpperCase()}</div>
                            <div>
