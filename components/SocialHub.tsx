@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { UserProfile, ChatMessage, FriendRequest, MessageReaction } from '../types.ts';
 import NexusServer from '../services/nexusServer.ts';
@@ -33,8 +34,14 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [memberReadStatus, setMemberReadStatus] = useState<Record<string, number>>({});
   
+  // Details view state
+  const [showDetails, setShowDetails] = useState(false);
+  const [detailsData, setDetailsData] = useState<any>(null);
+  const [groupMembers, setGroupMembers] = useState<UserProfile[]>([]);
+
   const [inputText, setInputText] = useState('');
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
+  const [editingMessage, setEditingMessage] = useState<ChatMessage | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -45,8 +52,10 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
   // UI States
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [reactionMenuId, setReactionMenuId] = useState<string | null>(null);
+  const [messageOptionsMenuId, setMessageOptionsMenuId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const currentContextRef = useRef<string>('lounge');
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadLounge();
@@ -97,6 +106,10 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
     setActiveView(view);
     setOpenMenuId(null);
     setReactionMenuId(null);
+    setMessageOptionsMenuId(null);
+    setEditingMessage(null);
+    setInputText('');
+    setShowDetails(false);
     if (view === 'lounge') {
       loadLounge();
     } else if (view === 'search') {
@@ -123,7 +136,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
     if (scrollRef.current) scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   };
 
-  useEffect(() => { scrollToBottom(); }, [messages]);
+  useEffect(() => { if (!showDetails) scrollToBottom(); }, [messages, showDetails]);
 
   const loadLounge = async () => {
     currentContextRef.current = 'lounge';
@@ -148,6 +161,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
   const selectConversation = async (convo: any) => {
     currentContextRef.current = convo.id;
     setActiveConversation(convo);
+    setShowDetails(false);
     setMessages([]);
     setIsLoading(true);
     await fetchMessagesForContext(convo.id);
@@ -155,9 +169,38 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
     setIsLoading(false);
   };
 
+  const loadDetails = async () => {
+    if (!activeConversation) return;
+    setIsLoading(true);
+    if (activeConversation.is_group) {
+      const memberStatuses = await NexusServer.fetchMemberReadStatuses(activeConversation.id);
+      const profiles = await Promise.all(memberStatuses.map(s => NexusServer.getProfile(s.user_id)));
+      setGroupMembers(profiles.filter(p => !!p) as UserProfile[]);
+      setDetailsData(activeConversation);
+    } else {
+      const profile = await NexusServer.getProfile(activeConversation.other_user_id);
+      setDetailsData(profile);
+    }
+    setIsLoading(false);
+    setShowDetails(true);
+  };
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputText.trim() || !userProfile) return;
+
+    if (editingMessage) {
+      const text = activeView === 'lounge' ? filterProfanity(inputText) : inputText;
+      try {
+        if (activeView === 'lounge') await NexusServer.updateSocialMessage(editingMessage.id!, userProfile.id, text);
+        else await NexusServer.updateMessage(editingMessage.id!, userProfile.id, text);
+        setEditingMessage(null);
+        setInputText('');
+        fetchMessagesForContext(currentContextRef.current);
+      } catch (err) { alert("Update failed."); }
+      return;
+    }
+
     const text = activeView === 'lounge' ? filterProfanity(inputText) : inputText;
     const rId = replyTo?.id;
     setInputText('');
@@ -175,10 +218,25 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
     fetchMessagesForContext(currentContextRef.current);
   };
 
+  const handleEditInit = (msg: ChatMessage) => {
+    setEditingMessage(msg);
+    setInputText(msg.text);
+    setMessageOptionsMenuId(null);
+    inputRef.current?.focus();
+  };
+
+  const handleReport = async (msg: ChatMessage) => {
+    if (!userProfile) return;
+    await NexusServer.reportContent(userProfile.id, 'MESSAGE', msg.id!, `Content: ${msg.text.substring(0, 50)}...`);
+    alert("Report filed.");
+    setMessageOptionsMenuId(null);
+  };
+
   const deleteMsg = async (id: string) => {
     if (!userProfile) return;
     if (activeView === 'lounge') await NexusServer.deleteSocialMessage(id, userProfile.id);
     else await NexusServer.deleteMessageEveryone(id, userProfile.id);
+    setMessageOptionsMenuId(null);
     fetchMessagesForContext(currentContextRef.current);
   };
 
@@ -197,7 +255,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
     if (!convo) convo = await NexusServer.createConversation(userProfile.id, null, false, [other.id]);
     await loadConversations();
     setActiveView('chats');
-    selectConversation({ ...convo, display_name: other.username });
+    selectConversation({ ...convo, display_name: other.username, other_user_id: other.id });
   };
 
   const handleAddFriend = async (targetId: string) => {
@@ -228,7 +286,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
         .bg-insta-gradient { background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); }
       `}</style>
 
-      {/* Navigation Icons - Reduced width */}
+      {/* Navigation Icons */}
       <div className="w-14 md:w-16 border-r border-white/5 flex flex-col items-center py-6 space-y-6 flex-shrink-0 bg-black">
         {[
           { id: 'lounge', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>, count: 0 },
@@ -247,7 +305,7 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
         ))}
       </div>
 
-      {/* Sidebar List - Reduced width */}
+      {/* Sidebar List */}
       {(activeView === 'chats' || activeView === 'groups') && (
         <div className="w-60 md:w-80 border-r border-white/5 hidden md:flex flex-col bg-black">
           <div className="p-6 flex items-center justify-between">
@@ -298,7 +356,6 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
                 <h2 className="text-3xl font-black uppercase tracking-tighter">Search</h2>
                 <p className="text-[9px] font-black text-orange-500 uppercase tracking-[0.4em] mt-1.5">Connect with Vertos</p>
               </div>
-              
               <button 
                 onClick={() => setSearchSubView(searchSubView === 'find' ? 'requests' : 'find')}
                 className="flex items-center gap-1.5 py-1.5 text-white/60 hover:text-orange-500 transition-colors border-none bg-transparent relative"
@@ -319,7 +376,6 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
                 )}
               </button>
             </header>
-            
             <div className="flex-1 overflow-y-auto p-6 no-scrollbar">
               {searchSubView === 'find' ? (
                 <div className="max-w-3xl mx-auto space-y-10">
@@ -330,7 +386,6 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
                     />
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-white/20 group-focus-within:text-orange-500 transition-colors"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
                   </div>
-                  
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                     {searchResults.map(p => (
                       <div key={p.id} className="p-6 rounded-[32px] border border-white/5 bg-white/[0.02] flex flex-col items-center text-center group hover:border-orange-500/30 transition-all">
@@ -377,14 +432,14 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
         ) : (activeView === 'lounge' || activeConversation) ? (
           <>
             <header className="px-6 py-5 border-b border-white/5 flex items-center justify-between bg-black/80 backdrop-blur-xl z-20">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-insta-gradient p-[1.5px] shadow-md">
+              <div className="flex items-center gap-4 cursor-pointer group/header" onClick={loadDetails}>
+                <div className="w-10 h-10 rounded-full bg-insta-gradient p-[1.5px] shadow-md group-hover/header:scale-105 transition-transform">
                   <div className="w-full h-full bg-black rounded-full flex items-center justify-center font-black text-xs">
                     {activeView === 'lounge' ? '#' : activeConversation?.display_name?.[0]?.toUpperCase()}
                   </div>
                 </div>
                 <div>
-                  <h3 className="text-sm font-black uppercase tracking-tight">{activeView === 'lounge' ? 'Lounge' : activeConversation?.display_name}</h3>
+                  <h3 className="text-sm font-black uppercase tracking-tight group-hover/header:text-orange-500 transition-colors">{activeView === 'lounge' ? 'Lounge' : activeConversation?.display_name}</h3>
                   <div className="flex items-center gap-1 mt-0.5">
                     <span className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_6px_rgba(16,185,129,0.6)]" />
                     <span className="text-[8px] font-black text-white/40 uppercase tracking-widest">Active Pulse</span>
@@ -396,72 +451,173 @@ const SocialHub: React.FC<{ userProfile: UserProfile | null; onUnreadChange?: ()
               </button>
             </header>
 
-            <div ref={scrollRef} className="flex-1 overflow-y-auto p-5 md:p-8 space-y-5 no-scrollbar scroll-smooth">
-              {messages.map((msg, i) => {
-                const isMe = msg.sender_id === userProfile?.id;
-                const isRead = activeView !== 'lounge' && Object.entries(memberReadStatus).some(([uid, time]) => uid !== msg.sender_id && time >= msg.timestamp);
-                return (
-                  <div key={msg.id || i} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} msg-pop group/msg relative`}>
-                    {!isMe && <span className="text-[8px] font-black text-orange-500 uppercase tracking-tighter mb-1 ml-0.5">@{msg.sender_name}</span>}
-                    
-                    <div className={`flex items-center gap-2.5 ${isMe ? 'flex-row-reverse' : ''} max-w-[80%] md:max-w-[65%]`}>
-                      <div 
-                        onContextMenu={(e) => { e.preventDefault(); setReactionMenuId(msg.id!); }}
-                        className={`relative px-5 py-3 rounded-[24px] text-xs font-medium shadow-lg transition-all hover:scale-[1.01] ${isMe ? 'bg-orange-600 rounded-tr-none' : 'bg-white/5 rounded-tl-none border border-white/5'}`}
-                      >
-                        {msg.is_deleted_everyone ? <span className="italic opacity-50">Signal redacted</span> : <span>{msg.text}</span>}
-                        {isMe && !msg.is_deleted_everyone && <div className="mt-0.5 flex justify-end"><ReadReceipt isRead={isRead} /></div>}
-                        
-                        {msg.reactions && msg.reactions.length > 0 && (
-                          <div className={`absolute -bottom-2.5 ${isMe ? 'right-1.5' : 'left-1.5'} flex gap-0.5 bg-black border border-white/10 rounded-full px-1.5 py-0.5 shadow-xl`}>
-                            {msg.reactions.map((r, idx) => <span key={idx} className="text-[8px]">{r.emoji}</span>)}
-                          </div>
-                        )}
-                      </div>
+            <div className="flex-1 relative overflow-hidden flex flex-col">
+              {showDetails ? (
+                <div className="absolute inset-0 bg-black z-30 animate-fade-in flex flex-col p-8 md:p-12 overflow-y-auto no-scrollbar">
+                  <button onClick={() => setShowDetails(false)} className="self-start flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-orange-500 transition-colors border-none bg-transparent mb-12">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    Back to Session
+                  </button>
 
-                      <div className="flex flex-col gap-1.5 opacity-0 group-hover/msg:opacity-100 transition-opacity">
-                         <button onClick={() => setReplyTo(msg)} className="p-1.5 text-white/20 hover:text-white border-none bg-transparent" title="Reply"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg></button>
-                         {isMe && <button onClick={() => deleteMsg(msg.id!)} className="p-1.5 text-white/20 hover:text-red-500 border-none bg-transparent" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>}
+                  <div className="max-w-xl mx-auto w-full space-y-12">
+                    <div className="text-center">
+                      <div className="w-24 h-24 rounded-full bg-insta-gradient p-[3px] mx-auto mb-6 shadow-2xl">
+                        <div className="w-full h-full bg-black rounded-full flex items-center justify-center text-4xl font-black">
+                          {activeConversation?.display_name?.[0]?.toUpperCase()}
+                        </div>
                       </div>
+                      <h2 className="text-3xl font-black uppercase tracking-tighter">{activeConversation?.display_name}</h2>
+                      <p className="text-orange-500 text-[10px] font-black uppercase tracking-[0.4em] mt-3">Verified Entity</p>
                     </div>
 
-                    {reactionMenuId === msg.id && (
-                      <>
-                        <div className="fixed inset-0 z-40" onClick={() => setReactionMenuId(null)} />
-                        <div className={`absolute z-50 -top-10 ${isMe ? 'right-0' : 'left-0'} flex gap-1.5 bg-black border border-white/20 rounded-full px-3 py-1.5 shadow-[0_8px_24px_rgba(0,0,0,0.5)] animate-fade-in`}>
-                          {EMOJIS.map(e => <button key={e} onClick={() => handleReaction(msg.id!, e)} className="text-base hover:scale-125 transition-transform border-none bg-transparent">{e}</button>)}
+                    <div className="space-y-6">
+                      {activeConversation.is_group ? (
+                        <div className="space-y-6">
+                          <div>
+                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 mb-4 flex items-center gap-2">
+                              <span className="w-1 h-1 bg-orange-600 rounded-full" />
+                              Squad Personnel ({groupMembers.length})
+                            </h4>
+                            <div className="space-y-2">
+                              {groupMembers.map(m => (
+                                <div key={m.id} className="flex items-center gap-4 p-4 bg-white/[0.02] border border-white/5 rounded-[24px]">
+                                  <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center font-black text-xs uppercase">{m.username?.[0] || m.email[0]}</div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-black uppercase truncate">@{m.username || 'Verto'}</p>
+                                    <p className="text-[8px] font-bold text-white/30 uppercase tracking-widest">{m.program || 'Active Member'}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          <button onClick={() => { NexusServer.leaveGroup(userProfile!.id, activeConversation.id).then(() => handleViewChange('groups')); }} className="w-full py-4 border border-red-500/20 text-red-500 text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-red-500 hover:text-white transition-all bg-transparent">Abandon Squad</button>
                         </div>
-                      </>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                      ) : (
+                        <div className="space-y-8 animate-fade-in">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="p-6 bg-white/[0.02] border border-white/5 rounded-[32px]">
+                               <p className="text-[8px] font-black text-white/20 uppercase tracking-widest mb-1">Status</p>
+                               <p className="text-xs font-black uppercase tracking-tighter text-emerald-500">Encrypted</p>
+                            </div>
+                            <div className="p-6 bg-white/[0.02] border border-white/5 rounded-[32px]">
+                               <p className="text-[8px] font-black text-white/20 uppercase tracking-widest mb-1">Batch</p>
+                               <p className="text-xs font-black uppercase tracking-tighter">{detailsData?.batch || '2025-29'}</p>
+                            </div>
+                          </div>
 
-            <footer className="p-5 md:p-8 border-t border-white/5 bg-black/80 backdrop-blur-xl z-20">
-              {replyTo && (
-                <div className="mb-3.5 p-3 bg-white/5 rounded-2xl border-l-[3px] border-orange-500 flex justify-between items-center animate-fade-in">
-                  <div className="min-w-0">
-                    <p className="text-[8px] font-black text-orange-500 uppercase tracking-widest mb-0.5">Replying to @{replyTo.sender_name}</p>
-                    <p className="text-[10px] truncate opacity-60">{replyTo.text}</p>
+                          <div className="p-8 bg-white/[0.02] border border-white/5 rounded-[40px] space-y-4">
+                             <div>
+                                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 mb-2">Academic Profile</h4>
+                                <p className="text-sm font-bold text-white/80">{detailsData?.program || 'Standard Verto Curriculum'}</p>
+                             </div>
+                             <div className="pt-4 border-t border-white/5">
+                                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 mb-2">Transmission Log / Bio</h4>
+                                <p className="text-sm font-medium text-white/50 leading-relaxed italic">"{detailsData?.bio || 'No status message recorded for this user identity.'}"</p>
+                             </div>
+                          </div>
+
+                          <div className="pt-8 space-y-3">
+                             <button onClick={() => { NexusServer.blockUser(userProfile!.id, activeConversation.other_user_id).then(() => setShowDetails(false)); }} className="w-full py-4 border border-red-500/20 text-red-500 text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-red-500 hover:text-white transition-all bg-transparent">Restrict Signal</button>
+                             <button onClick={() => { NexusServer.reportContent(userProfile!.id, 'USER', activeConversation.other_user_id, 'Protocol Breach'); alert("Report filed."); }} className="w-full py-4 text-white/20 text-[10px] font-black uppercase tracking-widest hover:text-white transition-colors border-none bg-transparent">Report Protocol</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <button onClick={() => setReplyTo(null)} className="p-1.5 text-white/40 hover:text-white border-none bg-transparent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
                 </div>
+              ) : (
+                <>
+                  <div ref={scrollRef} className="flex-1 overflow-y-auto p-5 md:p-8 space-y-5 no-scrollbar scroll-smooth">
+                    {messages.map((msg, i) => {
+                      const isMe = msg.sender_id === userProfile?.id;
+                      const isRead = activeView !== 'lounge' && Object.entries(memberReadStatus).some(([uid, time]) => uid !== msg.sender_id && time >= msg.timestamp);
+                      const isOptionsOpen = messageOptionsMenuId === msg.id;
+
+                      return (
+                        <div key={msg.id || i} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} msg-pop group/msg relative`}>
+                          {!isMe && <span className="text-[8px] font-black text-orange-500 uppercase tracking-tighter mb-1 ml-0.5">@{msg.sender_name}</span>}
+                          
+                          <div className={`flex items-center gap-1 ${isMe ? 'flex-row-reverse' : ''} max-w-[85%] md:max-w-[70%]`}>
+                            <div 
+                              onContextMenu={(e) => { e.preventDefault(); setReactionMenuId(msg.id!); }}
+                              className={`relative px-5 py-3 rounded-[24px] text-xs font-medium shadow-lg transition-all hover:scale-[1.01] ${isMe ? 'bg-orange-600 rounded-tr-none' : 'bg-white/5 rounded-tl-none border border-white/5'}`}
+                            >
+                              {msg.is_deleted_everyone ? <span className="italic opacity-50">Signal redacted</span> : <span>{msg.text}</span>}
+                              {isMe && !msg.is_deleted_everyone && <div className="mt-0.5 flex justify-end"><ReadReceipt isRead={isRead} /></div>}
+                              
+                              {msg.reactions && msg.reactions.length > 0 && (
+                                <div className={`absolute -bottom-2.5 ${isMe ? 'right-1.5' : 'left-1.5'} flex gap-0.5 bg-black border border-white/10 rounded-full px-1.5 py-0.5 shadow-xl`}>
+                                  {msg.reactions.map((r, idx) => <span key={idx} className="text-[8px]">{r.emoji}</span>)}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex flex-col gap-1 opacity-0 group-hover/msg:opacity-100 transition-opacity">
+                               <button onClick={() => setReplyTo(msg)} className="p-1.5 text-white/20 hover:text-white border-none bg-transparent" title="Reply">
+                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
+                               </button>
+                               <div className="relative">
+                                 <button onClick={(e) => { e.stopPropagation(); setMessageOptionsMenuId(isOptionsOpen ? null : msg.id!); }} className="p-1.5 text-white/20 hover:text-white border-none bg-transparent" title="More">
+                                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                                 </button>
+                                 {isOptionsOpen && (
+                                   <div className={`absolute bottom-full mb-2 ${isMe ? 'right-0' : 'left-0'} w-32 bg-[#111] border border-white/10 rounded-xl shadow-2xl overflow-hidden py-1.5 z-50 animate-fade-in`}>
+                                      <button onClick={() => handleReport(msg)} className="w-full text-left px-3 py-1.5 text-[8px] font-black uppercase text-white/40 hover:bg-white/5 border-none bg-transparent">Report</button>
+                                      {isMe && !msg.is_deleted_everyone && <button onClick={() => handleEditInit(msg)} className="w-full text-left px-3 py-1.5 text-[8px] font-black uppercase text-white/40 hover:bg-white/5 border-none bg-transparent">Edit</button>}
+                                      <button onClick={() => deleteMsg(msg.id!)} className="w-full text-left px-3 py-1.5 text-[8px] font-black uppercase text-red-500 hover:bg-red-500/10 border-none bg-transparent">Delete</button>
+                                   </div>
+                                 )}
+                               </div>
+                            </div>
+                          </div>
+
+                          {reactionMenuId === msg.id && (
+                            <>
+                              <div className="fixed inset-0 z-40" onClick={() => setReactionMenuId(null)} />
+                              <div className={`absolute z-50 -top-10 ${isMe ? 'right-0' : 'left-0'} flex gap-1.5 bg-black border border-white/20 rounded-full px-3 py-1.5 shadow-[0_8px_24px_rgba(0,0,0,0.5)] animate-fade-in`}>
+                                {EMOJIS.map(e => <button key={e} onClick={() => handleReaction(msg.id!, e)} className="text-base hover:scale-125 transition-transform border-none bg-transparent">{e}</button>)}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <footer className="p-5 md:p-8 border-t border-white/5 bg-black/80 backdrop-blur-xl z-20">
+                    {(replyTo || editingMessage) && (
+                      <div className="mb-3.5 p-3 bg-white/5 rounded-2xl border-l-[3px] border-orange-500 flex justify-between items-center animate-fade-in">
+                        <div className="min-w-0">
+                          <p className="text-[8px] font-black text-orange-500 uppercase tracking-widest mb-0.5">{editingMessage ? 'Editing message' : `Replying to @${replyTo?.sender_name}`}</p>
+                          <p className="text-[10px] truncate opacity-60">{(editingMessage || replyTo)?.text}</p>
+                        </div>
+                        <button onClick={() => { setReplyTo(null); setEditingMessage(null); if (editingMessage) setInputText(''); }} className="p-1.5 text-white/40 hover:text-white border-none bg-transparent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+                      </div>
+                    )}
+                    <form onSubmit={handleSendMessage} className="flex gap-3 bg-white/5 p-2 rounded-[32px] border border-white/10 group focus-within:ring-4 focus-within:ring-orange-600/10 transition-all max-w-4xl mx-auto w-full">
+                      <input 
+                        ref={inputRef}
+                        type="text" value={inputText} onChange={e => setInputText(e.target.value)}
+                        placeholder={editingMessage ? "Update message..." : "Message..."}
+                        className="flex-1 bg-transparent border-none px-5 py-3.5 text-xs font-bold text-white outline-none"
+                      />
+                      <button 
+                        type="submit" disabled={!inputText.trim()}
+                        className="w-11 h-11 bg-orange-600 rounded-full flex items-center justify-center shadow-lg shadow-orange-600/20 active:scale-90 transition-all disabled:opacity-30 border-none"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5">
+                          {editingMessage ? (
+                             <polyline points="20 6 9 17 4 12" />
+                          ) : (
+                             <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                          )}
+                        </svg>
+                      </button>
+                    </form>
+                  </footer>
+                </>
               )}
-              <form onSubmit={handleSendMessage} className="flex gap-3 bg-white/5 p-2 rounded-[32px] border border-white/10 group focus-within:ring-4 focus-within:ring-orange-600/10 transition-all max-w-4xl mx-auto w-full">
-                <input 
-                  type="text" value={inputText} onChange={e => setInputText(e.target.value)}
-                  placeholder="Message..."
-                  className="flex-1 bg-transparent border-none px-5 py-3.5 text-xs font-bold text-white outline-none"
-                />
-                <button 
-                  type="submit" disabled={!inputText.trim()}
-                  className="w-11 h-11 bg-orange-600 rounded-full flex items-center justify-center shadow-lg shadow-orange-600/20 active:scale-90 transition-all disabled:opacity-30 border-none"
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                </button>
-              </form>
-            </footer>
+            </div>
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center p-16 text-center animate-fade-in">

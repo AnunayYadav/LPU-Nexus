@@ -192,6 +192,12 @@ class NexusServer {
     return await client.from('messages').insert([{ conversation_id: conversationId, sender_id: userId, text, reply_to_id: replyToId }]);
   }
 
+  static async updateMessage(messageId: string, userId: string, text: string) {
+    const client = getSupabase();
+    if (!client) return;
+    return await client.from('messages').update({ text, updated_at: new Date().toISOString() }).eq('id', messageId).eq('sender_id', userId);
+  }
+
   static async toggleReaction(messageId: string, userId: string, emoji: string) {
     const client = getSupabase();
     if (!client) return;
