@@ -45,7 +45,6 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
 
   const [isAdminView, setIsAdminView] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [processSuccess, setProcessSuccess] = useState(false);
   
   const [showFolderModal, setShowFolderModal] = useState(false);
   const [showRenameModal, setShowRenameModal] = useState(false);
@@ -58,8 +57,6 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [metaForm, setMetaForm] = useState({ name: '', description: '', semester: '', subject: '', type: '' });
-  const [isCustomSubject, setIsCustomSubject] = useState(false);
-  const [isCustomCategory, setIsCustomCategory] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [draggingOverId, setDraggingOverId] = useState<string | null>(null);
@@ -189,68 +186,6 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
     } catch (e: any) { alert(e.message); } finally { setIsProcessing(false); }
   };
 
-  const handleUpload = async () => {
-    if (!pendingFile || !metaForm.name.trim() || !userProfile || !metaForm.semester || !metaForm.subject || !metaForm.type) return;
-    setIsProcessing(true);
-    try {
-      await NexusServer.uploadFile(
-        pendingFile, metaForm.name, metaForm.description, 
-        metaForm.subject, metaForm.semester, metaForm.type, 
-        userProfile.id, userProfile?.is_admin || false
-      );
-      setProcessSuccess(true);
-      setTimeout(() => { 
-        setShowUploadModal(false); 
-        setProcessSuccess(false); 
-        setIsCustomSubject(false);
-        setIsCustomCategory(false);
-        fetchFromSource(false); 
-        setViewMode('my-uploads');
-      }, 1500);
-    } catch (e: any) { alert(e.message); } finally { setIsProcessing(false); }
-  };
-
-  const handleDirectEdit = async () => {
-    if (!selectedFile || !metaForm.name.trim()) return;
-    setIsProcessing(true);
-    try {
-      await NexusServer.requestUpdate(selectedFile.id, {
-        name: metaForm.name,
-        description: metaForm.description || '',
-        subject: metaForm.subject,
-        semester: metaForm.semester,
-        type: metaForm.type
-      }, true);
-      setShowEditModal(false);
-      fetchFromSource(false);
-    } catch (e: any) { alert(e.message); } finally { setIsProcessing(false); }
-  };
-
-  const handleDragOver = (e: React.DragEvent, id: string) => {
-    if (!userProfile?.is_admin) return;
-    e.preventDefault();
-    setDraggingOverId(id);
-  };
-
-  const handleDrop = (e: React.DragEvent, folder: Folder) => {
-    if (!userProfile?.is_admin) return;
-    e.preventDefault();
-    setDraggingOverId(null);
-    const droppedFiles = e.dataTransfer.files;
-    if (droppedFiles && droppedFiles.length > 0) {
-      const file = droppedFiles[0];
-      setPendingFile(file);
-      setMetaForm({
-        name: file.name.replace(/\.[^/.]+$/, ""),
-        description: '',
-        semester: folder.type === 'semester' ? folder.name : activeSemester?.name || '',
-        subject: folder.type === 'subject' ? folder.name : activeSubject?.name || '',
-        type: folder.type === 'category' ? folder.name : ''
-      });
-      setShowUploadModal(true);
-    }
-  };
-
   const toggleAdminView = () => {
     const nextAdminState = !isAdminView;
     setIsAdminView(nextAdminState);
@@ -258,12 +193,6 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
     setSearchQuery(''); 
     navigateTo(null, null, null);
   };
-
-  const modalAvailableSemesters = folders.filter(f => f.type === 'semester');
-  const modalSelectedSemester = folders.find(f => f.name === metaForm.semester && f.type === 'semester');
-  const modalAvailableSubjects = folders.filter(f => f.type === 'subject' && f.parent_id === modalSelectedSemester?.id);
-  const modalSelectedSubject = folders.find(f => f.name === metaForm.subject && f.type === 'subject');
-  const modalAvailableCategories = folders.filter(f => f.type === 'category' && f.parent_id === modalSelectedSubject?.id);
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 animate-fade-in pb-20 px-4 md:px-0">
@@ -306,7 +235,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
           {currentFolders.map(folder => (
-            <div key={folder.id} onDragOver={(e) => handleDragOver(e, folder.id)} onDragLeave={() => setDraggingOverId(null)} onDrop={(e) => handleDrop(e, folder)} onClick={() => { if (folder.type === 'semester') navigateTo(folder, null, null); else if (folder.type === 'subject') navigateTo(activeSemester, folder, null); else if (folder.type === 'category') navigateTo(activeSemester, activeSubject, folder); }} className={`group p-5 rounded-[30px] border transition-all cursor-pointer relative overflow-hidden flex flex-col justify-center min-h-[140px] ${draggingOverId === folder.id ? 'border-orange-500 bg-orange-500/10 scale-105 shadow-xl z-10' : 'border-slate-100 dark:border-white/5 bg-white dark:bg-black/40 hover:border-orange-500/50 hover:shadow-lg'}`}>
+            <div key={folder.id} onDragOver={(e) => { if (!userProfile?.is_admin) return; e.preventDefault(); setDraggingOverId(folder.id); }} onDragLeave={() => setDraggingOverId(null)} onDrop={(e) => { if (!userProfile?.is_admin) return; e.preventDefault(); setDraggingOverId(null); const droppedFiles = e.dataTransfer.files; if (droppedFiles && droppedFiles.length > 0) { setPendingFile(droppedFiles[0]); setMetaForm({ name: droppedFiles[0].name.replace(/\.[^/.]+$/, ""), description: '', semester: folder.type === 'semester' ? folder.name : activeSemester?.name || '', subject: folder.type === 'subject' ? folder.name : activeSubject?.name || '', type: folder.type === 'category' ? folder.name : '' }); setShowUploadModal(true); } }} onClick={() => { if (folder.type === 'semester') navigateTo(folder, null, null); else if (folder.type === 'subject') navigateTo(activeSemester, folder, null); else if (folder.type === 'category') navigateTo(activeSemester, activeSubject, folder); }} className={`group p-5 rounded-[30px] border transition-all cursor-pointer relative overflow-hidden flex flex-col justify-center min-h-[140px] ${draggingOverId === folder.id ? 'border-orange-500 bg-orange-500/10 scale-105 shadow-xl z-10' : 'border-slate-100 dark:border-white/5 bg-white dark:bg-black/40 hover:border-orange-500/50 hover:shadow-lg'}`}>
               {userProfile?.is_admin && (
                 <div className="absolute top-3 right-3 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-20">
                   <button onClick={(e) => { e.stopPropagation(); setFolderToManage(folder); setNewFolderName(folder.name); setShowRenameModal(true); }} className="p-1.5 bg-black rounded-lg text-orange-600 hover:bg-orange-50 dark:hover:bg-slate-900 transition-colors shadow-sm border-none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
@@ -323,7 +252,6 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
         </div>
       )}
 
-      {/* Simplified Modal Logic - Maintaining Original Structures but matching new Aesthetics */}
       {showFolderModal && userProfile?.is_admin && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
           <div ref={modalRef} className="bg-white dark:bg-black rounded-[30px] w-full max-w-sm shadow-2xl border border-white/10 overflow-hidden flex flex-col">
@@ -336,7 +264,6 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
         </div>
       )}
       
-      {/* Upload/Edit Modals logic simplified for space - Aesthetics fixed in place */}
       <input type="file" ref={fileInputRef} className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) { setPendingFile(f); setMetaForm(p => ({ ...p, name: f.name.replace(/\.[^/.]+$/, ""), semester: activeSemester?.name || '', subject: activeSubject?.name || '', type: activeCategory?.name || '' })); setShowUploadModal(true); } }} />
     </div>
   );
@@ -373,9 +300,24 @@ const FileCard: React.FC<{
       <div className="pt-3 mt-auto border-t border-slate-50 dark:border-white/5 flex items-center justify-between">
         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{file.size}</span>
         <div className="flex gap-1.5">
-          {isAdmin ? (
+          {isAdminMode ? (
             <div className="flex gap-1.5">
-              <button onClick={(e) => { e.stopPropagation(); (isAdminMode ? onApprove : onEdit)?.(); }} className="w-8 h-8 bg-black text-orange-600 rounded-lg flex items-center justify-center shadow-lg hover:bg-orange-600 hover:text-white transition-all border-none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4"><polyline points="20 6 9 17 4 12"/></svg></button>
+               {/* Moderation Controls Only */}
+               <button onClick={(e) => { e.stopPropagation(); onApprove?.(); }} className="w-8 h-8 bg-black text-emerald-500 rounded-lg flex items-center justify-center shadow-lg hover:bg-emerald-500 hover:text-white transition-all border-none" title="Approve">
+                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><polyline points="20 6 9 17 4 12"/></svg>
+               </button>
+               <button onClick={(e) => { e.stopPropagation(); onDemote?.(); }} className="w-8 h-8 bg-black text-orange-500 rounded-lg flex items-center justify-center shadow-lg hover:bg-orange-500 hover:text-white transition-all border-none" title="Put to Hold">
+                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+               </button>
+               <button onClick={(e) => { e.stopPropagation(); onReject?.(); }} className="w-8 h-8 bg-black text-red-500 rounded-lg flex items-center justify-center shadow-lg hover:bg-red-500 hover:text-white transition-all border-none" title="Deny/Reject">
+                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+               </button>
+            </div>
+          ) : isAdmin ? (
+            <div className="flex gap-1.5">
+              <button onClick={(e) => { e.stopPropagation(); onEdit?.(); }} className="w-8 h-8 bg-black text-orange-600 rounded-lg flex items-center justify-center shadow-lg hover:bg-orange-600 hover:text-white transition-all border-none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+              <button onClick={(e) => { e.stopPropagation(); onDelete?.(); }} className="w-8 h-8 bg-black text-red-500 rounded-lg flex items-center justify-center shadow-lg hover:bg-red-500 hover:text-white transition-all border-none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>
+              <button onClick={(e) => { e.stopPropagation(); onAccess(); }} className="w-8 h-8 bg-black text-emerald-500 rounded-lg flex items-center justify-center shadow-lg hover:bg-emerald-500 hover:text-white transition-all border-none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></button>
             </div>
           ) : (
             <button onClick={(e) => { e.stopPropagation(); onAccess(); }} className="bg-black text-orange-600 px-4 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-1.5 hover:bg-orange-600 hover:text-white transition-all shadow-md border-none">Access <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3 h-3"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></button>
