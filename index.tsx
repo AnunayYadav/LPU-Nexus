@@ -7,15 +7,16 @@
 (function initializeNexusGlobalEnv() {
   const g = (typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : ({} as any));
   
-  // Initialize standard process.env structure if not present
-  g.process = g.process || { env: {} };
-  g.process.env = g.process.env || {};
+  // Ensure standard process.env structure exists
+  if (!g.process) g.process = { env: {} };
+  if (!g.process.env) g.process.env = {};
 
   const varsToBootstrap = ['API_KEY', 'SUPABASE_URL', 'SUPABASE_ANON_KEY'];
 
   varsToBootstrap.forEach(varName => {
     try {
       const vitePrefix = `VITE_${varName}`;
+      // Check import.meta.env (Standard for Vite/Modern ESM)
       // @ts-ignore
       const meta = (typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env : {};
       
@@ -23,15 +24,23 @@
                   meta[varName] || 
                   g.process.env[varName] || 
                   g.process.env[vitePrefix] ||
-                  (g as any)[varName];
+                  g[varName] ||
+                  g[vitePrefix];
       
       if (val) {
         g.process.env[varName] = val;
+        // Also map to global if needed by some legacy libs
+        g[varName] = val;
       }
     } catch (e) {
-      // Individual variable failure shouldn't crash the bootstrap
+      // Fail silently for individual variables
     }
   });
+
+  // Verification for developers (only logs if key is missing)
+  if (!g.process.env.API_KEY) {
+    console.warn("Nexus Protocol: API_KEY not detected in environment. Ensure VITE_API_KEY is set in Vercel settings.");
+  }
 })();
 
 import React from 'react';

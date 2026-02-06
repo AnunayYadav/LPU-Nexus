@@ -6,7 +6,10 @@ import { ResumeAnalysisResult, Flashcard, DaySchedule } from "../types.ts";
  * Module A: The Placement Prefect
  */
 export const analyzeResume = async (resumeText: string, jdText: string, deepAnalysis: boolean = false): Promise<ResumeAnalysisResult> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) throw new Error("API Key Missing: Please configure VITE_API_KEY in environment.");
+  
+  const ai = new GoogleGenAI({ apiKey });
   const modelId = "gemini-3-pro-preview"; 
 
   const analysisType = deepAnalysis ? "DEEP CRITICAL ANALYSIS (STRICT)" : "STANDARD ATS SCAN";
@@ -71,27 +74,21 @@ export const analyzeResume = async (resumeText: string, jdText: string, deepAnal
 
 /**
  * Module: Timetable Parser
- * Extracts LPU Touch timetable screenshots into structured data.
  */
 export const extractTimetableFromImage = async (base64Image: string): Promise<DaySchedule[]> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) throw new Error("API Key Missing");
+
+  const ai = new GoogleGenAI({ apiKey });
   const modelId = "gemini-3-flash-preview";
 
   const prompt = `
     Extract the LPU University timetable from this screenshot. 
-    Identify the days of the week (Monday to Saturday) and the time slots for each day.
-    LPU classes usually follow 50min or 1hr intervals (e.g., 9:00-10:00).
-    
+    Identify the days (Monday to Saturday) and slots.
     Return a structured JSON array of DaySchedule objects.
-    Each object has:
-    - day (string, e.g., 'Monday')
-    - slots (array of objects with id, subject, room, startTime, endTime, type)
-    
-    RULES:
-    1. Identify room numbers like '34-201' or '38-502'.
-    2. Identify Subject names/codes.
-    3. 'type' should be 'class' or 'lab'.
-    4. Ensure startTime and endTime are in 'HH:mm' 24-hour format.
+    Each object has: day, slots (array of objects with id, subject, room, startTime, endTime, type).
+    Subject should ONLY be the subject code (e.g. CSE101) if full name is not present.
+    Ensure startTime and endTime are in 'HH:mm' 24-hour format.
   `;
 
   const schema = {
@@ -149,18 +146,16 @@ export const askAcademicOracle = async (
   contextText: string, 
   chatHistory: { role: string; text: string }[]
 ): Promise<string> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) throw new Error("API Key Missing");
+
+  const ai = new GoogleGenAI({ apiKey });
   const modelId = "gemini-3-flash-preview";
 
   const systemInstruction = `
-    You are "The Academic Oracle", an intelligent assistant for university students.
-    You have access to a specific academic document provided in the context.
-    
-    RULES:
-    1. Answer ONLY based on the provided Context. 
-    2. If the answer is not in the context, state "I do not have that information in the uploaded document."
-    3. Be precise with rules, fees, and penalties. Do not guess.
-    4. Keep answers concise and student-friendly.
+    You are "The Academic Oracle", an assistant for LPU students.
+    Answer ONLY based on the provided Context. 
+    If not in context, state "I do not have that information in the uploaded document."
   `;
 
   const fullPrompt = `
@@ -188,104 +183,22 @@ export const askAcademicOracle = async (
   }
 };
 
-export const generateFlashcards = async (contextText: string): Promise<Flashcard[]> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
-  const modelId = "gemini-3-flash-preview";
-  const prompt = `
-    Create 5 high-quality flashcards based on the following text.
-    Focus on key definitions, dates, or formulas.
-    
-    TEXT:
-    ${contextText.slice(0, 100000)}
-
-    Output strictly in JSON format as an array of objects with "front" and "back" keys.
-  `;
-
-  const schema = {
-    type: Type.ARRAY,
-    items: {
-      type: Type.OBJECT,
-      properties: {
-        front: { type: Type.STRING },
-        back: { type: Type.STRING },
-      },
-      required: ["front", "back"],
-    }
-  };
-
-  try {
-    const response = await ai.models.generateContent({
-      model: modelId,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: schema
-      }
-    });
-    
-    return JSON.parse(response.text || "[]");
-  } catch (e) {
-    console.error(e);
-    return [];
-  }
-}
-
-export const generateFlowchart = async (contextText: string): Promise<string> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
-  const modelId = "gemini-3-flash-preview";
-  const prompt = `
-    Create a Mermaid.js flowchart syntax based on the key processes or concepts in the following text.
-    Return ONLY the mermaid syntax string (start with 'graph TD'). Do not include markdown code fences.
-    
-    TEXT:
-    ${contextText.slice(0, 100000)}
-  `;
-
-  try {
-    const response = await ai.models.generateContent({
-      model: modelId,
-      contents: prompt,
-    });
-    let text = response.text || "";
-    text = text.replace(/```mermaid/g, '').replace(/```/g, '').trim();
-    return text;
-  } catch (e) {
-    console.error(e);
-    return "graph TD; A[Error] --> B[Could not generate chart];";
-  }
-}
-
-/**
- * Module C: Global Gateway
- */
 export const searchGlobalOpportunities = async (query: string) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) throw new Error("API Key Missing");
+
+  const ai = new GoogleGenAI({ apiKey });
   const modelId = "gemini-3-pro-preview"; 
   
   const systemInstruction = `
-    You are the "LPU Global Gateway", a specialized counselor helping students at Lovely Professional University (LPU), India, find international academic and professional opportunities.
-    
-    Your goal is to provide up-to-date, live web information on:
-    - Master's programs and PhDs in USA, UK, Europe, Australia, and Canada.
-    - Visa processing times and requirements for Indian citizens.
-    - Scholarships specifically for Indian students (e.g., Commonwealth, Chevening, DAAD).
-    - Cost of living conversions to Indian Rupees (INR).
-    - LPU tie-ups with foreign universities if mentioned in recent web news.
-    
-    STRICT RULES:
-    1. Be concise and use Markdown tables or lists where appropriate.
-    2. Always list key deadlines.
-    3. If information is uncertain, specify that the user should verify with the official university website.
+    You are the "LPU Global Gateway" counselor.
+    Provide up-to-date information on international programs, visas, and scholarships for Indian students.
   `;
 
-  const contextualQuery = `
-    Student at LPU, India query: ${query}
-  `;
-  
   try {
     const response = await ai.models.generateContent({
       model: modelId,
-      contents: contextualQuery,
+      contents: `Student query: ${query}`,
       config: {
         systemInstruction,
         tools: [{ googleSearch: {} }],
@@ -303,25 +216,16 @@ export const searchGlobalOpportunities = async (query: string) => {
   }
 };
 
-/**
- * Module D: LPU Pulse
- */
 export const fetchCampusNews = async (query: string) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) throw new Error("API Key Missing");
+
+  const ai = new GoogleGenAI({ apiKey });
   const modelId = "gemini-3-flash-preview"; 
 
   const systemInstruction = `
-    You are the "LPU Pulse", a real-time news aggregator for Lovely Professional University (LPU), Phagwara.
-    Your goal is to provide students with the latest, verified information about:
-    - Placement drives and companies visiting the campus.
-    - Cultural fests (One India, One World, Youth Vibe) and event schedules.
-    - Official UMS (University Management System) notices and academic calendar announcements.
-    - Sports achievements, trials, and gymkhana updates.
-
-    STRICT RULES:
-    1. Be concise and use Markdown formatting for lists and emphasis.
-    2. Always include dates for events and deadlines if available in search results.
-    3. Use Google Search to find the most recent information (2025).
+    You are "LPU Pulse", a campus news scout for LPU Phagwara.
+    Use Google Search to find 2025 events, placements, and notices.
   `;
 
   try {
