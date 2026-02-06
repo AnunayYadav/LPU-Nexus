@@ -66,7 +66,6 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
 
   const modalRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll logic to center modals in viewport
   useEffect(() => {
     if (showFolderModal || showRenameModal || showDetailsModal || showEditModal || showUploadModal) {
       modalRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -104,7 +103,12 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
 
   const displayFiles = useMemo(() => {
     let data = [...allFiles];
-    if (!searchQuery && !isAdminView && viewMode === 'browse') {
+    
+    // Flattened display for specific global views
+    if (isAdminView || viewMode === 'my-uploads' || searchQuery) {
+       // Keep all fetched files for these special "global" views
+    } else if (viewMode === 'browse') {
+      // Apply strict hierarchical filtering only for Browse mode
       if (activeCategory) {
         data = data.filter(f => 
           f.semester === activeSemester?.name && 
@@ -114,18 +118,16 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
       } else if (activeSubject) {
         data = data.filter(f => 
           f.semester === activeSemester?.name && 
-          f.subject === activeSubject.name && 
-          (!f.type || f.type === '' || f.type === 'All')
+          f.subject === activeSubject.name
         );
       } else if (activeSemester) {
-        data = data.filter(f => 
-          f.semester === activeSemester.name && 
-          (!f.subject || f.subject === '' || f.subject === 'All')
-        );
+        data = data.filter(f => f.semester === activeSemester.name);
       } else {
+        // At Root of Browse, we only show folders, so hide all files
         data = []; 
       }
     }
+
     data.sort((a, b) => {
       if (sortBy === 'newest') return b.uploadDate - a.uploadDate;
       if (sortBy === 'oldest') return a.uploadDate - b.uploadDate;
@@ -136,13 +138,15 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
   }, [allFiles, searchQuery, isAdminView, viewMode, activeSemester, activeSubject, activeCategory, sortBy]);
 
   const currentFolders = useMemo(() => {
+    if (isAdminView || viewMode === 'my-uploads' || searchQuery) return [];
+    
     return folders.filter(f => {
       if (!activeSemester) return f.type === 'semester';
       if (!activeSubject) return f.type === 'subject' && f.parent_id === activeSemester.id;
       if (!activeCategory) return f.type === 'category' && f.parent_id === activeSubject.id;
       return false;
     });
-  }, [folders, activeSemester, activeSubject, activeCategory]);
+  }, [folders, activeSemester, activeSubject, activeCategory, isAdminView, viewMode, searchQuery]);
 
   const navigateTo = (sem: Folder | null, subj: Folder | null, cat: Folder | null) => {
     setActiveSemester(sem);
@@ -204,6 +208,8 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
         setIsCustomSubject(false);
         setIsCustomCategory(false);
         fetchFromSource(false); 
+        // Redirect to vault to see the upload
+        setViewMode('my-uploads');
       }, 1500);
     } catch (e: any) { alert(e.message); } finally { setIsProcessing(false); }
   };
@@ -253,7 +259,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
     const nextAdminState = !isAdminView;
     setIsAdminView(nextAdminState);
     setViewMode('browse');
-    setSearchQuery(''); // Reset search to ensure full list of pending files shows up
+    setSearchQuery(''); 
     navigateTo(null, null, null);
   };
 
@@ -270,7 +276,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
           <h2 className="text-2xl md:text-4xl font-black text-slate-800 dark:text-white tracking-tighter uppercase flex items-center gap-3">
             Library
           </h2>
-          {!isAdminView && (
+          {!isAdminView && !searchQuery && viewMode === 'browse' && (
             <nav className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
               <button onClick={() => navigateTo(null, null, null)} className="hover:text-orange-500 transition-colors">Root</button>
               {activeSemester && <><span className="opacity-30">/</span><button onClick={() => navigateTo(activeSemester, null, null)} className={!activeSubject ? 'text-orange-600' : 'hover:text-orange-500'}>{activeSemester.name}</button></>}
@@ -278,8 +284,10 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
               {activeCategory && <><span className="opacity-30">/</span><span className="text-orange-600">{activeCategory.name}</span></>}
             </nav>
           )}
-          {isAdminView && (
-             <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-orange-600">Pending Review Hub</p>
+          {(isAdminView || searchQuery || viewMode === 'my-uploads') && (
+             <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-orange-600">
+               {isAdminView ? 'Pending Review Hub' : searchQuery ? 'Search Results' : 'My Personal Vault'}
+             </p>
           )}
         </div>
         <div className="flex gap-2">
@@ -337,48 +345,46 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
-          {!searchQuery && !isAdminView && viewMode === 'browse' && (
-            currentFolders.map(folder => (
-              <div 
-                key={folder.id} 
-                onDragOver={(e) => handleDragOver(e, folder.id)}
-                onDragLeave={() => setDraggingOverId(null)}
-                onDrop={(e) => handleDrop(e, folder)}
-                onClick={() => {
-                  if (folder.type === 'semester') navigateTo(folder, null, null);
-                  else if (folder.type === 'subject') navigateTo(activeSemester, folder, null);
-                  else if (folder.type === 'category') navigateTo(activeSemester, activeSubject, folder);
-                }} 
-                className={`
-                  group p-5 rounded-[30px] border transition-all cursor-pointer relative overflow-hidden flex flex-col justify-center min-h-[140px]
-                  ${draggingOverId === folder.id 
-                    ? 'border-orange-500 bg-orange-500/10 scale-105 shadow-xl z-10' 
-                    : 'border-slate-100 dark:border-white/5 bg-white dark:bg-slate-950/40 hover:border-orange-500/50 hover:shadow-lg'
-                  }
-                `}
-              >
-                {userProfile?.is_admin && (
-                  <div className="absolute top-3 right-3 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); setFolderToManage(folder); setNewFolderName(folder.name); setShowRenameModal(true); }} 
-                      className="p-1.5 bg-black rounded-lg text-orange-600 hover:bg-orange-50 dark:hover:bg-slate-900 transition-colors shadow-sm border-none"
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    </button>
-                    <button 
-                      onClick={(e) => handleDeleteFolder(folder, e)} 
-                      className="p-1.5 bg-black rounded-lg text-red-500 hover:bg-red dark:hover:bg-slate-900 transition-colors shadow-sm border-none"
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
-                    </button>
-                  </div>
-                )}
-                <FolderIcon type={folder.type} size="w-10 h-10" />
-                <h3 className="text-sm md:text-base font-black text-slate-800 dark:text-white tracking-tight uppercase leading-tight mt-1">{folder.name}</h3>
-                <div className="absolute -right-2 -bottom-2 opacity-5 group-hover:scale-110 transition-transform"><FolderIcon type={folder.type} size="w-24 h-24" /></div>
-              </div>
-            ))
-          )}
+          {currentFolders.map(folder => (
+            <div 
+              key={folder.id} 
+              onDragOver={(e) => handleDragOver(e, folder.id)}
+              onDragLeave={() => setDraggingOverId(null)}
+              onDrop={(e) => handleDrop(e, folder)}
+              onClick={() => {
+                if (folder.type === 'semester') navigateTo(folder, null, null);
+                else if (folder.type === 'subject') navigateTo(activeSemester, folder, null);
+                else if (folder.type === 'category') navigateTo(activeSemester, activeSubject, folder);
+              }} 
+              className={`
+                group p-5 rounded-[30px] border transition-all cursor-pointer relative overflow-hidden flex flex-col justify-center min-h-[140px]
+                ${draggingOverId === folder.id 
+                  ? 'border-orange-500 bg-orange-500/10 scale-105 shadow-xl z-10' 
+                  : 'border-slate-100 dark:border-white/5 bg-white dark:bg-slate-950/40 hover:border-orange-500/50 hover:shadow-lg'
+                }
+              `}
+            >
+              {userProfile?.is_admin && (
+                <div className="absolute top-3 right-3 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); setFolderToManage(folder); setNewFolderName(folder.name); setShowRenameModal(true); }} 
+                    className="p-1.5 bg-black rounded-lg text-orange-600 hover:bg-orange-50 dark:hover:bg-slate-900 transition-colors shadow-sm border-none"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                  <button 
+                    onClick={(e) => handleDeleteFolder(folder, e)} 
+                    className="p-1.5 bg-black rounded-lg text-red-500 hover:bg-red dark:hover:bg-slate-900 transition-colors shadow-sm border-none"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+                  </button>
+                </div>
+              )}
+              <FolderIcon type={folder.type} size="w-10 h-10" />
+              <h3 className="text-sm md:text-base font-black text-slate-800 dark:text-white tracking-tight uppercase leading-tight mt-1">{folder.name}</h3>
+              <div className="absolute -right-2 -bottom-2 opacity-5 group-hover:scale-110 transition-transform"><FolderIcon type={folder.type} size="w-24 h-24" /></div>
+            </div>
+          ))}
 
           {displayFiles.map(file => (
             <FileCard 
@@ -433,12 +439,13 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
             />
           ))}
 
-          {displayFiles.length === 0 && (currentFolders.length === 0 || isAdminView) && !isLoading && (
+          {displayFiles.length === 0 && currentFolders.length === 0 && !isLoading && (
             <div className="col-span-full py-20 text-center text-slate-400 font-black uppercase text-[10px] tracking-[0.2em] opacity-40">Empty Protocol.</div>
           )}
         </div>
       )}
 
+      {/* Modals remain same as previous state for Folder/Rename/Edit/Details/Upload */}
       {showFolderModal && userProfile?.is_admin && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
           <div ref={modalRef} className="bg-white dark:bg-slate-950 rounded-[30px] w-full max-w-sm shadow-2xl border border-white/10 overflow-hidden flex flex-col">
@@ -720,7 +727,7 @@ const FileCard: React.FC<{
                     className="w-8 h-8 bg-black text-red-500 rounded-lg flex items-center justify-center shadow-lg hover:bg-red-500 hover:text-white transition-all border-none"
                     title="Delete"
                   >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
                   </button>
                   <button 
                     onClick={(e) => { e.stopPropagation(); onEdit?.(); }} 

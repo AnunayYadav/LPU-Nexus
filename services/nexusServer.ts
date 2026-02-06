@@ -142,14 +142,16 @@ class NexusServer {
   static async fetchFiles(q?: string, sub?: string): Promise<LibraryFile[]> {
     const client = getSupabase();
     if (!client) return [];
-    let query = client.from('documents').select('*, profiles(username)').eq('status', 'approved');
+    let query = client.from('documents').select('*, profiles!uploader_id(username)').eq('status', 'approved');
     if (q) query = query.ilike('name', `%${q}%`);
     const { data, error } = await query.order('created_at', { ascending: false });
-    if (error) return [];
+    if (error) { console.error("Database Select Error:", error); return []; }
     return (data || []).map(item => ({
       id: item.id, name: item.name, subject: item.subject, semester: item.semester, type: item.type,
       uploadDate: new Date(item.created_at).getTime(), size: item.size, status: item.status, storage_path: item.storage_path,
-      uploader_username: item.profiles?.username
+      uploader_username: item.profiles?.username,
+      description: item.description,
+      admin_notes: item.admin_notes
     }));
   }
 
@@ -157,8 +159,14 @@ class NexusServer {
     const client = getSupabase();
     if (!client) return;
     const path = `community/${Math.random().toString(36).substring(7)}_${file.name}`;
-    await client.storage.from('nexus-documents').upload(path, file);
-    await client.from('documents').insert([{ name, description: desc, subject: sub, semester: sem, type, size: `${(file.size/1024/1024).toFixed(2)} MB`, storage_path: path, uploader_id: uid, status: admin ? 'approved' : 'pending' }]);
+    const { error: storageErr } = await client.storage.from('nexus-documents').upload(path, file);
+    if (storageErr) throw storageErr;
+    const { error: dbErr } = await client.from('documents').insert([{ 
+      name, description: desc, subject: sub, semester: sem, type, 
+      size: `${(file.size/1024/1024).toFixed(2)} MB`, storage_path: path, 
+      uploader_id: uid, status: admin ? 'approved' : 'pending' 
+    }]);
+    if (dbErr) throw dbErr;
   }
 
   static async fetchRecords(uid: string | null, type: string) {
@@ -229,26 +237,30 @@ class NexusServer {
   static async fetchPendingFiles(q?: string): Promise<LibraryFile[]> {
     const client = getSupabase();
     if (!client) return [];
-    let query = client.from('documents').select('*, profiles(username)').eq('status', 'pending');
+    let query = client.from('documents').select('*, profiles!uploader_id(username)').eq('status', 'pending');
     if (q) query = query.ilike('name', `%${q}%`);
     const { data, error } = await query.order('created_at', { ascending: false });
-    if (error) return [];
+    if (error) { console.error("Database Select Error:", error); return []; }
     return (data || []).map(item => ({
       id: item.id, name: item.name, subject: item.subject, semester: item.semester, type: item.type,
       uploadDate: new Date(item.created_at).getTime(), size: item.size, status: item.status, storage_path: item.storage_path,
-      uploader_username: item.profiles?.username
+      uploader_username: item.profiles?.username,
+      description: item.description,
+      admin_notes: item.admin_notes
     }));
   }
 
   static async fetchUserFiles(uid: string): Promise<LibraryFile[]> {
     const client = getSupabase();
     if (!client) return [];
-    const { data, error } = await client.from('documents').select('*, profiles(username)').eq('uploader_id', uid).order('created_at', { ascending: false });
-    if (error) return [];
+    const { data, error } = await client.from('documents').select('*, profiles!uploader_id(username)').eq('uploader_id', uid).order('created_at', { ascending: false });
+    if (error) { console.error("Database Select Error:", error); return []; }
     return (data || []).map(item => ({
       id: item.id, name: item.name, subject: item.subject, semester: item.semester, type: item.type,
       uploadDate: new Date(item.created_at).getTime(), size: item.size, status: item.status, storage_path: item.storage_path,
-      uploader_username: item.profiles?.username
+      uploader_username: item.profiles?.username,
+      description: item.description,
+      admin_notes: item.admin_notes
     }));
   }
 
