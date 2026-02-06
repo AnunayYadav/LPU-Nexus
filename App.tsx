@@ -104,7 +104,7 @@ const Dashboard: React.FC<{ setModule: (m: ModuleType) => void }> = ({ setModule
   return (
     <div className="max-w-6xl mx-auto animate-fade-in pb-20 px-4">
       <div className="mb-10 text-center py-10">
-        <h2 className="text-4xl md:text-5xl font-extrabold text-slate-900 dark:text-white mb-4 tracking-tighter">
+        <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-4 tracking-tighter">
           Welcome to <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600">LPU-Nexus</span>
         </h2>
         <p className="text-slate-600 dark:text-slate-400 text-lg md:text-xl font-medium">Your AI-Powered Campus Assistant</p>
@@ -117,20 +117,16 @@ const Dashboard: React.FC<{ setModule: (m: ModuleType) => void }> = ({ setModule
             onClick={() => setModule(card.id)} 
             className="group relative p-8 rounded-[40px] bg-white dark:bg-black border border-slate-100 dark:border-white/5 transition-all cursor-pointer hover:shadow-[0_20px_50px_rgba(0,0,0,0.2)] dark:hover:shadow-[0_20px_50px_rgba(234,88,12,0.1)] hover:border-orange-500/30 overflow-hidden flex flex-col"
           >
-            {/* Background Glow */}
             <div className={`absolute -right-10 -bottom-10 w-40 h-40 bg-gradient-to-br ${card.color} blur-[60px] opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-            
-            {/* Background Icon */}
             <div className="absolute -right-4 -bottom-4 w-32 h-32 text-slate-100 dark:text-white/[0.03] transform rotate-12 group-hover:rotate-6 group-hover:scale-110 transition-all duration-700 pointer-events-none">
               {card.icon}
             </div>
-
             <div className="relative z-10">
               <div className="flex items-center gap-4 mb-4">
                 <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-950 flex items-center justify-center text-slate-400 dark:text-slate-500 group-hover:text-orange-500 group-hover:bg-orange-500/10 transition-all duration-300">
                   <div className="w-5 h-5">{card.icon}</div>
                 </div>
-                <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tighter leading-none group-hover:text-orange-600 transition-colors">
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white tracking-tighter leading-none group-hover:text-orange-600 transition-colors">
                   {card.title}
                 </h3>
               </div>
@@ -158,7 +154,6 @@ const App: React.FC = () => {
       setTheme(savedTheme);
       document.documentElement.classList.toggle('dark', savedTheme === 'dark');
     }
-    
     const unsubscribeAuth = NexusServer.onAuthStateChange(async (user) => {
       if (user) {
         const profile = await NexusServer.getProfile(user.id);
@@ -167,7 +162,6 @@ const App: React.FC = () => {
         setUserProfile(null); 
       }
     });
-
     return () => unsubscribeAuth();
   }, []);
 
@@ -210,13 +204,7 @@ const App: React.FC = () => {
 
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-black text-slate-900 dark:text-slate-200 transition-colors duration-300">
-      <Sidebar 
-        currentModule={currentModule} 
-        setModule={navigateToModule} 
-        isMobileMenuOpen={isMobileMenuOpen} 
-        toggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
-        userProfile={userProfile}
-      />
+      <Sidebar currentModule={currentModule} setModule={navigateToModule} isMobileMenuOpen={isMobileMenuOpen} toggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)} userProfile={userProfile} />
       <main className="flex-1 flex flex-col h-screen overflow-hidden relative bg-white dark:bg-black">
         <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-white/5 bg-white dark:bg-black z-10">
           <div className="flex items-center">
@@ -248,37 +236,6 @@ const App: React.FC = () => {
                  <button onClick={() => setShowAuthModal(true)} className="w-10 h-10 rounded-full border-none bg-slate-100 dark:bg-slate-950 flex items-center justify-center text-slate-400 hover:text-orange-500 transition-all shadow-sm active:scale-95">
                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                  </button>
-               )}
-               {isProfileMenuOpen && userProfile && (
-                 <>
-                   <div className="fixed inset-0 z-40" onClick={() => setIsProfileMenuOpen(false)} />
-                   <div className="absolute top-full right-0 mt-3 w-64 glass-panel rounded-3xl border border-slate-200 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden animate-fade-in z-50 bg-white dark:bg-black">
-                     <div className="p-5 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950 flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full overflow-hidden bg-black flex items-center justify-center font-black text-lg border border-white/10">
-                          {userProfile.avatar_url ? (
-                            <img src={userProfile.avatar_url} className="w-full h-full object-cover" alt="" />
-                          ) : (
-                            <span className="text-orange-600">{userProfile.username?.[0]?.toUpperCase()}</span>
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-[10px] font-black uppercase text-orange-600 tracking-[0.2em]">Verified Identity</p>
-                          <p className="text-sm font-black truncate dark:text-white uppercase tracking-tight">{userProfile.username || 'Citizen Verto'}</p>
-                          <p className="text-[9px] font-bold text-slate-400 truncate">{userProfile.email}</p>
-                        </div>
-                     </div>
-                     <div className="py-2">
-                       <button onClick={() => { navigateToModule(ModuleType.PROFILE); setIsProfileMenuOpen(false); }} className="w-full text-left px-5 py-3.5 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-orange-600/10 hover:text-orange-600 flex items-center space-x-3 transition-all border-none bg-transparent">
-                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                         <span>Profile Terminal</span>
-                       </button>
-                       <div className="mx-4 my-2 h-px bg-slate-100 dark:bg-white/5" />
-                       <button onClick={async () => { await NexusServer.signOut(); setIsProfileMenuOpen(false); }} className="w-full text-left px-5 py-3.5 text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-900/10 flex items-center space-x-3 transition-all border-none bg-transparent">
-                         De-authenticate
-                       </button>
-                     </div>
-                   </div>
-                 </>
                )}
              </div>
           </div>

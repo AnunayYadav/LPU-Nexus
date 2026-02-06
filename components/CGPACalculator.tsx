@@ -151,60 +151,52 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
     
     const CREDITS_PER_SEM = 20; 
     const totalSems = 8;
-    
-    // Total credits already earned (before the current semester range we are planning)
     const archivedCredits = Number(prevTotalCredits);
     const archivedPoints = Number(prevCGPA) * archivedCredits;
     
-    // Semesters to be planned (from current up to 8)
     const planSemIndices = [];
     for (let i = currentSemester; i <= totalSems; i++) planSemIndices.push(i);
     
     if (planSemIndices.length === 0) return { roadmap: [], summary: null };
 
-    // Total credits the student will have at graduation
-    const finalTotalCredits = archivedCredits + (planSemIndices.length * CREDITS_PER_SEM);
-    const totalPointsRequiredForTarget = targetCGPA * finalTotalCredits;
-    
-    let pointsStillNeeded = totalPointsRequiredForTarget - archivedPoints;
+    const totalCreditsForDegree = archivedCredits + (planSemIndices.length * CREDITS_PER_SEM);
+    const totalPointsNeeded = targetCGPA * totalCreditsForDegree;
+    let pointsNeededFromFuture = totalPointsNeeded - archivedPoints;
 
-    // First pass: remove points from manually locked semesters
     let manualCount = 0;
     Object.entries(manualAdjustments).forEach(([sem, val]) => {
       const sNum = parseInt(sem);
       if (planSemIndices.includes(sNum)) {
-        pointsStillNeeded -= (Number(val) * CREDITS_PER_SEM);
+        pointsNeededFromFuture -= (Number(val) * CREDITS_PER_SEM);
         manualCount++;
       }
     });
 
     const unpinnedCount = planSemIndices.length - manualCount;
-    // Calculate required average for unpinned (auto) semesters
-    const autoRequiredSGPA = unpinnedCount > 0 
-      ? Math.max(0, Math.min(10, pointsStillNeeded / (unpinnedCount * CREDITS_PER_SEM))) 
-      : 0;
+    const autoSGPA = unpinnedCount > 0 ? Math.max(0, Math.min(10, pointsNeededFromFuture / (unpinnedCount * CREDITS_PER_SEM))) : 0;
 
     const roadmap = planSemIndices.map(semNum => {
       const isManual = manualAdjustments[semNum] !== undefined;
       return {
         sem: semNum,
         isManual,
-        sgpa: isManual ? manualAdjustments[semNum] : autoRequiredSGPA
+        sgpa: isManual ? manualAdjustments[semNum] : autoSGPA
       };
     });
 
     return { 
       roadmap, 
       summary: {
-        avgNeeded: autoRequiredSGPA,
-        isImpossible: autoRequiredSGPA > 10 || autoRequiredSGPA < 0
+        totalPointsNeeded,
+        remainingPoints: pointsNeededFromFuture,
+        avgNeeded: autoSGPA,
+        isImpossible: autoSGPA > 10 || autoSGPA < 0
       }
     };
   }, [targetCGPA, prevCGPA, prevTotalCredits, currentSemester, manualAdjustments]);
 
   const adjustSemTarget = (sem: number, delta: number) => {
     setManualAdjustments(prev => {
-      // If semester is not manual yet, use the current auto value as base
       const currentVal = prev[sem] !== undefined ? prev[sem] : (roadmapData.summary?.avgNeeded || 0);
       const nextVal = Math.max(0, Math.min(10, currentVal + delta));
       return { ...prev, [sem]: Number(nextVal.toFixed(1)) };
@@ -223,8 +215,10 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
     <div className="max-w-4xl mx-auto space-y-8 animate-fade-in pb-20 px-4 md:px-0">
       <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h2 className="text-3xl md:text-4xl font-black text-slate-800 dark:text-white mb-2 tracking-tighter uppercase leading-none">SGPA & CGPA Hub</h2>
-          <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">LPU Precision Grade Protocol</p>
+          <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2 tracking-tighter">
+            SGPA & CGPA Hub
+          </h2>
+          <p className="text-slate-600 dark:text-slate-400 font-medium text-sm">Precision SGPA & CGPA forecasting based on LPU standards.</p>
         </div>
         
         <div className="flex items-center gap-1">
@@ -332,7 +326,6 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
             )}
           </div>
 
-          {/* DEGREE TARGET SECTION - AUTO BALANCING Roadmap */}
           <div className="glass-panel p-10 rounded-[56px] space-y-10 shadow-2xl border border-blue-500/20 bg-blue-500/[0.03]">
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div>
@@ -353,28 +346,17 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
                       <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-3">Sem {item.sem}</p>
                       
                       <div className="flex items-center gap-3 relative z-10">
-                        <button 
-                          onClick={() => adjustSemTarget(item.sem, -0.1)} 
-                          className="w-7 h-7 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-600 dark:text-white hover:bg-orange-600 hover:text-white transition-all border-none"
-                        >
+                        <button onClick={() => adjustSemTarget(item.sem, -0.1)} className="w-7 h-7 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-600 dark:text-white hover:bg-orange-600 hover:text-white transition-all border-none">
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><path d="M5 12h14"/></svg>
                         </button>
-                        <span className={`text-2xl font-black tracking-tighter ${item.isManual ? 'text-orange-600' : 'text-blue-600'}`}>
-                          {item.sgpa.toFixed(1)}
-                        </span>
-                        <button 
-                          onClick={() => adjustSemTarget(item.sem, 0.1)} 
-                          className="w-7 h-7 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-600 dark:text-white hover:bg-orange-600 hover:text-white transition-all border-none"
-                        >
+                        <span className={`text-2xl font-black tracking-tighter ${item.isManual ? 'text-orange-600' : 'text-blue-600'}`}>{item.sgpa.toFixed(1)}</span>
+                        <button onClick={() => adjustSemTarget(item.sem, 0.1)} className="w-7 h-7 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-600 dark:text-white hover:bg-orange-600 hover:text-white transition-all border-none">
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><path d="M12 5v14M5 12h14"/></svg>
                         </button>
                       </div>
 
                       {item.isManual ? (
-                        <button 
-                          onClick={() => resetManual(item.sem)} 
-                          className="mt-3 text-[7px] font-black uppercase text-orange-600 tracking-widest hover:underline border-none bg-transparent flex items-center gap-1"
-                        >
+                        <button onClick={() => resetManual(item.sem)} className="mt-3 text-[7px] font-black uppercase text-orange-600 tracking-widest hover:underline border-none bg-transparent flex items-center gap-1">
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-2 h-2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                           Locked • Reset
                         </button>
@@ -393,8 +375,8 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
                   </div>
                   <p className="text-[10px] font-bold text-slate-600 dark:text-slate-300 leading-relaxed">
                     {roadmapData.summary.isImpossible 
-                      ? "Target mathematically unreachable with current constraints. Reduce manual locks or lower target CGPA."
-                      : <>Auto-balancing: Unlocked semesters now updated to require an average of <strong className="text-blue-600">{roadmapData.summary.avgNeeded.toFixed(2)} SGPA</strong> to maintain your <strong className="text-blue-600">{targetCGPA}</strong> goal.</>
+                      ? "Target mathematically unreachable. Reduce manual locks or lower target CGPA."
+                      : <>Auto-balancing: Remaining unlocked semesters now require an average of <strong className="text-blue-600">{roadmapData.summary.avgNeeded.toFixed(2)} SGPA</strong> to maintain your <strong className="text-blue-600">{targetCGPA}</strong> goal.</>
                     }
                   </p>
                 </div>
@@ -446,7 +428,6 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
         </div>
       </div>
 
-      {/* LPU GRADING PROTOCOL */}
       <div className="glass-panel p-8 rounded-[40px] border border-slate-200 dark:border-white/5 bg-white dark:bg-black/60 shadow-sm overflow-hidden">
         <header className="flex items-center justify-between mb-8">
            <h3 className="text-[10px] font-black text-orange-600 uppercase tracking-[0.2em]">LPU Grading Standards</h3>

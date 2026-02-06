@@ -206,10 +206,10 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
     <div className="max-w-6xl mx-auto space-y-8 animate-fade-in pb-20 px-4 md:px-0">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none">
-            Timetable <span className="text-orange-600">Hub</span>
+          <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2 tracking-tighter">
+            Timetable Hub
           </h2>
-          <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.4em] mt-3">Daily schedule & free gaps</p>
+          <p className="text-slate-600 dark:text-slate-400 font-medium text-sm">Daily schedule & synchronized break windows.</p>
         </div>
         <div className="flex gap-3">
           <button onClick={() => setShowPresetsModal(true)} className="px-6 py-3 bg-black border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all shadow-xl">Presets</button>
@@ -229,7 +229,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         <div className="lg:col-span-8 space-y-6">
           {!myTimetable ? (
-            <div className="glass-panel p-16 rounded-[48px] border-4 border-dashed border-white/5 flex flex-col items-center justify-center text-center opacity-40">
+            <div className="glass-panel p-16 rounded-[48px] border-4 border-dashed border-white/5 flex flex-col items-center justify-center text-center opacity-40 bg-black">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="w-20 h-20 mb-6"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
               <h3 className="text-xl font-black uppercase tracking-tighter">Empty Schedule</h3>
               <p className="text-xs font-bold mt-2">Pick a Preset or Upload from LPU Touch.</p>
@@ -242,7 +242,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
               </div>
               <div className="space-y-3">
                 {daySlotsWithBreaks.length === 0 ? (
-                  <div className="p-10 bg-white/5 rounded-[32px] text-center"><p className="text-[10px] font-black uppercase tracking-widest text-slate-500">No events found for {activeDay}.</p></div>
+                  <div className="p-10 bg-black border border-white/5 rounded-[32px] text-center"><p className="text-[10px] font-black uppercase tracking-widest text-slate-500">No events found for {activeDay}.</p></div>
                 ) : (
                   daySlotsWithBreaks.map(slot => {
                     const startMin = timeToMinutes(slot.startTime);
@@ -261,7 +261,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
                     }
 
                     return (
-                      <div key={slot.id} className={`group p-6 rounded-[32px] transition-all flex items-center justify-between border ${isActive ? 'bg-orange-600/10 border-orange-500/50 shadow-[0_0_30px_rgba(234,88,12,0.1)] scale-[1.01]' : isFinished ? 'bg-white/[0.01] border-white/5 opacity-40 grayscale' : isBreak ? 'bg-white/[0.02] border-white/5 opacity-70' : 'bg-white/[0.03] border-white/5 hover:border-orange-500/30'}`}>
+                      <div key={slot.id} className={`group p-6 rounded-[32px] transition-all flex items-center justify-between border ${isActive ? 'bg-orange-600/10 border-orange-500/50 shadow-[0_0_30px_rgba(234,88,12,0.1)] scale-[1.01]' : isFinished ? 'bg-black border-white/5 opacity-40 grayscale' : isBreak ? 'bg-black border-white/5 opacity-70' : 'bg-black border-white/5 hover:border-orange-500/30'}`}>
                         <div className="flex items-center gap-6">
                           <div className={`w-16 h-16 rounded-2xl flex flex-col items-center justify-center border shadow-inner ${isActive ? 'bg-orange-600 border-orange-400' : isFinished ? 'bg-slate-900 border-white/5' : 'bg-black border-white/5'}`}>
                             <span className={`text-[10px] font-black ${isActive ? 'text-white' : isFinished ? 'text-slate-600' : 'text-orange-600'}`}>{slot.startTime}</span>
@@ -299,7 +299,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
               <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/10 blur-[60px] rounded-full pointer-events-none" />
            </div>
 
-           <div className="glass-panel p-8 rounded-[48px] border border-white/5 bg-white/[0.02]">
+           <div className="glass-panel p-8 rounded-[48px] border border-white/5 bg-black">
               <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-6">Connections</h3>
               <div className="space-y-4">
                  <div className="flex items-center justify-between p-4 bg-black rounded-2xl border border-white/5">
@@ -358,11 +358,11 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
       {showPresetsModal && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-fade-in">
           <div className="bg-[#0a0a0a] rounded-[56px] w-full max-w-lg border border-white/10 shadow-[0_32px_128px_rgba(0,0,0,0.8)] overflow-hidden">
-            <div className="p-10 border-b border-white/5 flex items-center justify-between">
+            <div className="p-10 border-b border-white/5 flex items-center justify-between bg-black">
                <h3 className="text-2xl font-black uppercase tracking-tighter">Course Presets</h3>
                <button onClick={() => setShowPresetsModal(false)} className="text-white/30 hover:text-white transition-colors border-none bg-transparent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             </div>
-            <div className="p-10 grid grid-cols-1 gap-4 max-h-[400px] overflow-y-auto no-scrollbar">
+            <div className="p-10 grid grid-cols-1 gap-4 max-h-[400px] overflow-y-auto no-scrollbar bg-black">
                {PRESET_BATCHES.map(batch => (
                  <button key={batch.id} onClick={() => applyPreset(batch)} className="p-6 bg-white/[0.02] border border-white/5 rounded-3xl text-left hover:border-orange-500/50 hover:bg-white/[0.05] transition-all flex items-center justify-between group">
                    <div>

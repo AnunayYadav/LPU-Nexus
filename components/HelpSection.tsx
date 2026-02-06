@@ -43,8 +43,10 @@ const HelpSection: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-fade-in pb-20">
        <header className="mb-10">
-        <h2 className="text-3xl md:text-5xl font-black text-slate-800 dark:text-white mb-3 tracking-tighter uppercase">Knowledge Base</h2>
-        <p className="text-slate-600 dark:text-slate-400 text-lg font-medium leading-relaxed">Everything you need to master LPU-Nexus and your campus life.</p>
+        <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2 tracking-tighter uppercase">
+          Knowledge Base
+        </h2>
+        <p className="text-slate-600 dark:text-slate-400 text-lg font-medium leading-relaxed">Master the LPU-Nexus ecosystem with verified intel.</p>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -68,14 +70,14 @@ const HelpSection: React.FC = () => {
         ))}
       </div>
       
-      <div className="mt-12 p-10 bg-gradient-to-br from-slate-900 to-black rounded-[40px] text-center shadow-2xl relative overflow-hidden group">
+      <div className="mt-12 p-10 bg-black border border-white/5 rounded-[40px] text-center shadow-2xl relative overflow-hidden group">
         <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none transition-transform duration-1000 group-hover:scale-110">
             <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
                 <path d="M0 100 C 20 0 50 0 100 100 Z" fill="white" />
             </svg>
         </div>
         <h3 className="text-white text-2xl font-black mb-4 relative z-10 uppercase tracking-tight">Still have questions?</h3>
-        <p className="text-slate-400 mb-8 max-w-md mx-auto relative z-10 text-sm font-medium">Our student support team is ready to help you navigate through your campus journey. Direct response from the architect.</p>
+        <p className="text-slate-400 mb-8 max-w-md mx-auto relative z-10 text-sm font-medium">Our student support team is ready to help you navigate through your campus journey.</p>
         <a 
           href="https://mail.google.com/mail/?view=cm&fs=1&to=anunayarvind@gmail.com&su=LPU-Nexus%20Support%20Request" 
           target="_blank"

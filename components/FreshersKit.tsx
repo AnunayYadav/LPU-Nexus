@@ -3,22 +3,15 @@ import React, { useState } from 'react';
 
 const FreshersKit: React.FC = () => {
   const [checklist, setChecklist] = useState([
-    // Documents
     { id: 1, item: "Original Marksheets (10th & 12th)", category: "Documents", checked: false },
     { id: 2, item: "Migration Certificate", category: "Documents", checked: false },
     { id: 3, item: "Passport Size Photos", category: "Documents", checked: false },
     { id: 4, item: "Aadhaar Card", category: "Documents", checked: false },
-    
-    // Hostel
     { id: 5, item: "Bed Sheets & Pillow Covers", category: "Hostel", checked: false },
     { id: 6, item: "Padlock & Keys for Cupboard", category: "Hostel", checked: false },
-    
-    // Electronics
     { id: 7, item: "Extension Cord (Surge Protector)", category: "Electronics", checked: false, link: "https://www.amazon.in/s?k=extension+cord" },
     { id: 8, item: "Electric Kettle", category: "Electronics", checked: false, link: "https://www.amazon.in/s?k=electric+kettle" },
     { id: 9, item: "Electric Iron", category: "Electronics", checked: false, link: "https://www.amazon.in/s?k=electric+iron" },
-    
-    // Essentials
     { id: 10, item: "Basic Medicine Kit", category: "Essentials", checked: false },
   ]);
 
@@ -31,13 +24,15 @@ const FreshersKit: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in pb-20">
       <header className="mb-8">
-        <h2 className="text-3xl font-black text-slate-800 dark:text-white mb-2 tracking-tighter uppercase">Freshers' Survival Kit</h2>
+        <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2 tracking-tighter uppercase">
+          Freshmen Kit
+        </h2>
         <p className="text-slate-600 dark:text-slate-400 font-medium">The essential checklist for a seamless start at LPU.</p>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {categories.map(cat => (
-          <div key={cat} className="glass-panel p-6 rounded-[32px] border dark:border-white/5 bg-white dark:bg-slate-950/50 shadow-sm">
+          <div key={cat} className="glass-panel p-6 rounded-[32px] border dark:border-white/5 bg-white dark:bg-black shadow-sm">
             <h3 className="text-xs font-black text-orange-600 dark:text-orange-500 uppercase tracking-[0.2em] mb-6 border-b border-slate-100 dark:border-white/5 pb-4">
               {cat}
             </h3>
@@ -47,10 +42,10 @@ const FreshersKit: React.FC = () => {
                   <div className="flex items-center space-x-4">
                     <button 
                       onClick={() => toggleItem(item.id)}
-                      className={`w-6 h-6 rounded-xl border-2 flex items-center justify-center transition-all duration-300
+                      className={`w-6 h-6 rounded-xl border-2 flex items-center justify-center transition-all duration-300 border-none
                         ${item.checked 
-                          ? 'bg-green-500 border-green-500 text-white shadow-lg shadow-green-500/20' 
-                          : 'border-slate-300 dark:border-white/10 hover:border-orange-500 bg-white dark:bg-black'
+                          ? 'bg-green-500 text-white shadow-lg shadow-green-500/20' 
+                          : 'bg-slate-100 dark:bg-white/5 text-transparent hover:bg-orange-500/20'
                         }`}
                     >
                       {item.checked && (
@@ -62,14 +57,7 @@ const FreshersKit: React.FC = () => {
                     </span>
                   </div>
                   {item.link && (
-                    <a 
-                      href={item.link} 
-                      target="_blank" 
-                      rel="noreferrer" 
-                      className="text-[10px] font-black uppercase tracking-widest text-orange-500 hover:text-orange-600 opacity-0 group-hover:opacity-100 transition-opacity bg-orange-500/10 px-3 py-1.5 rounded-lg"
-                    >
-                      Get ↗
-                    </a>
+                    <a href={item.link} target="_blank" rel="noreferrer" className="text-[10px] font-black uppercase tracking-widest text-orange-500 hover:text-orange-600 opacity-0 group-hover:opacity-100 transition-opacity bg-orange-500/10 px-3 py-1.5 rounded-lg">Get ↗</a>
                   )}
                 </li>
               ))}
@@ -86,7 +74,7 @@ const FreshersKit: React.FC = () => {
           <div>
             <h3 className="font-black text-xs uppercase tracking-[0.2em] mb-2 opacity-80">Pro Student Tip</h3>
             <p className="text-sm font-medium leading-relaxed">
-              Before buying heavy textbooks or high-end gadgets, use the <strong>Academic Oracle</strong> and <strong>Content Library</strong> to see what's actually required by your specific teachers. You might find digital versions for free!
+              Don't buy heavy textbooks yet. Use the <strong>Registry Vault</strong> to find verified digital notes first. Save that money for fests!
             </p>
           </div>
         </div>

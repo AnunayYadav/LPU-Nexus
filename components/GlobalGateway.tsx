@@ -65,9 +65,8 @@ const GlobalGateway: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-fade-in pb-20">
       <header className="text-center mb-10">
-        <h2 className="text-3xl md:text-5xl font-black bg-gradient-to-r from-emerald-500 to-teal-600 bg-clip-text text-transparent mb-4 tracking-tighter flex items-center justify-center gap-3">
+        <h2 className="text-3xl md:text-5xl font-bold text-slate-800 dark:text-white mb-2 tracking-tighter">
           Global Gateway
-          <span className="text-[10px] font-black bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 px-3 py-1 rounded-full uppercase tracking-widest border border-emerald-200 dark:border-emerald-800/50 shadow-sm">Live Web</span>
         </h2>
         <p className="text-slate-600 dark:text-slate-400 max-w-xl mx-auto text-base md:text-lg font-medium leading-relaxed">
           The ultimate student scout. Bridging LPU to the world with real-time university data and visa updates.
@@ -76,7 +75,7 @@ const GlobalGateway: React.FC = () => {
 
       {/* Search Bar */}
       <div className="space-y-4">
-        <div className="glass-panel p-2 rounded-3xl flex flex-col md:flex-row shadow-2xl shadow-emerald-500/10 dark:shadow-emerald-900/40 bg-white dark:bg-slate-900/50 border dark:border-white/5 overflow-hidden">
+        <div className="glass-panel p-2 rounded-3xl flex flex-col md:flex-row shadow-2xl shadow-emerald-500/10 dark:shadow-emerald-900/40 bg-white dark:bg-black border dark:border-white/5 overflow-hidden">
           <div className="flex-1 flex items-center px-4">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5 text-emerald-500 mr-3 opacity-50"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
             <input 

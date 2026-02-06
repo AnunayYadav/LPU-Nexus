@@ -136,11 +136,10 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in pb-20 px-4 md:px-0">
       <header className="mb-8">
-        <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2 tracking-tighter flex items-center gap-2">
+        <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2 tracking-tighter">
           Placement Prefect
-          <span className="text-xs font-black bg-orange-100 dark:bg-orange-950 text-orange-600 dark:text-orange-400 px-3 py-1 rounded-full uppercase tracking-widest border border-orange-200 dark:border-orange-800/50 shadow-sm">FLASH v3.0</span>
         </h2>
-        <p className="text-slate-600 dark:text-slate-400">Beat the ATS. Get brutal, actionable feedback on your resume.</p>
+        <p className="text-slate-600 dark:text-slate-400 font-medium">Beat the ATS. Get brutal, actionable feedback on your resume.</p>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
