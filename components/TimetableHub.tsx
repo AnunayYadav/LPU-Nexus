@@ -6,10 +6,11 @@ import { extractTimetableFromImage } from '../services/geminiService.ts';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-// Helper to convert HH:mm to minutes for comparison
+// Helper to convert HH:mm (24h or 12h) to minutes for comparison
 const timeToMinutes = (time: string) => {
-  const [hh, mm] = time.split(':').map(Number);
-  return hh * 60 + mm;
+  if (!time) return 0;
+  let [hours, minutes] = time.split(':').map(Number);
+  return hours * 60 + minutes;
 };
 
 const K25MX_SCHEDULE: DaySchedule[] = [
@@ -80,12 +81,13 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showPresetsModal, setShowPresetsModal] = useState(false);
   const [isProcessingAI, setIsProcessingAI] = useState(false);
+  const [processingStatus, setProcessingStatus] = useState('');
   const [currentTime, setCurrentTime] = useState(new Date());
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 60000);
+    const timer = setInterval(() => setCurrentTime(new Date()), 30000);
     return () => clearInterval(timer);
   }, []);
 
@@ -101,25 +103,58 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setIsProcessingAI(true);
-    try {
+  const readFileAsDataURL = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64 = reader.result as string;
-        const schedule = await extractTimetableFromImage(base64);
-        const data: TimetableData = { ownerId: userProfile?.id || 'anon', ownerName: userProfile?.username || 'Me', schedule };
-        if (userProfile) await NexusServer.saveRecord(userProfile.id, 'timetable_main', 'My Timetable', data);
-        setMyTimetable(data);
-        setShowUploadModal(false);
-      };
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
       reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsProcessingAI(true);
+    const combinedSchedules: DaySchedule[] = [];
+    
+    try {
+      for (let i = 0; i < files.length; i++) {
+        setProcessingStatus(`Reading Day ${i + 1}/${files.length}...`);
+        const base64 = await readFileAsDataURL(files[i]);
+        const daySchedule = await extractTimetableFromImage(base64);
+        
+        // Merge this schedule into our accumulator
+        daySchedule.forEach(newDay => {
+          const existing = combinedSchedules.find(s => s.day === newDay.day);
+          if (existing) {
+            // Merge slots if day already exists (unlikely in one file but good for multi-upload)
+            existing.slots = [...existing.slots, ...newDay.slots].filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
+          } else {
+            combinedSchedules.push(newDay);
+          }
+        });
+      }
+
+      const data: TimetableData = { 
+        ownerId: userProfile?.id || 'anon', 
+        ownerName: userProfile?.username || 'Me', 
+        schedule: combinedSchedules 
+      };
+
+      if (userProfile) {
+        await NexusServer.saveRecord(userProfile.id, 'timetable_main', 'My Timetable', data);
+      }
+      
+      setMyTimetable(data);
+      setShowUploadModal(false);
     } catch (err) {
-      alert("Failed to read the image.");
+      alert("Failed to process images. Ensure you use clear screenshots.");
     } finally {
       setIsProcessingAI(false);
+      setProcessingStatus('');
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -171,10 +206,10 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
     <div className="max-w-6xl mx-auto space-y-8 animate-fade-in pb-20 px-4 md:px-0">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h2 className="text-3xl md:text-5xl font-black text-white tracking-tighter uppercase leading-none">
+          <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none">
             Timetable <span className="text-orange-600">Hub</span>
           </h2>
-          <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.4em] mt-3">Sync schedules & find free time</p>
+          <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.4em] mt-3">Daily schedule & free gaps</p>
         </div>
         <div className="flex gap-3">
           <button onClick={() => setShowPresetsModal(true)} className="px-6 py-3 bg-black border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all shadow-xl">Presets</button>
@@ -202,7 +237,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
           ) : (
             <div className="space-y-4">
               <div className="flex items-center justify-between px-4">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-600">{activeDay}</h3>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-600">{activeDay} List</h3>
                 <span className="text-[8px] font-bold text-slate-500 uppercase">{daySlotsWithBreaks.filter(s => s.type !== 'break').length} Classes Today</span>
               </div>
               <div className="space-y-3">
@@ -210,26 +245,39 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
                   <div className="p-10 bg-white/5 rounded-[32px] text-center"><p className="text-[10px] font-black uppercase tracking-widest text-slate-500">No events found for {activeDay}.</p></div>
                 ) : (
                   daySlotsWithBreaks.map(slot => {
-                    const isActive = isCurrentDay && currentMinutes >= timeToMinutes(slot.startTime) && currentMinutes < timeToMinutes(slot.endTime);
+                    const startMin = timeToMinutes(slot.startTime);
+                    const endMin = timeToMinutes(slot.endTime);
+                    
+                    const isActive = isCurrentDay && currentMinutes >= startMin && currentMinutes < endMin;
+                    const isFinished = isCurrentDay && currentMinutes >= endMin;
+                    const isUpcoming = isCurrentDay && currentMinutes < startMin;
                     const isBreak = slot.type === 'break';
+                    
+                    let statusLabel = 'Scheduled';
+                    if (isCurrentDay) {
+                      if (isActive) statusLabel = 'Current';
+                      else if (isFinished) statusLabel = 'Finished';
+                      else if (isUpcoming) statusLabel = 'Upcoming';
+                    }
+
                     return (
-                      <div key={slot.id} className={`group p-6 rounded-[32px] transition-all flex items-center justify-between border ${isActive ? 'bg-orange-600/10 border-orange-500/50 shadow-[0_0_30px_rgba(234,88,12,0.1)]' : isBreak ? 'bg-white/[0.01] border-white/5 opacity-60' : 'bg-white/[0.03] border-white/5 hover:border-orange-500/30'}`}>
+                      <div key={slot.id} className={`group p-6 rounded-[32px] transition-all flex items-center justify-between border ${isActive ? 'bg-orange-600/10 border-orange-500/50 shadow-[0_0_30px_rgba(234,88,12,0.1)] scale-[1.01]' : isFinished ? 'bg-white/[0.01] border-white/5 opacity-40 grayscale' : isBreak ? 'bg-white/[0.02] border-white/5 opacity-70' : 'bg-white/[0.03] border-white/5 hover:border-orange-500/30'}`}>
                         <div className="flex items-center gap-6">
-                          <div className={`w-16 h-16 rounded-2xl flex flex-col items-center justify-center border shadow-inner ${isActive ? 'bg-orange-600 border-orange-400' : 'bg-black border-white/5'}`}>
-                            <span className={`text-[10px] font-black ${isActive ? 'text-white' : 'text-orange-600'}`}>{slot.startTime}</span>
+                          <div className={`w-16 h-16 rounded-2xl flex flex-col items-center justify-center border shadow-inner ${isActive ? 'bg-orange-600 border-orange-400' : isFinished ? 'bg-slate-900 border-white/5' : 'bg-black border-white/5'}`}>
+                            <span className={`text-[10px] font-black ${isActive ? 'text-white' : isFinished ? 'text-slate-600' : 'text-orange-600'}`}>{slot.startTime}</span>
                             <div className={`w-4 h-px my-1 ${isActive ? 'bg-white/30' : 'bg-white/10'}`} />
                             <span className={`text-[8px] font-bold ${isActive ? 'text-white/70' : 'text-slate-500'}`}>{slot.endTime}</span>
                           </div>
                           <div>
-                            <h4 className={`text-lg font-black uppercase tracking-tight transition-colors ${isActive ? 'text-orange-500' : isBreak ? 'text-slate-500' : 'text-white group-hover:text-orange-500'}`}>{slot.subject}</h4>
-                            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">{isBreak ? 'Interval' : `Room ${slot.room} • ${slot.type === 'lab' ? 'Practical' : 'Lecture'}`}</p>
+                            <h4 className={`text-lg font-black uppercase tracking-tight transition-colors ${isActive ? 'text-orange-500' : isFinished ? 'text-slate-600' : isBreak ? 'text-slate-400' : 'text-white group-hover:text-orange-500'}`}>{slot.subject}</h4>
+                            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">{isBreak ? 'Break Window' : `Room ${slot.room} • ${slot.type === 'lab' ? 'Practical' : 'Lecture'}`}</p>
                           </div>
                         </div>
                         <div className="flex flex-col items-end">
-                          <div className={`px-3 py-1 rounded-full text-[7px] font-black uppercase tracking-[0.2em] ${isActive ? 'bg-orange-600 text-white animate-pulse' : 'bg-white/5 text-slate-500'}`}>
-                            {isActive ? 'Current' : 'Upcoming'}
+                          <div className={`px-3 py-1 rounded-full text-[7px] font-black uppercase tracking-[0.2em] transition-all ${isActive ? 'bg-orange-600 text-white animate-pulse' : isFinished ? 'bg-white/5 text-slate-600' : 'bg-white/5 text-slate-500'}`}>
+                            {statusLabel}
                           </div>
-                          {isActive && <p className="text-[8px] font-bold text-orange-600 mt-2">Active Slot</p>}
+                          {isActive && <p className="text-[8px] font-bold text-orange-600 mt-2">Active now</p>}
                         </div>
                       </div>
                     );
@@ -278,21 +326,28 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-8 h-8 text-orange-600"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
               </div>
               <h3 className="text-3xl font-black tracking-tighter uppercase">AI Scanner</h3>
-              <p className="text-white/40 text-[9px] font-black mt-2 uppercase tracking-[0.3em]">Reads classes from your screenshot</p>
+              <p className="text-white/40 text-[9px] font-black mt-2 uppercase tracking-[0.3em]">Select screenshots for all 5 days</p>
             </div>
             <div className="p-10 space-y-6">
                {isProcessingAI ? (
                  <div className="py-10 text-center space-y-6">
                     <div className="w-12 h-12 border-4 border-orange-600 border-t-transparent rounded-full animate-spin mx-auto" />
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-600 animate-pulse">Scanning Image...</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-600 animate-pulse">{processingStatus}</p>
                  </div>
                ) : (
                  <>
                    <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-white/10 rounded-[32px] p-12 text-center hover:border-orange-500/50 transition-all cursor-pointer bg-white/[0.02] group">
-                     <p className="text-xs font-black uppercase tracking-widest text-slate-500 group-hover:text-white transition-colors">Select Image</p>
-                     <p className="text-[8px] font-bold uppercase text-slate-600 mt-2">Supports LPU Touch Timetable Format</p>
+                     <p className="text-xs font-black uppercase tracking-widest text-slate-500 group-hover:text-white transition-colors">Select 5 Images</p>
+                     <p className="text-[8px] font-bold uppercase text-slate-600 mt-2">Hold Shift/Ctrl to select multiple</p>
                    </div>
-                   <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} />
+                   <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    className="hidden" 
+                    accept="image/*" 
+                    multiple 
+                    onChange={handleFileUpload} 
+                  />
                  </>
                )}
             </div>
@@ -304,7 +359,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
         <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-fade-in">
           <div className="bg-[#0a0a0a] rounded-[56px] w-full max-w-lg border border-white/10 shadow-[0_32px_128px_rgba(0,0,0,0.8)] overflow-hidden">
             <div className="p-10 border-b border-white/5 flex items-center justify-between">
-               <h3 className="text-2xl font-black uppercase tracking-tighter">Choose Preset</h3>
+               <h3 className="text-2xl font-black uppercase tracking-tighter">Course Presets</h3>
                <button onClick={() => setShowPresetsModal(false)} className="text-white/30 hover:text-white transition-colors border-none bg-transparent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             </div>
             <div className="p-10 grid grid-cols-1 gap-4 max-h-[400px] overflow-y-auto no-scrollbar">
@@ -312,7 +367,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
                  <button key={batch.id} onClick={() => applyPreset(batch)} className="p-6 bg-white/[0.02] border border-white/5 rounded-3xl text-left hover:border-orange-500/50 hover:bg-white/[0.05] transition-all flex items-center justify-between group">
                    <div>
                      <p className="text-xs font-black uppercase tracking-tight">{batch.name}</p>
-                     <p className="text-[8px] font-bold text-slate-500 uppercase mt-1">Full Section Schedule</p>
+                     <p className="text-[8px] font-bold text-slate-500 uppercase mt-1">Full 5-Day Schedule</p>
                    </div>
                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5 text-white/20 group-hover:text-orange-600 transition-colors"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                  </button>
