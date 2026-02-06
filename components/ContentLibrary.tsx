@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { LibraryFile, UserProfile, Folder } from '../types.ts';
 import NexusServer from '../services/nexusServer.ts';
@@ -82,7 +83,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
       const [folderList, filesFromDb] = await Promise.all([
         NexusServer.fetchFolders(),
         isAdminView 
-          ? NexusServer.fetchPendingFiles() 
+          ? NexusServer.fetchPendingFiles(searchQuery) 
           : (viewMode === 'my-uploads' && userProfile) 
             ? NexusServer.fetchUserFiles(userProfile.id) 
             : NexusServer.fetchFiles(searchQuery, 'All')
@@ -249,8 +250,10 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
   };
 
   const toggleAdminView = () => {
-    setIsAdminView(!isAdminView);
+    const nextAdminState = !isAdminView;
+    setIsAdminView(nextAdminState);
     setViewMode('browse');
+    setSearchQuery(''); // Reset search to ensure full list of pending files shows up
     navigateTo(null, null, null);
   };
 

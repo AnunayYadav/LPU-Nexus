@@ -144,7 +144,8 @@ class NexusServer {
     if (!client) return [];
     let query = client.from('documents').select('*, profiles(username)').eq('status', 'approved');
     if (q) query = query.ilike('name', `%${q}%`);
-    const { data } = await query.order('created_at', { ascending: false });
+    const { data, error } = await query.order('created_at', { ascending: false });
+    if (error) return [];
     return (data || []).map(item => ({
       id: item.id, name: item.name, subject: item.subject, semester: item.semester, type: item.type,
       uploadDate: new Date(item.created_at).getTime(), size: item.size, status: item.status, storage_path: item.storage_path,
@@ -225,10 +226,13 @@ class NexusServer {
     if (client) await client.from('documents').update(admin ? metadata : { pending_update: metadata }).eq('id', id);
   }
 
-  static async fetchPendingFiles(): Promise<LibraryFile[]> {
+  static async fetchPendingFiles(q?: string): Promise<LibraryFile[]> {
     const client = getSupabase();
     if (!client) return [];
-    const { data } = await client.from('documents').select('*, profiles(username)').eq('status', 'pending');
+    let query = client.from('documents').select('*, profiles(username)').eq('status', 'pending');
+    if (q) query = query.ilike('name', `%${q}%`);
+    const { data, error } = await query.order('created_at', { ascending: false });
+    if (error) return [];
     return (data || []).map(item => ({
       id: item.id, name: item.name, subject: item.subject, semester: item.semester, type: item.type,
       uploadDate: new Date(item.created_at).getTime(), size: item.size, status: item.status, storage_path: item.storage_path,
@@ -239,7 +243,8 @@ class NexusServer {
   static async fetchUserFiles(uid: string): Promise<LibraryFile[]> {
     const client = getSupabase();
     if (!client) return [];
-    const { data = [] } = await client.from('documents').select('*, profiles(username)').eq('uploader_id', uid);
+    const { data, error } = await client.from('documents').select('*, profiles(username)').eq('uploader_id', uid).order('created_at', { ascending: false });
+    if (error) return [];
     return (data || []).map(item => ({
       id: item.id, name: item.name, subject: item.subject, semester: item.semester, type: item.type,
       uploadDate: new Date(item.created_at).getTime(), size: item.size, status: item.status, storage_path: item.storage_path,
