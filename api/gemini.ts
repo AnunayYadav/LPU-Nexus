@@ -18,11 +18,13 @@ export default async function handler(req: Request) {
   try {
     const { action, payload } = await req.json();
     const ai = new GoogleGenAI({ apiKey });
+    // Use the Flash model for all tasks to ensure high rate limits and speed
+    const MODEL_ID = "gemini-3-flash-preview";
 
     switch (action) {
       case "ANALYZE_RESUME": {
         const response = await ai.models.generateContent({
-          model: "gemini-3-pro-preview",
+          model: MODEL_ID,
           contents: payload.prompt,
           config: {
             responseMimeType: "application/json",
@@ -35,7 +37,7 @@ export default async function handler(req: Request) {
 
       case "EXTRACT_TIMETABLE": {
         const response = await ai.models.generateContent({
-          model: "gemini-3-flash-preview",
+          model: MODEL_ID,
           contents: [
             { text: payload.prompt },
             { inlineData: { mimeType: "image/png", data: payload.imageData } }
@@ -51,7 +53,7 @@ export default async function handler(req: Request) {
 
       case "GLOBAL_GATEWAY": {
         const response = await ai.models.generateContent({
-          model: "gemini-3-pro-preview",
+          model: MODEL_ID,
           contents: payload.prompt,
           config: {
             systemInstruction: payload.systemInstruction,
@@ -67,7 +69,7 @@ export default async function handler(req: Request) {
 
       case "CAMPUS_NEWS": {
         const response = await ai.models.generateContent({
-          model: "gemini-3-flash-preview",
+          model: MODEL_ID,
           contents: payload.prompt,
           config: {
             systemInstruction: payload.systemInstruction,

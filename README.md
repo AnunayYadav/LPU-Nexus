@@ -3,8 +3,8 @@
 
 **LPU-Nexus** is a comprehensive, AI-powered student utility platform designed specifically for the students of Lovely Professional University.
 
-![Version](https://img.shields.io/badge/version-1.4.1-orange)
-![AI](https://img.shields.io/badge/Powered%20By-Gemini%203-red)
+![Version](https://img.shields.io/badge/version-1.5.0-orange)
+![AI](https://img.shields.io/badge/Powered%20By-Gemini%203%20Flash-red)
 ![Cloud](https://img.shields.io/badge/Database-Supabase-emerald)
 
 ---
@@ -100,9 +100,9 @@ CREATE POLICY "Users manage own history" ON public.user_history ALL USING (auth.
 
 ## ✨ Key Features
 
-### 👔 The Placement Prefect (AI Resume Analyzer)
+### 👔 Placement Prefect (AI Resume Analyzer)
 - **ATS Matching:** Upload your resume (PDF) and paste a Job Description.
-- **Brutal Feedback:** Leverages **Gemini 3 Pro** for critical phrasing advice.
+- **High Performance:** Leverages **Gemini 3 Flash** for low-latency, critical phrasing advice.
 
 ### 📂 Nexus FS Registry (Content Library)
 - **Hierarchy:** Semester -> Subject -> Category.

@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 const HelpSection: React.FC = () => {
@@ -10,7 +11,7 @@ const HelpSection: React.FC = () => {
       ]
     },
     {
-      category: 'Placement Prefect (v2)',
+      category: 'Placement Prefect (Flash)',
       questions: [
         { q: "What are 'Industry Trends' in the Prefect?", a: "Instead of pasting a JD, you can select 'Trends' to evaluate your resume against 2025 technology standards for specific roles like AI Engineer or Frontend Dev. It checks for the latest high-demand keywords." },
         { q: "What does 'Deep Scrutiny' do?", a: "It switches the AI model to a more 'ruthless' technical recruiter persona. It won't just look for words; it will judge your project complexity and phrasing impact. Be prepared for harsh feedback." }
@@ -48,7 +49,7 @@ const HelpSection: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {faqs.map((cat, idx) => (
-          <div key={idx} className="glass-panel p-8 rounded-[40px] border border-slate-200 dark:border-white/5 bg-white dark:bg-slate-950/50 flex flex-col h-full shadow-sm hover:shadow-xl transition-all">
+          <div key={idx} className="glass-panel p-8 rounded-[40px] border border-slate-200 dark:border-white/5 bg-white dark:bg-black flex flex-col h-full shadow-sm hover:shadow-xl transition-all">
             <h3 className="text-[10px] font-black text-orange-600 dark:text-orange-500 uppercase tracking-[0.3em] mb-6 border-b border-slate-100 dark:border-white/5 pb-4">{cat.category}</h3>
             <div className="space-y-8 flex-1">
               {cat.questions.map((item, qIdx) => (

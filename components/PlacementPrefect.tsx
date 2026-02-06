@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { extractTextFromPdf } from '../services/pdfUtils';
 import { analyzeResume } from '../services/geminiService';
@@ -18,14 +19,14 @@ const IconTarget = () => (
 
 const AuditSkeleton = () => (
   <div className="space-y-6 animate-pulse">
-    <div className="glass-panel p-8 rounded-[40px] flex items-center justify-between bg-white dark:bg-slate-950/40 border dark:border-white/5">
+    <div className="glass-panel p-8 rounded-[40px] flex items-center justify-between bg-white dark:bg-black border dark:border-white/5">
       <div className="space-y-3">
         <div className="h-3 w-20 bg-slate-200 dark:bg-white/5 rounded shimmer" />
         <div className="h-12 w-24 bg-slate-200 dark:bg-white/5 rounded shimmer" />
       </div>
       <div className="h-10 w-40 bg-slate-200 dark:bg-white/5 rounded shimmer" />
     </div>
-    <div className="glass-panel p-6 rounded-[32px] bg-white dark:bg-slate-950/40 border dark:border-white/5">
+    <div className="glass-panel p-6 rounded-[32px] bg-white dark:bg-black border dark:border-white/5">
       <div className="h-3 w-32 bg-slate-200 dark:bg-white/5 rounded mb-4 shimmer" />
       <div className="flex flex-wrap gap-2">
         <div className="h-8 w-16 bg-slate-200 dark:bg-white/5 rounded-xl shimmer" />
@@ -136,14 +137,14 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in pb-20 px-4 md:px-0">
       <header className="mb-8">
         <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2 tracking-tighter flex items-center gap-2">
-          The Placement Prefect
-          <span className="text-xs font-black bg-orange-100 dark:bg-orange-950 text-orange-600 dark:text-orange-400 px-3 py-1 rounded-full uppercase tracking-widest border border-orange-200 dark:border-orange-800/50 shadow-sm">v2.1</span>
+          Placement Prefect
+          <span className="text-xs font-black bg-orange-100 dark:bg-orange-950 text-orange-600 dark:text-orange-400 px-3 py-1 rounded-full uppercase tracking-widest border border-orange-200 dark:border-orange-800/50 shadow-sm">FLASH v3.0</span>
         </h2>
         <p className="text-slate-600 dark:text-slate-400">Beat the ATS. Get brutal, actionable feedback on your resume.</p>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-        <div className="glass-panel p-6 rounded-[32px] space-y-6 shadow-sm border dark:border-white/5 bg-white dark:bg-slate-950/50">
+        <div className="glass-panel p-6 rounded-[32px] space-y-6 shadow-sm border dark:border-white/5 bg-white dark:bg-black">
           <div>
             <label className="block text-[10px] font-black uppercase text-slate-400 mb-3 ml-1 tracking-[0.2em]">1. Upload Resume (PDF)</label>
             <div className="relative border-2 border-dashed border-slate-200 dark:border-white/10 rounded-2xl p-6 text-center hover:border-orange-500 transition-colors bg-slate-50 dark:bg-black/40 group">
@@ -181,7 +182,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
 
           <div className="flex items-center space-x-3 p-3 bg-indigo-500/5 rounded-2xl border border-indigo-500/10">
             <input type="checkbox" id="deepMode" checked={deepAnalysis} onChange={(e) => setDeepAnalysis(e.target.checked)} className="w-4 h-4 rounded-lg border-slate-300 text-orange-600 focus:ring-orange-500 cursor-pointer" />
-            <label htmlFor="deepMode" className="text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 cursor-pointer select-none">Deep Scrutiny Analysis (Pro)</label>
+            <label htmlFor="deepMode" className="text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 cursor-pointer select-none">Deep Scrutiny Analysis</label>
           </div>
 
           <button onClick={handleAnalyze} disabled={!resumeText || !jdText || loading} className={`w-full py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] text-white shadow-xl transition-all transform active:scale-[0.98] ${(!resumeText || !jdText) ? 'bg-slate-400 dark:bg-slate-800 cursor-not-allowed opacity-50' : 'bg-gradient-to-r from-orange-600 to-red-700 hover:shadow-orange-600/30'}`}>
@@ -195,7 +196,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
           {!result && !loading && (
             <div className="space-y-6 animate-fade-in">
               {history.length > 0 && (
-                <div className="glass-panel p-6 rounded-[32px] border dark:border-white/5 bg-white dark:bg-slate-950/40">
+                <div className="glass-panel p-6 rounded-[32px] border dark:border-white/5 bg-white dark:bg-black">
                   <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Recent Hub Audits</h3>
                   <div className="space-y-3">
                     {history.map((h) => (
