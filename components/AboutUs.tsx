@@ -9,7 +9,7 @@ const StatCounter: React.FC<{ target: number; label: string; subLabel: string; a
 
   useEffect(() => {
     if (isVisible && target > 0) {
-      const duration = 2000; // 2 seconds
+      const duration = 4000; // Updated to 4 seconds
       const startTime = performance.now();
 
       const updateCount = (currentTime: number) => {

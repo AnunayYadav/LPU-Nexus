@@ -71,7 +71,66 @@ const K25MX_SCHEDULE: DaySchedule[] = [
   }
 ];
 
+const SECTION_325QB_SCHEDULE: DaySchedule[] = [
+  {
+    day: 'Monday',
+    slots: [
+      { id: 'qb-m1', subject: 'CSE320', room: '37-907', startTime: '09:00', endTime: '10:00', type: 'class' },
+      { id: 'qb-m2', subject: 'CSE101', room: '37-907', startTime: '10:00', endTime: '11:00', type: 'class' },
+      { id: 'qb-m3', subject: 'CSE101', room: '37-907', startTime: '11:00', endTime: '12:00', type: 'class' },
+      { id: 'qb-m4', subject: 'PEL125', room: '29-305', startTime: '13:00', endTime: '14:00', type: 'lab' },
+      { id: 'qb-m5', subject: 'ECE249', room: '37-708', startTime: '14:00', endTime: '15:00', type: 'class' },
+      { id: 'qb-m6', subject: 'INT306', room: '37-707', startTime: '15:00', endTime: '16:00', type: 'lab' },
+      { id: 'qb-m7', subject: 'INT306', room: '37-707', startTime: '16:00', endTime: '17:00', type: 'lab' },
+    ]
+  },
+  {
+    day: 'Tuesday',
+    slots: [
+      { id: 'qb-t1', subject: 'INT306', room: '37-902', startTime: '09:00', endTime: '10:00', type: 'class' },
+      { id: 'qb-t2', subject: 'INT306', room: '37-902', startTime: '10:00', endTime: '11:00', type: 'class' },
+      { id: 'qb-t3', subject: 'CSE320', room: '37-902', startTime: '11:00', endTime: '12:00', type: 'class' },
+      { id: 'qb-t4', subject: 'PEL125', room: '34-508', startTime: '13:00', endTime: '14:00', type: 'class' },
+      { id: 'qb-t5', subject: 'CHE110', room: '27-402', startTime: '14:00', endTime: '15:00', type: 'class' },
+      { id: 'qb-t6', subject: 'CSE121', room: '37-702', startTime: '15:00', endTime: '16:00', type: 'class' },
+      { id: 'qb-t7', subject: 'ECE249', room: '37-702', startTime: '16:00', endTime: '17:00', type: 'class' },
+    ]
+  },
+  {
+    day: 'Wednesday',
+    slots: [
+      { id: 'qb-w1', subject: 'PEL125', room: '34-506', startTime: '09:00', endTime: '10:00', type: 'lab' },
+      { id: 'qb-w2', subject: 'PEL125', room: '34-506', startTime: '10:00', endTime: '11:00', type: 'lab' },
+      { id: 'qb-w3', subject: 'CSE101', room: '37-607', startTime: '11:00', endTime: '12:00', type: 'class' },
+      { id: 'qb-w4', subject: 'MTH166', room: '37-607', startTime: '12:00', endTime: '13:00', type: 'class' },
+      { id: 'qb-w5', subject: 'CHE110', room: '27-101', startTime: '14:00', endTime: '15:00', type: 'class' },
+      { id: 'qb-w6', subject: 'INT306', room: '27-101', startTime: '15:00', endTime: '16:00', type: 'class' },
+      { id: 'qb-w7', subject: 'ECE249', room: '27-101', startTime: '16:00', endTime: '17:00', type: 'class' },
+    ]
+  },
+  {
+    day: 'Thursday',
+    slots: [
+      { id: 'qb-th1', subject: 'MTH166', room: '37-907', startTime: '09:00', endTime: '10:00', type: 'class' },
+      { id: 'qb-th2', subject: 'CSE101', room: '37-907', startTime: '10:00', endTime: '11:00', type: 'lab' },
+      { id: 'qb-th3', subject: 'CSE101', room: '37-907', startTime: '11:00', endTime: '12:00', type: 'lab' },
+      { id: 'qb-th4', subject: 'MTH166', room: '37-908', startTime: '15:00', endTime: '16:00', type: 'class' },
+    ]
+  },
+  {
+    day: 'Friday',
+    slots: [
+      { id: 'qb-f1', subject: 'MTH166', room: '37-808', startTime: '11:00', endTime: '12:00', type: 'class' },
+      { id: 'qb-f2', subject: 'ECE279', room: '36-104', startTime: '13:00', endTime: '14:00', type: 'lab' },
+      { id: 'qb-f3', subject: 'ECE279', room: '36-104', startTime: '14:00', endTime: '15:00', type: 'lab' },
+      { id: 'qb-f4', subject: 'CSE121', room: '37-907', startTime: '15:00', endTime: '16:00', type: 'class' },
+      { id: 'qb-f5', subject: 'CSE320', room: '37-907', startTime: '16:00', endTime: '17:00', type: 'class' },
+    ]
+  }
+];
+
 const PRESET_BATCHES = [
+  { id: '325qb-2026', name: '325QB - CSE 2nd Sem 2026', schedule: SECTION_325QB_SCHEDULE },
   { id: 'k25mx-2026', name: 'K25MX - CSE 2nd Sem 2026', schedule: K25MX_SCHEDULE },
 ];
 
@@ -357,7 +416,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
 
       {showPresetsModal && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-fade-in">
-          <div className="bg-[#0a0a0a] rounded-[56px] w-full max-w-lg border border-white/10 shadow-[0_32px_128px_rgba(0,0,0,0.8)] overflow-hidden">
+          <div className="bg-[#0a0a0a] rounded-[56px] w-full max-lg border border-white/10 shadow-[0_32px_128px_rgba(0,0,0,0.8)] overflow-hidden">
             <div className="p-10 border-b border-white/5 flex items-center justify-between bg-black">
                <h3 className="text-2xl font-black uppercase tracking-tighter">Course Presets</h3>
                <button onClick={() => setShowPresetsModal(false)} className="text-white/30 hover:text-white transition-colors border-none bg-transparent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
