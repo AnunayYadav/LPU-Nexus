@@ -1,10 +1,57 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import NexusServer from '../services/nexusServer.ts';
+
+const StatCounter: React.FC<{ target: number; label: string; subLabel: string; accentColor: string; isVisible: boolean }> = ({ target, label, subLabel, accentColor, isVisible }) => {
+  const [count, setCount] = useState(0);
+  const countRef = useRef(0);
+  const animationRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (isVisible && target > 0) {
+      const duration = 2000; // 2 seconds
+      const startTime = performance.now();
+
+      const updateCount = (currentTime: number) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        // Easing function: easeOutExpo
+        const easeProgress = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+        const currentCount = Math.floor(easeProgress * target);
+        
+        setCount(currentCount);
+        countRef.current = currentCount;
+
+        if (progress < 1) {
+          animationRef.current = requestAnimationFrame(updateCount);
+        }
+      };
+
+      animationRef.current = requestAnimationFrame(updateCount);
+    }
+
+    return () => {
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+    };
+  }, [isVisible, target]);
+
+  return (
+    <div className="space-y-1">
+      <p className={`text-[10px] font-black uppercase tracking-[0.4em] ${accentColor} opacity-80`}>{label}</p>
+      <h4 className="text-5xl md:text-6xl font-black text-white tracking-tighter leading-none">
+        {count.toLocaleString()}{label.includes('Global') ? '+' : ''}
+      </h4>
+      <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-2">{subLabel}</p>
+    </div>
+  );
+};
 
 const AboutUs: React.FC = () => {
   const [stats, setStats] = useState<{ registered: number; visitors: number } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isSectionVisible, setIsSectionVisible] = useState(false);
+  const metricsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -19,6 +66,21 @@ const AboutUs: React.FC = () => {
       }
     };
     fetchStats();
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsSectionVisible(true);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (metricsRef.current) {
+      observer.observe(metricsRef.current);
+    }
+
+    return () => observer.disconnect();
   }, []);
 
   return (
@@ -32,7 +94,7 @@ const AboutUs: React.FC = () => {
       </section>
 
       <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="glass-panel p-8 rounded-[40px] border border-slate-200 dark:border-white/5 bg-white dark:bg-slate-950/50 space-y-4">
+        <div className="glass-panel p-8 rounded-[40px] border border-slate-200 dark:border-white/5 bg-white dark:bg-black space-y-4">
           <h3 className="text-[10px] font-black text-orange-600 uppercase tracking-widest border-b border-slate-100 dark:border-white/5 pb-4">The Mission</h3>
           <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
             LPU-Nexus was born from a simple observation: campus life is complex. Between tracking attendance, calculating CGPA, and preparing for placements, students are often overwhelmed. 
@@ -41,7 +103,7 @@ const AboutUs: React.FC = () => {
           </p>
         </div>
 
-        <div className="glass-panel p-8 rounded-[40px] border border-slate-200 dark:border-white/5 bg-white dark:bg-slate-950/50 space-y-4">
+        <div className="glass-panel p-8 rounded-[40px] border border-slate-200 dark:border-white/5 bg-white dark:bg-black space-y-4">
           <h3 className="text-[10px] font-black text-orange-600 uppercase tracking-widest border-b border-slate-100 dark:border-white/5 pb-4">Key Innovation</h3>
           <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
             By integrating <strong>Google's Gemini AI</strong>, we provide tools that don't just calculate numbers but offer strategic insights. 
@@ -51,7 +113,7 @@ const AboutUs: React.FC = () => {
       </section>
 
       {/* Credit & Heritage Section */}
-      <section className="p-10 md:p-16 rounded-[60px] bg-gradient-to-br from-slate-900 to-black text-white shadow-[0_40px_100px_-20px_rgba(0,0,0,0.5)] relative overflow-hidden">
+      <section className="p-10 md:p-16 rounded-[60px] bg-black text-white shadow-[0_40px_100px_-20px_rgba(0,0,0,0.5)] border border-white/5 relative overflow-hidden">
         {/* Abstract Background Decor */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-orange-600/10 blur-[120px] rounded-full -mr-32 -mt-32"></div>
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-600/5 blur-[100px] rounded-full -ml-32 -mb-32"></div>
@@ -106,22 +168,35 @@ const AboutUs: React.FC = () => {
           </div>
 
           {/* Integrated Impact Metrics (Right) */}
-          <div className="lg:col-span-5 flex flex-col justify-center space-y-12 pl-0 lg:pl-12 border-t lg:border-t-0 lg:border-l border-white/10 pt-10 lg:pt-0">
-            <div className="space-y-1">
-              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-orange-500 opacity-80">Verified Community</p>
-              <h4 className="text-5xl md:text-6xl font-black text-white tracking-tighter leading-none">
-                {loading ? "---" : stats?.registered.toLocaleString()}
-              </h4>
-              <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-2">Registered Website Users</p>
-            </div>
-
-            <div className="space-y-1">
-              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-400 opacity-80">Global Reach</p>
-              <h4 className="text-5xl md:text-6xl font-black text-white tracking-tighter leading-none">
-                {loading ? "---" : `${stats?.visitors.toLocaleString()}+`}
-              </h4>
-              <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-2">Total Platform Visitors</p>
-            </div>
+          <div ref={metricsRef} className="lg:col-span-5 flex flex-col justify-center space-y-12 pl-0 lg:pl-12 border-t lg:border-t-0 lg:border-l border-white/10 pt-10 lg:pt-0">
+            {loading ? (
+              <div className="space-y-12 animate-pulse">
+                {[1, 2].map(i => (
+                  <div key={i} className="space-y-3">
+                    <div className="h-2 w-24 bg-white/10 rounded shimmer" />
+                    <div className="h-12 w-48 bg-white/10 rounded shimmer" />
+                    <div className="h-2 w-32 bg-white/10 rounded shimmer" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <>
+                <StatCounter 
+                  target={stats?.registered || 0} 
+                  label="Verified Community" 
+                  subLabel="Registered Website Users" 
+                  accentColor="text-orange-500"
+                  isVisible={isSectionVisible}
+                />
+                <StatCounter 
+                  target={stats?.visitors || 0} 
+                  label="Global Reach" 
+                  subLabel="Total Platform Visitors" 
+                  accentColor="text-blue-400"
+                  isVisible={isSectionVisible}
+                />
+              </>
+            )}
           </div>
         </div>
       </section>
