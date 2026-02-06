@@ -136,8 +136,67 @@ const SECTION_325QB_SCHEDULE: DaySchedule[] = [
   }
 ];
 
+const SECTION_325QG_SCHEDULE: DaySchedule[] = [
+  {
+    day: 'Monday',
+    slots: [
+      { id: 'qg-m1', subject: 'PEL121', room: '37-903', startTime: '09:00', endTime: '10:00', type: 'class' },
+      { id: 'qg-m2', subject: 'INT306', room: '37-903', startTime: '10:00', endTime: '11:00', type: 'class' },
+      { id: 'qg-m3', subject: 'ECE279', room: '33-102', startTime: '11:00', endTime: '12:00', type: 'lab' },
+      { id: 'qg-m4', subject: 'ECE279', room: '33-102', startTime: '12:00', endTime: '13:00', type: 'lab' },
+      { id: 'qg-m5', subject: 'ECE249', room: '37-706', startTime: '14:00', endTime: '15:00', type: 'class' },
+      { id: 'qg-m6', subject: 'CSE101', room: '37-706', startTime: '15:00', endTime: '16:00', type: 'class' },
+      { id: 'qg-m7', subject: 'CSE101', room: '37-706', startTime: '16:00', endTime: '17:00', type: 'class' },
+    ]
+  },
+  {
+    day: 'Tuesday',
+    slots: [
+      { id: 'qg-t1', subject: 'MTH166', room: '37-809', startTime: '09:00', endTime: '10:00', type: 'class' },
+      { id: 'qg-t2', subject: 'PEL121', room: '37-809', startTime: '10:00', endTime: '11:00', type: 'lab' },
+      { id: 'qg-t3', subject: 'CSE101', room: '37-901', startTime: '11:00', endTime: '12:00', type: 'class' },
+      { id: 'qg-t4', subject: 'CHE110', room: '37-901', startTime: '12:00', endTime: '13:00', type: 'class' },
+      { id: 'qg-t5', subject: 'ECE249', room: '37-609', startTime: '14:00', endTime: '15:00', type: 'class' },
+      { id: 'qg-t6', subject: 'CSE320', room: '37-609', startTime: '15:00', endTime: '16:00', type: 'class' },
+    ]
+  },
+  {
+    day: 'Wednesday',
+    slots: [
+      { id: 'qg-w1', subject: 'MTH166', room: '37-902', startTime: '09:00', endTime: '10:00', type: 'class' },
+      { id: 'qg-w2', subject: 'CSE121', room: '37-902', startTime: '10:00', endTime: '11:00', type: 'class' },
+      { id: 'qg-w3', subject: 'CSE121', room: '37-902', startTime: '11:00', endTime: '12:00', type: 'class' },
+      { id: 'qg-w4', subject: 'PEL121', room: '37-605', startTime: '13:00', endTime: '14:00', type: 'lab' },
+      { id: 'qg-w5', subject: 'PEL121', room: '37-605', startTime: '14:00', endTime: '15:00', type: 'lab' },
+      { id: 'qg-w6', subject: 'CSE320', room: '37-710', startTime: '15:00', endTime: '16:00', type: 'class' },
+    ]
+  },
+  {
+    day: 'Thursday',
+    slots: [
+      { id: 'qg-th1', subject: 'MTH166', room: '37-607', startTime: '09:00', endTime: '10:00', type: 'class' },
+      { id: 'qg-th2', subject: 'INT306', room: '37-607', startTime: '10:00', endTime: '11:00', type: 'lab' },
+      { id: 'qg-th3', subject: 'INT306', room: '37-607', startTime: '11:00', endTime: '12:00', type: 'lab' },
+      { id: 'qg-th4', subject: 'ECE249', room: '37-607', startTime: '12:00', endTime: '13:00', type: 'class' },
+      { id: 'qg-th5', subject: 'CHE110', room: '37-701', startTime: '14:00', endTime: '15:00', type: 'class' },
+      { id: 'qg-th6', subject: 'CSE320', room: '37-701', startTime: '15:00', endTime: '16:00', type: 'class' },
+    ]
+  },
+  {
+    day: 'Friday',
+    slots: [
+      { id: 'qg-f1', subject: 'MTH166', room: '37-807', startTime: '09:00', endTime: '10:00', type: 'class' },
+      { id: 'qg-f2', subject: 'INT306', room: '37-807', startTime: '10:00', endTime: '11:00', type: 'class' },
+      { id: 'qg-f3', subject: 'INT306', room: '37-807', startTime: '11:00', endTime: '12:00', type: 'class' },
+      { id: 'qg-f4', subject: 'CSE101', room: '28-408', startTime: '13:00', endTime: '14:00', type: 'lab' },
+      { id: 'qg-f5', subject: 'CSE101', room: '28-408', startTime: '14:00', endTime: '15:00', type: 'lab' },
+    ]
+  }
+];
+
 const PRESET_BATCHES = [
   { id: '325qb-2026', name: '325QB - CSE 2nd Sem 2026', schedule: SECTION_325QB_SCHEDULE },
+  { id: '325qg-2026', name: '325QG - CSE 2nd Sem 2026', schedule: SECTION_325QG_SCHEDULE },
   { id: '325mx-2026', name: '325MX - CSE 2nd Sem 2026', schedule: MX325_SCHEDULE },
 ];
 
@@ -149,6 +208,10 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
   
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showPresetsModal, setShowPresetsModal] = useState(false);
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [renameTarget, setRenameTarget] = useState<'me' | 'friend' | null>(null);
+  const [newName, setNewName] = useState('');
+  
   const [isProcessingAI, setIsProcessingAI] = useState(false);
   const [processingStatus, setProcessingStatus] = useState('');
   const [targetForAction, setTargetForAction] = useState<'me' | 'friend'>('me');
@@ -170,7 +233,28 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
     const records = await NexusServer.fetchRecords(userProfile.id, 'timetable_main');
     if (records && records.length > 0) {
       setMyTimetable(records[0].content);
+    } else {
+      // Default placeholder if no record
+      setMyTimetable({ ownerId: userProfile.id, ownerName: userProfile.username || 'My Profile', schedule: [] });
     }
+  };
+
+  const handleRename = async () => {
+    if (!renameTarget || !newName.trim()) return;
+    
+    if (renameTarget === 'me' && myTimetable) {
+      const updated = { ...myTimetable, ownerName: newName.trim() };
+      setMyTimetable(updated);
+      if (userProfile) {
+        await NexusServer.saveRecord(userProfile.id, 'timetable_main', 'My Timetable', updated);
+      }
+    } else if (renameTarget === 'friend' && friendTimetable) {
+      setFriendTimetable({ ...friendTimetable, ownerName: newName.trim() });
+    }
+    
+    setShowRenameModal(false);
+    setRenameTarget(null);
+    setNewName('');
   };
 
   const readFileAsDataURL = (file: File): Promise<string> => {
@@ -207,7 +291,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
 
       const data: TimetableData = { 
         ownerId: targetForAction === 'me' ? (userProfile?.id || 'anon') : 'friend-id', 
-        ownerName: targetForAction === 'me' ? (userProfile?.username || 'Me') : 'Friend', 
+        ownerName: targetForAction === 'me' ? (myTimetable?.ownerName || userProfile?.username || 'My Profile') : (friendTimetable?.ownerName || 'Friend Profile'), 
         schedule: combinedSchedules 
       };
 
@@ -244,7 +328,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
   const activeTimetable = selectedEntity === 'me' ? myTimetable : friendTimetable;
 
   const daySlotsWithBreaks = useMemo(() => {
-    if (!activeTimetable) return [];
+    if (!activeTimetable || !activeTimetable.schedule) return [];
     const dayData = activeTimetable.schedule.find(s => s.day === activeDay);
     if (!dayData || dayData.slots.length === 0) return [];
 
@@ -273,7 +357,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
 
   // Comparison logic for common breaks
   const commonBreaks = useMemo(() => {
-    if (!myTimetable || !friendTimetable) return [];
+    if (!myTimetable || !friendTimetable || !myTimetable.schedule || !friendTimetable.schedule) return [];
     
     const myDay = myTimetable.schedule.find(s => s.day === activeDay);
     const frDay = friendTimetable.schedule.find(s => s.day === activeDay);
@@ -313,7 +397,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
   const applyPreset = async (batch: typeof PRESET_BATCHES[0]) => {
     const data: TimetableData = { 
       ownerId: targetForAction === 'me' ? (userProfile?.id || 'anon') : 'friend-id', 
-      ownerName: targetForAction === 'me' ? (userProfile?.username || 'Me') : 'Friend', 
+      ownerName: targetForAction === 'me' ? (myTimetable?.ownerName || userProfile?.username || 'My Profile') : (friendTimetable?.ownerName || 'Friend Profile'), 
       schedule: batch.schedule 
     };
 
@@ -354,16 +438,16 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         <div className="lg:col-span-8 space-y-6">
-          {!activeTimetable ? (
+          {(!activeTimetable || !activeTimetable.schedule || activeTimetable.schedule.length === 0) ? (
             <div className="glass-panel p-16 rounded-[48px] border-4 border-dashed border-white/5 flex flex-col items-center justify-center text-center opacity-40 bg-black">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="w-20 h-20 mb-6"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
               <h3 className="text-xl font-black uppercase tracking-tighter">Empty Schedule</h3>
-              <p className="text-xs font-bold mt-2">Pick a Preset or Upload from LPU Touch for {selectedEntity === 'me' ? 'yourself' : 'friend'}.</p>
+              <p className="text-xs font-bold mt-2">Pick a Preset or Upload from LPU Touch for {activeTimetable?.ownerName || (selectedEntity === 'me' ? 'yourself' : 'friend')}.</p>
             </div>
           ) : (
             <div className="space-y-4">
               <div className="flex items-center justify-between px-4">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-600">{activeDay} List ({selectedEntity === 'me' ? 'My View' : "Friend's View"})</h3>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-600">{activeDay} List ({activeTimetable.ownerName})</h3>
                 <span className="text-[8px] font-bold text-slate-500 uppercase">{daySlotsWithBreaks.filter(s => s.type !== 'break').length} Classes Today</span>
               </div>
               <div className="space-y-3">
@@ -418,7 +502,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
            <div className="glass-panel p-8 rounded-[48px] bg-gradient-to-br from-orange-600 to-red-700 text-white border-none shadow-2xl relative overflow-hidden group">
               <div className="relative z-10">
                 <h3 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-80 mb-6">Common Breaks</h3>
-                {!friendTimetable ? (
+                {!friendTimetable || !friendTimetable.schedule || friendTimetable.schedule.length === 0 ? (
                   <div className="py-4 text-center">
                     <p className="text-xs font-black uppercase opacity-60 tracking-widest">Add a friend to see shared gaps.</p>
                   </div>
@@ -452,9 +536,16 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
                  >
                     <div className="flex items-center gap-3">
                        <div className="w-8 h-8 rounded-full bg-orange-600 flex items-center justify-center font-black text-[10px]">{userProfile?.username?.[0] || 'M'}</div>
-                       <span className={`text-[10px] font-black uppercase ${selectedEntity === 'me' ? 'text-orange-500' : 'text-white'}`}>My Profile</span>
+                       <span className={`text-[10px] font-black uppercase ${selectedEntity === 'me' ? 'text-orange-500' : 'text-white'}`}>
+                        {myTimetable?.ownerName || 'My Profile'}
+                       </span>
                     </div>
-                    <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                    <div className="flex items-center gap-2">
+                       <button onClick={(e) => { e.stopPropagation(); setRenameTarget('me'); setNewName(myTimetable?.ownerName || ''); setShowRenameModal(true); }} className="p-1 hover:text-orange-500 text-white/20 transition-colors border-none bg-transparent">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                       </button>
+                       <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                    </div>
                  </div>
 
                  {friendTimetable && (
@@ -464,14 +555,21 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
                    >
                     <div className="flex items-center gap-3">
                        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center font-black text-[10px]">F</div>
-                       <span className={`text-[10px] font-black uppercase ${selectedEntity === 'friend' ? 'text-blue-500' : 'text-white'}`}>Friend Profile</span>
+                       <span className={`text-[10px] font-black uppercase ${selectedEntity === 'friend' ? 'text-blue-500' : 'text-white'}`}>
+                        {friendTimetable.ownerName}
+                       </span>
                     </div>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); setFriendTimetable(null); setSelectedEntity('me'); }}
-                      className="p-1 hover:text-red-500 text-white/20 transition-colors border-none bg-transparent"
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button onClick={(e) => { e.stopPropagation(); setRenameTarget('friend'); setNewName(friendTimetable.ownerName); setShowRenameModal(true); }} className="p-1 hover:text-blue-500 text-white/20 transition-colors border-none bg-transparent">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      </button>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setFriendTimetable(null); setSelectedEntity('me'); }}
+                        className="p-1 hover:text-red-500 text-white/20 transition-colors border-none bg-transparent"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                      </button>
+                    </div>
                    </div>
                  )}
 
@@ -486,8 +584,34 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
         </div>
       </div>
 
+      {showRenameModal && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-fade-in overflow-hidden">
+          <div className="bg-[#0a0a0a] rounded-[48px] w-full max-w-sm border border-white/10 shadow-[0_32px_128px_rgba(0,0,0,0.8)] overflow-hidden">
+            <div className="p-10 text-center">
+              <h3 className="text-2xl font-black tracking-tighter uppercase mb-2">Rename Profile</h3>
+              <p className="text-white/40 text-[9px] font-black uppercase tracking-[0.3em]">Personalize the identity</p>
+              <div className="mt-8">
+                <input 
+                  autoFocus
+                  type="text" 
+                  value={newName} 
+                  onChange={e => setNewName(e.target.value)} 
+                  placeholder="Enter name..."
+                  onKeyDown={e => e.key === 'Enter' && handleRename()}
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-sm font-black text-white outline-none focus:ring-4 focus:ring-orange-600/10 transition-all"
+                />
+              </div>
+              <div className="flex gap-4 mt-8">
+                <button onClick={() => setShowRenameModal(false)} className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors border-none bg-transparent">Cancel</button>
+                <button onClick={handleRename} className="flex-1 py-4 bg-orange-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition-all border-none">Update</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showUploadModal && (
-        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-fade-in">
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-fade-in overflow-hidden">
           <div className="bg-[#0a0a0a] rounded-[56px] w-full max-w-md border border-white/10 shadow-[0_32px_128px_rgba(0,0,0,0.8)] overflow-hidden">
             <div className="bg-black p-10 text-center relative">
               <button onClick={() => setShowUploadModal(false)} className="absolute top-8 right-8 text-white/30 hover:text-white transition-colors border-none bg-transparent">
@@ -497,7 +621,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-8 h-8 text-orange-600"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
               </div>
               <h3 className="text-3xl font-black tracking-tighter uppercase">AI Scanner</h3>
-              <p className="text-white/40 text-[9px] font-black mt-2 uppercase tracking-[0.3em]">Select screenshots for {targetForAction === 'me' ? 'Yourself' : 'Friend'}</p>
+              <p className="text-white/40 text-[9px] font-black mt-2 uppercase tracking-[0.3em]">Select screenshots for {targetForAction === 'me' ? (myTimetable?.ownerName || 'Yourself') : (friendTimetable?.ownerName || 'Friend')}</p>
             </div>
             <div className="p-10 space-y-6">
                {isProcessingAI ? (
@@ -527,14 +651,14 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
       )}
 
       {showPresetsModal && (
-        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-fade-in">
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-fade-in overflow-hidden">
           <div className="bg-[#0a0a0a] rounded-[56px] w-full max-lg border border-white/10 shadow-[0_32px_128px_rgba(0,0,0,0.8)] overflow-hidden">
             <div className="p-10 border-b border-white/5 flex items-center justify-between bg-black">
                <h3 className="text-2xl font-black uppercase tracking-tighter">Course Presets</h3>
                <button onClick={() => setShowPresetsModal(false)} className="text-white/30 hover:text-white transition-colors border-none bg-transparent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             </div>
             <div className="p-8 bg-orange-600/5 border-b border-white/5">
-                <p className="text-[10px] font-black uppercase tracking-widest text-orange-600 text-center">Selecting timetable for: <span className="text-white">{targetForAction === 'me' ? 'Your Profile' : 'A New Friend'}</span></p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-orange-600 text-center">Selecting timetable for: <span className="text-white">{targetForAction === 'me' ? (myTimetable?.ownerName || 'Your Profile') : (friendTimetable?.ownerName || 'A New Friend')}</span></p>
             </div>
             <div className="p-10 grid grid-cols-1 gap-4 max-h-[400px] overflow-y-auto no-scrollbar bg-black">
                {PRESET_BATCHES.map(batch => (
