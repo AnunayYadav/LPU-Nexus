@@ -104,26 +104,34 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
   const displayFiles = useMemo(() => {
     let data = [...allFiles];
     
-    // Critical: If we are in Review Hub, Search, or My Vault, show ALL fetched files immediately.
+    // Global views show flattened results (Review Hub, Personal Vault, or Active Search)
     if (isAdminView || viewMode === 'my-uploads' || searchQuery.trim() !== '') {
-       // No additional filtering needed, allFiles already contains only the relevant subset from DB
+       // Keep all fetched data
     } else if (viewMode === 'browse') {
-      // Apply strict hierarchical filtering only for Browse mode
+      // STRICT Hierarchical Filtering Logic:
+      // We only show files at the exact level they belong to.
+      
       if (activeCategory) {
+        // At Category Level: Show files belonging to Sem + Sub + Category
         data = data.filter(f => 
           f.semester === activeSemester?.name && 
           f.subject === activeSubject?.name && 
           f.type === activeCategory.name
         );
       } else if (activeSubject) {
+        // At Subject Level: Show files belonging to Sem + Sub that have NO specific category
+        // (to prevent them appearing here if they belong to a sub-folder)
         data = data.filter(f => 
           f.semester === activeSemester?.name && 
-          f.subject === activeSubject.name
+          f.subject === activeSubject.name &&
+          (!f.type || f.type.trim() === '' || f.type === 'General')
         );
       } else if (activeSemester) {
-        data = data.filter(f => f.semester === activeSemester.name);
+        // At Semester Level: Generally show 0 files (only Subject folders)
+        // because all files should at least be assigned to a Subject.
+        data = []; 
       } else {
-        // At Root of Browse, we only show folders, so hide all files to keep UI clean
+        // At Root: 0 files (only Semester folders)
         data = []; 
       }
     }
