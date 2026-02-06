@@ -223,15 +223,38 @@ const App: React.FC = () => {
              </button>
              <div className="relative">
                {userProfile ? (
-                 <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="w-10 h-10 rounded-full bg-insta-gradient p-[1.5px] border-none shadow-lg hover:scale-110 transition-all overflow-hidden cursor-pointer group">
-                   <div className="w-full h-full bg-black rounded-full overflow-hidden flex items-center justify-center text-white font-black">
-                     {userProfile.avatar_url ? (
-                       <img src={userProfile.avatar_url} className="w-full h-full object-cover" alt="" />
-                     ) : (
-                       <span>{userProfile.username?.[0]?.toUpperCase() || userProfile.email[0].toUpperCase()}</span>
-                     )}
-                   </div>
-                 </button>
+                 <>
+                   <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="w-10 h-10 rounded-full bg-insta-gradient p-[1.5px] border-none shadow-lg hover:scale-110 transition-all overflow-hidden cursor-pointer group">
+                     <div className="w-full h-full bg-black rounded-full overflow-hidden flex items-center justify-center text-white font-black">
+                       {userProfile.avatar_url ? (
+                         <img src={userProfile.avatar_url} className="w-full h-full object-cover" alt="" />
+                       ) : (
+                         <span>{userProfile.username?.[0]?.toUpperCase() || userProfile.email[0].toUpperCase()}</span>
+                       )}
+                     </div>
+                   </button>
+                   {isProfileMenuOpen && (
+                     <>
+                       <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setIsProfileMenuOpen(false)} />
+                       <div className="absolute right-0 mt-3 w-48 bg-black border border-white/10 rounded-2xl shadow-2xl overflow-hidden py-2 z-50 animate-fade-in">
+                          <button 
+                            onClick={() => { navigateToModule(ModuleType.PROFILE); setIsProfileMenuOpen(false); }}
+                            className="w-full text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white hover:bg-white/5 border-none bg-transparent flex items-center gap-3 transition-all"
+                          >
+                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                             View Profile
+                          </button>
+                          <button 
+                            onClick={async () => { await NexusServer.signOut(); navigateToModule(ModuleType.DASHBOARD); setIsProfileMenuOpen(false); }}
+                            className="w-full text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-500/10 border-none bg-transparent flex items-center gap-3 transition-all"
+                          >
+                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                             Sign Out
+                          </button>
+                       </div>
+                     </>
+                   )}
+                 </>
                ) : (
                  <button onClick={() => setShowAuthModal(true)} className="w-10 h-10 rounded-full border-none bg-slate-100 dark:bg-slate-950 flex items-center justify-center text-slate-400 hover:text-orange-500 transition-all shadow-sm active:scale-95">
                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
