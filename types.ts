@@ -11,7 +11,8 @@ export enum ModuleType {
   ATTENDANCE = 'ATTENDANCE',
   SHARE_CGPA = 'SHARE_CGPA',
   ABOUT = 'ABOUT',
-  PROFILE = 'PROFILE'
+  PROFILE = 'PROFILE',
+  TIMETABLE = 'TIMETABLE'
 }
 
 export interface UserProfile {
@@ -26,6 +27,26 @@ export interface UserProfile {
   is_public?: boolean;
   last_seen?: string;
   blocked_users?: string[];
+}
+
+export interface TimetableSlot {
+  id: string;
+  subject: string;
+  room: string;
+  startTime: string; // HH:mm format
+  endTime: string;   // HH:mm format
+  type: 'class' | 'break' | 'lab';
+}
+
+export interface DaySchedule {
+  day: string;
+  slots: TimetableSlot[];
+}
+
+export interface TimetableData {
+  ownerName: string;
+  ownerId: string;
+  schedule: DaySchedule[];
 }
 
 export interface FriendRequest {
@@ -95,9 +116,6 @@ export interface Flashcard {
   back: string;
 }
 
-/**
- * Fix: Added missing ResumeAnalysisResult interface for placement analysis module.
- */
 export interface ResumeAnalysisResult {
   matchScore: number;
   missingKeywords: string[];
@@ -106,9 +124,6 @@ export interface ResumeAnalysisResult {
   summary: string;
 }
 
-/**
- * Fix: Added missing GroundingChunk interface for Google Search grounding modules.
- */
 export interface GroundingChunk {
   web?: {
     uri?: string;

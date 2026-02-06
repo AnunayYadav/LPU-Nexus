@@ -1,10 +1,9 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { ResumeAnalysisResult, Flashcard } from "../types.ts";
+import { ResumeAnalysisResult, Flashcard, DaySchedule } from "../types.ts";
 
 /**
  * Module A: The Placement Prefect
- * Analyzes resume against job description or industry trends.
  */
 export const analyzeResume = async (resumeText: string, jdText: string, deepAnalysis: boolean = false): Promise<ResumeAnalysisResult> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
@@ -71,7 +70,79 @@ export const analyzeResume = async (resumeText: string, jdText: string, deepAnal
 };
 
 /**
- * Module B: The Academic Oracle (Content Library Chat Integration)
+ * Module: Timetable Parser
+ * Extracts LPU Touch timetable screenshots into structured data.
+ */
+export const extractTimetableFromImage = async (base64Image: string): Promise<DaySchedule[]> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+  const modelId = "gemini-3-flash-preview";
+
+  const prompt = `
+    Extract the LPU University timetable from this screenshot. 
+    Identify the days of the week (Monday to Saturday) and the time slots for each day.
+    LPU classes usually follow 50min or 1hr intervals (e.g., 9:00-10:00).
+    
+    Return a structured JSON array of DaySchedule objects.
+    Each object has:
+    - day (string, e.g., 'Monday')
+    - slots (array of objects with id, subject, room, startTime, endTime, type)
+    
+    RULES:
+    1. Identify room numbers like '34-201' or '38-502'.
+    2. Identify Subject names/codes.
+    3. 'type' should be 'class' or 'lab'.
+    4. Ensure startTime and endTime are in 'HH:mm' 24-hour format.
+  `;
+
+  const schema = {
+    type: Type.ARRAY,
+    items: {
+      type: Type.OBJECT,
+      properties: {
+        day: { type: Type.STRING },
+        slots: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              id: { type: Type.STRING },
+              subject: { type: Type.STRING },
+              room: { type: Type.STRING },
+              startTime: { type: Type.STRING },
+              endTime: { type: Type.STRING },
+              type: { type: Type.STRING }
+            },
+            required: ["id", "subject", "room", "startTime", "endTime", "type"]
+          }
+        }
+      },
+      required: ["day", "slots"]
+    }
+  };
+
+  try {
+    const response = await ai.models.generateContent({
+      model: modelId,
+      contents: [
+        { text: prompt },
+        { inlineData: { mimeType: "image/png", data: base64Image.split(',')[1] || base64Image } }
+      ],
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: schema,
+        temperature: 0.1
+      }
+    });
+
+    return JSON.parse(response.text || "[]") as DaySchedule[];
+  } catch (error) {
+    console.error("Timetable AI Error:", error);
+    throw error;
+  }
+};
+
+/**
+ * Module B: The Academic Oracle
  */
 export const askAcademicOracle = async (
   query: string, 
@@ -186,7 +257,6 @@ export const generateFlowchart = async (contextText: string): Promise<string> =>
 
 /**
  * Module C: Global Gateway
- * Uses Google Search Grounding to find international opportunities for LPU students.
  */
 export const searchGlobalOpportunities = async (query: string) => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
@@ -235,7 +305,6 @@ export const searchGlobalOpportunities = async (query: string) => {
 
 /**
  * Module D: LPU Pulse
- * Uses Google Search Grounding to fetch latest campus news for LPU students.
  */
 export const fetchCampusNews = async (query: string) => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });

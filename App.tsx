@@ -13,6 +13,7 @@ import ShareReport from './components/ShareReport.tsx';
 import AboutUs from './components/AboutUs.tsx';
 import AuthModal from './components/AuthModal.tsx';
 import ProfileSection from './components/ProfileSection.tsx';
+import TimetableHub from './components/TimetableHub.tsx';
 import { ModuleType, UserProfile } from './types.ts';
 import NexusServer from './services/nexusServer.ts';
 import { Analytics } from "@vercel/analytics/react";
@@ -22,6 +23,7 @@ const getModuleFromPath = (path: string): ModuleType => {
   const p = path.toLowerCase();
   if (p.includes('/share-cgpa')) return ModuleType.SHARE_CGPA;
   if (p.endsWith('/attendance')) return ModuleType.ATTENDANCE;
+  if (p.endsWith('/timetable')) return ModuleType.TIMETABLE;
   if (p.endsWith('/cgpa')) return ModuleType.CGPA;
   if (p.endsWith('/placement')) return ModuleType.PLACEMENT;
   if (p.endsWith('/library')) return ModuleType.LIBRARY;
@@ -37,6 +39,7 @@ const getModuleFromPath = (path: string): ModuleType => {
 const getPathFromModule = (module: ModuleType): string => {
   switch (module) {
     case ModuleType.ATTENDANCE: return '/attendance';
+    case ModuleType.TIMETABLE: return '/timetable';
     case ModuleType.CGPA: return '/cgpa';
     case ModuleType.PLACEMENT: return '/placement';
     case ModuleType.LIBRARY: return '/library';
@@ -54,6 +57,13 @@ const getPathFromModule = (module: ModuleType): string => {
 
 const Dashboard: React.FC<{ setModule: (m: ModuleType) => void }> = ({ setModule }) => {
   const cards = [
+    { 
+      id: ModuleType.TIMETABLE, 
+      title: "Timetable Hub", 
+      desc: "Sync schedules with friends and find common break windows.", 
+      color: "from-orange-500/20 to-red-500/20",
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    },
     { 
       id: ModuleType.CGPA, 
       title: "CGPA Calculator", 
@@ -89,13 +99,6 @@ const Dashboard: React.FC<{ setModule: (m: ModuleType) => void }> = ({ setModule
       color: "from-purple-500/20 to-pink-500/20",
       icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
     },
-    { 
-      id: ModuleType.GLOBAL, 
-      title: "Global Gateway", 
-      desc: "Explore international masters and scholarship protocols.", 
-      color: "from-cyan-500/20 to-blue-500/20",
-      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-    }
   ];
 
   return (
@@ -190,6 +193,7 @@ const App: React.FC = () => {
   const renderModule = () => {
     switch (currentModule) {
       case ModuleType.PLACEMENT: return <PlacementPrefect userProfile={userProfile} />;
+      case ModuleType.TIMETABLE: return <TimetableHub userProfile={userProfile} />;
       case ModuleType.LIBRARY: return <ContentLibrary userProfile={userProfile} />;
       case ModuleType.CAMPUS: return <CampusNavigator />;
       case ModuleType.GLOBAL: return <GlobalGateway />;

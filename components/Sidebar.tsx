@@ -34,8 +34,13 @@ const Sidebar: React.FC<SidebarProps> = ({
   const navItems = [
     { 
       id: ModuleType.DASHBOARD, 
-      label: 'Dashboard', 
+      label: 'Home', 
       icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 
+    },
+    { 
+      id: ModuleType.TIMETABLE, 
+      label: 'Timetable', 
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> 
     },
     { 
       id: ModuleType.ATTENDANCE, 
@@ -49,38 +54,33 @@ const Sidebar: React.FC<SidebarProps> = ({
     },
     { 
       id: ModuleType.PLACEMENT, 
-      label: 'Placement Prefect', 
+      label: 'Resume Helper', 
       icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg> 
     },
     { 
       id: ModuleType.LIBRARY, 
-      label: 'Content Library', 
+      label: 'Study Material', 
       icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M8 8h10M8 12h10"/></svg> 
     },
     { 
       id: ModuleType.CAMPUS, 
-      label: 'Campus Navigator', 
+      label: 'Campus Map', 
       icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg> 
     },
     { 
       id: ModuleType.GLOBAL, 
-      label: 'Global Gateway', 
+      label: 'Abroad Study', 
       icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> 
     },
     { 
       id: ModuleType.FRESHERS, 
-      label: "Freshers' Kit", 
+      label: "New Student Kit", 
       icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M4 20V10a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M9 6V4a3 3 0 0 1 6 0v2"/><path d="M8 21v-5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v5"/></svg> 
     },
     { 
       id: ModuleType.HELP, 
       label: 'Help & FAQ', 
       icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> 
-    },
-    { 
-      id: ModuleType.ABOUT, 
-      label: 'About Us', 
-      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> 
     },
   ];
 
@@ -93,7 +93,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       setFeedbackText("");
       setTimeout(() => { setSubmitSuccess(false); setShowFeedbackModal(false); }, 2000);
     } catch (e: any) {
-      alert(`Submission failed: ${e.message}`);
+      alert(`Oops! Something went wrong: ${e.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -113,19 +113,19 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto text-green-500">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="w-8 h-8"><polyline points="20 6 9 17 4 12"/></svg>
                 </div>
-                <h3 className="text-xl font-bold dark:text-white uppercase tracking-tighter">Feedback Received</h3>
-                <p className="text-sm text-slate-500">Thank you for helping us improve LPU-Nexus.</p>
+                <h3 className="text-xl font-bold dark:text-white uppercase tracking-tighter">Thanks for sharing!</h3>
+                <p className="text-sm text-slate-500">Your feedback helps us make the app better.</p>
               </div>
             ) : (
               <>
                 <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-2 tracking-tight">Feedback</h3>
-                <p className="text-sm text-slate-500 mb-6">Report a bug or request a feature.</p>
+                <p className="text-sm text-slate-500 mb-6">Found a bug or have a suggestion?</p>
                 <textarea 
                   value={feedbackText}
                   onChange={(e) => setFeedbackText(e.target.value)}
                   disabled={isSubmitting}
                   className="w-full h-32 p-4 rounded-2xl bg-slate-100 dark:bg-black border border-transparent dark:border-white/5 focus:ring-2 focus:ring-orange-500 text-slate-800 dark:text-slate-200 resize-none transition-all outline-none"
-                  placeholder="Type your feedback here..."
+                  placeholder="Tell us what's on your mind..."
                 />
                 <div className="flex justify-end space-x-3 mt-6">
                   <button onClick={() => setShowFeedbackModal(false)} disabled={isSubmitting} className="px-4 py-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-bold text-sm border-none bg-transparent">Cancel</button>
@@ -150,7 +150,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           <h1 className="text-2xl font-black bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent tracking-tighter cursor-pointer" onClick={() => setModule(ModuleType.DASHBOARD)}>
             LPU-Nexus
           </h1>
-          <p className="text-[10px] uppercase font-bold tracking-widest text-slate-400 dark:text-slate-600 mt-1">Intelligence Hub</p>
+          <p className="text-[10px] uppercase font-bold tracking-widest text-slate-400 dark:text-slate-600 mt-1">Your Student Hub</p>
         </div>
 
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto no-scrollbar">
@@ -181,11 +181,6 @@ const Sidebar: React.FC<SidebarProps> = ({
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             <span>Feedback</span>
           </button>
-          <div className="bg-gradient-to-br from-orange-600 to-red-700 rounded-2xl p-5 border border-white/10 shadow-xl shadow-orange-600/10">
-            <h3 className="text-xs font-black text-white uppercase tracking-widest mb-1">Pro</h3>
-            <p className="text-[10px] text-orange-100 mb-3 font-medium">Get deeper AI insights.</p>
-            <button className="w-full text-xs bg-white text-orange-600 py-2.5 rounded-xl font-black transition-transform hover:scale-105 shadow-lg active:scale-95 border-none">UPGRADE</button>
-          </div>
         </div>
       </aside>
     </>
