@@ -104,34 +104,26 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
   const displayFiles = useMemo(() => {
     let data = [...allFiles];
     
-    // Global views show flattened results (Review Hub, Personal Vault, or Active Search)
     if (isAdminView || viewMode === 'my-uploads' || searchQuery.trim() !== '') {
-       // Keep all fetched data
+       // Global flattened views
     } else if (viewMode === 'browse') {
-      // STRICT Hierarchical Filtering Logic:
-      // We only show files at the exact level they belong to.
-      
+      // Level-Locked Filtering
       if (activeCategory) {
-        // At Category Level: Show files belonging to Sem + Sub + Category
+        // Only files explicitly in this category
         data = data.filter(f => 
           f.semester === activeSemester?.name && 
           f.subject === activeSubject?.name && 
           f.type === activeCategory.name
         );
       } else if (activeSubject) {
-        // At Subject Level: Show files belonging to Sem + Sub that have NO specific category
-        // (to prevent them appearing here if they belong to a sub-folder)
+        // Only files in this subject but NOT assigned to a specific category folder
         data = data.filter(f => 
           f.semester === activeSemester?.name && 
           f.subject === activeSubject.name &&
-          (!f.type || f.type.trim() === '' || f.type === 'General')
+          (!f.type || f.type.trim() === '' || f.type === 'General' || f.type === activeSubject.name)
         );
-      } else if (activeSemester) {
-        // At Semester Level: Generally show 0 files (only Subject folders)
-        // because all files should at least be assigned to a Subject.
-        data = []; 
       } else {
-        // At Root: 0 files (only Semester folders)
+        // Root and Semester levels show 0 files to maintain clean hierarchy (only folders)
         data = []; 
       }
     }
@@ -146,7 +138,6 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
   }, [allFiles, searchQuery, isAdminView, viewMode, activeSemester, activeSubject, activeCategory, sortBy]);
 
   const currentFolders = useMemo(() => {
-    // Hide folders entirely when search or admin view or personal vault is active
     if (isAdminView || viewMode === 'my-uploads' || searchQuery.trim() !== '') return [];
     
     return folders.filter(f => {
