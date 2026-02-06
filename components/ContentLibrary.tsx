@@ -104,7 +104,6 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
     if (isAdminView || viewMode === 'my-uploads' || searchQuery.trim() !== '') {
        // Global flattened views
     } else if (viewMode === 'browse') {
-      // Level-Locked Filtering
       if (activeCategory) {
         data = data.filter(f => 
           f.semester === activeSemester?.name && 
@@ -198,11 +197,11 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
     <div className="max-w-6xl mx-auto space-y-6 animate-fade-in pb-20 px-4 md:px-0">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-slate-800 dark:text-white tracking-tighter uppercase">
+          <h2 className="text-3xl font-bold text-slate-800 dark:text-white tracking-tighter uppercase leading-none mb-1">
             Library Hub
           </h2>
           {!isAdminView && !searchQuery && viewMode === 'browse' && (
-            <nav className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+            <nav className="mt-2 flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
               <button onClick={() => navigateTo(null, null, null)} className="hover:text-orange-500 transition-colors border-none bg-transparent">Root</button>
               {activeSemester && <><span className="opacity-30">/</span><button onClick={() => navigateTo(activeSemester, null, null)} className={`border-none bg-transparent ${!activeSubject ? 'text-orange-600' : 'hover:text-orange-500'}`}>{activeSemester.name}</button></>}
               {activeSubject && <><span className="opacity-30">/</span><button onClick={() => navigateTo(activeSemester, activeSubject, null)} className={`border-none bg-transparent ${!activeCategory ? 'text-orange-600' : 'hover:text-orange-500'}`}>{activeSubject.name}</button></>}
@@ -247,8 +246,91 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
               <div className="absolute -right-2 -bottom-2 opacity-5 group-hover:scale-110 transition-transform"><FolderIcon type={folder.type} size="w-24 h-24" /></div>
             </div>
           ))}
-          {displayFiles.map(file => <FileCard key={file.id} file={file} userProfile={userProfile} isAdminMode={isAdminView} isPersonal={viewMode === 'my-uploads'} onApprove={() => { setIsProcessing(true); NexusServer.approveFile(file.id).then(() => fetchFromSource(false)).finally(() => setIsProcessing(false)); }} onReject={() => { if (confirm("Reject and remove this file?")) { setIsProcessing(true); NexusServer.rejectFile(file.id).then(() => fetchFromSource(false)).finally(() => setIsProcessing(false)); } }} onDemote={() => { if (confirm("Send this file back to pending review?")) { setIsProcessing(true); NexusServer.demoteFile(file.id).then(() => fetchFromSource(false)).finally(() => setIsProcessing(false)); } }} onEdit={() => { setSelectedFile(file); setMetaForm({ name: file.name, description: file.description || '', semester: file.semester, subject: file.subject, type: file.type }); setShowEditModal(true); }} onDelete={() => { if (confirm("Permanently delete this file from registry?")) { setIsProcessing(true); NexusServer.deleteFile(file.id, file.storage_path).then(() => fetchFromSource(false)).finally(() => setIsProcessing(false)); } }} onAccess={() => NexusServer.getFileUrl(file.storage_path).then(url => window.open(url, '_blank'))} onShowDetails={() => { setSelectedFile(file); setShowDetailsModal(true); }} />)}
+          {displayFiles.map(file => (
+            <FileCard 
+              key={file.id} 
+              file={file} 
+              userProfile={userProfile} 
+              isAdminMode={isAdminView} 
+              isPersonal={viewMode === 'my-uploads'} 
+              onApprove={() => { setIsProcessing(true); NexusServer.approveFile(file.id).then(() => fetchFromSource(false)).finally(() => setIsProcessing(false)); }} 
+              onReject={() => { if (confirm("Reject and remove this file?")) { setIsProcessing(true); NexusServer.rejectFile(file.id).then(() => fetchFromSource(false)).finally(() => setIsProcessing(false)); } }} 
+              onDemote={() => { if (confirm("Send this file back to pending review?")) { setIsProcessing(true); NexusServer.demoteFile(file.id).then(() => fetchFromSource(false)).finally(() => setIsProcessing(false)); } }} 
+              onEdit={() => { setSelectedFile(file); setMetaForm({ name: file.name, description: file.description || '', semester: file.semester, subject: file.subject, type: file.type }); setShowEditModal(true); }} 
+              onDelete={() => { if (confirm("Permanently delete this file from registry?")) { setIsProcessing(true); NexusServer.deleteFile(file.id, file.storage_path).then(() => fetchFromSource(false)).finally(() => setIsProcessing(false)); } }} 
+              onAccess={() => NexusServer.getFileUrl(file.storage_path).then(url => window.open(url, '_blank'))} 
+              onShowDetails={() => { setSelectedFile(file); setShowDetailsModal(true); }} 
+            />
+          ))}
           {displayFiles.length === 0 && currentFolders.length === 0 && !isLoading && <div className="col-span-full py-20 text-center text-slate-400 font-black uppercase text-[10px] tracking-[0.2em] opacity-40">Empty Protocol.</div>}
+        </div>
+      )}
+
+      {/* Details Modal */}
+      {showDetailsModal && selectedFile && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-2xl animate-fade-in">
+          <div ref={modalRef} className="bg-[#050505] rounded-[48px] w-full max-w-2xl border border-white/10 shadow-[0_32px_128px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[90vh]">
+            <header className="p-8 md:p-12 border-b border-white/5 bg-black flex items-start justify-between">
+               <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                     <div className="w-10 h-10 rounded-2xl bg-orange-600/10 flex items-center justify-center text-orange-500 border border-orange-600/20">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                     </div>
+                     <span className="text-[10px] font-black uppercase tracking-[0.4em] text-orange-600">Document Artifact</span>
+                  </div>
+                  <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-white leading-tight">{selectedFile.name}</h3>
+               </div>
+               <button onClick={() => setShowDetailsModal(false)} className="p-2 text-white/30 hover:text-white transition-colors border-none bg-transparent">
+                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg>
+               </button>
+            </header>
+            
+            <div className="flex-1 overflow-y-auto p-8 md:p-12 space-y-10 no-scrollbar">
+               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {[
+                    { label: 'Semester', val: selectedFile.semester },
+                    { label: 'Subject', val: selectedFile.subject },
+                    { label: 'Category', val: selectedFile.type },
+                    { label: 'File Size', val: selectedFile.size }
+                  ].map((item, i) => (
+                    <div key={i} className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                       <p className="text-[8px] font-black uppercase tracking-widest text-slate-500 mb-1">{item.label}</p>
+                       <p className="text-xs font-black uppercase tracking-tight text-white">{item.val || 'N/A'}</p>
+                    </div>
+                  ))}
+               </div>
+
+               <div className="space-y-4">
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Description</h4>
+                  <p className="text-sm font-medium text-slate-300 leading-relaxed italic bg-white/5 p-6 rounded-3xl border border-white/5">
+                    {selectedFile.description || "No manual summary provided by uploader. Authenticity verified by Nexus registry protocols."}
+                  </p>
+               </div>
+
+               <div className="flex items-center justify-between p-6 bg-orange-600/5 border border-orange-600/20 rounded-3xl">
+                  <div className="flex items-center gap-4">
+                     <div className="w-10 h-10 rounded-full bg-orange-600 flex items-center justify-center font-black text-xs">
+                        {selectedFile.uploader_username?.[0] || 'V'}
+                     </div>
+                     <div>
+                        <p className="text-[8px] font-black text-orange-600 uppercase tracking-widest">Uploader</p>
+                        <p className="text-xs font-black uppercase">@{selectedFile.uploader_username}</p>
+                     </div>
+                  </div>
+                  <div className="text-right">
+                     <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Synced</p>
+                     <p className="text-xs font-black uppercase text-white">{new Date(selectedFile.uploadDate).toLocaleDateString()}</p>
+                  </div>
+               </div>
+            </div>
+
+            <footer className="p-8 md:p-12 bg-black border-t border-white/5 flex gap-4">
+               <button onClick={() => setShowDetailsModal(false)} className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors">Discard</button>
+               {selectedFile.status === 'approved' && (
+                 <button onClick={() => { NexusServer.getFileUrl(selectedFile.storage_path).then(url => window.open(url, '_blank')); }} className="flex-[2] py-4 bg-orange-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition-all border-none">Access Protocol ↗</button>
+               )}
+            </footer>
+          </div>
         </div>
       )}
 
@@ -296,13 +378,12 @@ const FileCard: React.FC<{
         <div className="w-9 h-9 bg-black rounded-xl flex items-center justify-center group-hover:text-orange-500 transition-colors"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
         {(isPersonal || isAdmin) && <div className={`px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest ${status.bg} ${status.color}`}>{status.label}</div>}
       </div>
-      <h3 className="text-xs md:text-sm font-black text-slate-800 dark:text-white tracking-tight leading-tight line-clamp-2 mb-2">{file.name}</h3>
+      <h3 className="text-xs md:text-sm font-black text-slate-800 dark:text-white tracking-tight leading-tight line-clamp-2 mb-2 group-hover:text-orange-500 transition-colors">{file.name}</h3>
       <div className="pt-3 mt-auto border-t border-slate-50 dark:border-white/5 flex items-center justify-between">
         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{file.size}</span>
         <div className="flex gap-1.5">
           {isAdminMode ? (
             <div className="flex gap-1.5">
-               {/* Moderation Controls Only */}
                <button onClick={(e) => { e.stopPropagation(); onApprove?.(); }} className="w-8 h-8 bg-black text-emerald-500 rounded-lg flex items-center justify-center shadow-lg hover:bg-emerald-500 hover:text-white transition-all border-none" title="Approve">
                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><polyline points="20 6 9 17 4 12"/></svg>
                </button>
@@ -315,9 +396,9 @@ const FileCard: React.FC<{
             </div>
           ) : isAdmin ? (
             <div className="flex gap-1.5">
-              <button onClick={(e) => { e.stopPropagation(); onEdit?.(); }} className="w-8 h-8 bg-black text-orange-600 rounded-lg flex items-center justify-center shadow-lg hover:bg-orange-600 hover:text-white transition-all border-none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-              <button onClick={(e) => { e.stopPropagation(); onDelete?.(); }} className="w-8 h-8 bg-black text-red-500 rounded-lg flex items-center justify-center shadow-lg hover:bg-red-500 hover:text-white transition-all border-none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>
-              <button onClick={(e) => { e.stopPropagation(); onAccess(); }} className="w-8 h-8 bg-black text-emerald-500 rounded-lg flex items-center justify-center shadow-lg hover:bg-emerald-500 hover:text-white transition-all border-none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></button>
+              <button onClick={(e) => { e.stopPropagation(); onEdit?.(); }} className="w-8 h-8 bg-black text-orange-600 rounded-lg flex items-center justify-center shadow-lg hover:bg-orange-600 hover:text-white transition-all border-none" title="Edit Metadata"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+              <button onClick={(e) => { e.stopPropagation(); onDelete?.(); }} className="w-8 h-8 bg-black text-red-500 rounded-lg flex items-center justify-center shadow-lg hover:bg-red-500 hover:text-white transition-all border-none" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>
+              <button onClick={(e) => { e.stopPropagation(); onAccess(); }} className="w-8 h-8 bg-black text-emerald-500 rounded-lg flex items-center justify-center shadow-lg hover:bg-emerald-500 hover:text-white transition-all border-none" title="Access File"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></button>
             </div>
           ) : (
             <button onClick={(e) => { e.stopPropagation(); onAccess(); }} className="bg-black text-orange-600 px-4 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-1.5 hover:bg-orange-600 hover:text-white transition-all shadow-md border-none">Access <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3 h-3"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></button>
