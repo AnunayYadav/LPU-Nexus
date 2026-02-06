@@ -142,14 +142,15 @@ class NexusServer {
   static async fetchFiles(q?: string, sub?: string): Promise<LibraryFile[]> {
     const client = getSupabase();
     if (!client) return [];
-    let query = client.from('documents').select('*, profiles!uploader_id(username)').eq('status', 'approved');
+    // Using a more standard relationship select. Removed explicit aliasing to minimize syntax errors.
+    let query = client.from('documents').select('*, uploader:profiles(username)').eq('status', 'approved');
     if (q) query = query.ilike('name', `%${q}%`);
     const { data, error } = await query.order('created_at', { ascending: false });
-    if (error) { console.error("Database Select Error:", error); return []; }
+    if (error) { console.error("Fetch Error:", error); return []; }
     return (data || []).map(item => ({
       id: item.id, name: item.name, subject: item.subject, semester: item.semester, type: item.type,
       uploadDate: new Date(item.created_at).getTime(), size: item.size, status: item.status, storage_path: item.storage_path,
-      uploader_username: item.profiles?.username,
+      uploader_username: (item.uploader as any)?.username || "Anonymous Verto",
       description: item.description,
       admin_notes: item.admin_notes
     }));
@@ -237,14 +238,14 @@ class NexusServer {
   static async fetchPendingFiles(q?: string): Promise<LibraryFile[]> {
     const client = getSupabase();
     if (!client) return [];
-    let query = client.from('documents').select('*, profiles!uploader_id(username)').eq('status', 'pending');
+    let query = client.from('documents').select('*, uploader:profiles(username)').eq('status', 'pending');
     if (q) query = query.ilike('name', `%${q}%`);
     const { data, error } = await query.order('created_at', { ascending: false });
-    if (error) { console.error("Database Select Error:", error); return []; }
+    if (error) { console.error("Fetch Pending Error:", error); return []; }
     return (data || []).map(item => ({
       id: item.id, name: item.name, subject: item.subject, semester: item.semester, type: item.type,
       uploadDate: new Date(item.created_at).getTime(), size: item.size, status: item.status, storage_path: item.storage_path,
-      uploader_username: item.profiles?.username,
+      uploader_username: (item.uploader as any)?.username || "Anonymous Verto",
       description: item.description,
       admin_notes: item.admin_notes
     }));
@@ -253,12 +254,12 @@ class NexusServer {
   static async fetchUserFiles(uid: string): Promise<LibraryFile[]> {
     const client = getSupabase();
     if (!client) return [];
-    const { data, error } = await client.from('documents').select('*, profiles!uploader_id(username)').eq('uploader_id', uid).order('created_at', { ascending: false });
-    if (error) { console.error("Database Select Error:", error); return []; }
+    const { data, error } = await client.from('documents').select('*, uploader:profiles(username)').eq('uploader_id', uid).order('created_at', { ascending: false });
+    if (error) { console.error("Fetch User Files Error:", error); return []; }
     return (data || []).map(item => ({
       id: item.id, name: item.name, subject: item.subject, semester: item.semester, type: item.type,
       uploadDate: new Date(item.created_at).getTime(), size: item.size, status: item.status, storage_path: item.storage_path,
-      uploader_username: item.profiles?.username,
+      uploader_username: (item.uploader as any)?.username || "Anonymous Verto",
       description: item.description,
       admin_notes: item.admin_notes
     }));

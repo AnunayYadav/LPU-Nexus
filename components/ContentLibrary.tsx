@@ -104,9 +104,9 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
   const displayFiles = useMemo(() => {
     let data = [...allFiles];
     
-    // Flattened display for specific global views
-    if (isAdminView || viewMode === 'my-uploads' || searchQuery) {
-       // Keep all fetched files for these special "global" views
+    // Critical: If we are in Review Hub, Search, or My Vault, show ALL fetched files immediately.
+    if (isAdminView || viewMode === 'my-uploads' || searchQuery.trim() !== '') {
+       // No additional filtering needed, allFiles already contains only the relevant subset from DB
     } else if (viewMode === 'browse') {
       // Apply strict hierarchical filtering only for Browse mode
       if (activeCategory) {
@@ -123,7 +123,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
       } else if (activeSemester) {
         data = data.filter(f => f.semester === activeSemester.name);
       } else {
-        // At Root of Browse, we only show folders, so hide all files
+        // At Root of Browse, we only show folders, so hide all files to keep UI clean
         data = []; 
       }
     }
@@ -138,7 +138,8 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
   }, [allFiles, searchQuery, isAdminView, viewMode, activeSemester, activeSubject, activeCategory, sortBy]);
 
   const currentFolders = useMemo(() => {
-    if (isAdminView || viewMode === 'my-uploads' || searchQuery) return [];
+    // Hide folders entirely when search or admin view or personal vault is active
+    if (isAdminView || viewMode === 'my-uploads' || searchQuery.trim() !== '') return [];
     
     return folders.filter(f => {
       if (!activeSemester) return f.type === 'semester';
@@ -208,7 +209,6 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
         setIsCustomSubject(false);
         setIsCustomCategory(false);
         fetchFromSource(false); 
-        // Redirect to vault to see the upload
         setViewMode('my-uploads');
       }, 1500);
     } catch (e: any) { alert(e.message); } finally { setIsProcessing(false); }
@@ -296,7 +296,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
                 <button 
                   onClick={toggleAdminView}
                   className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all border-none ${isAdminView ? 'bg-orange-600 text-white shadow-lg' : 'bg-black text-slate-400'}`}
-                  title={isAdminView ? "Exit Mod View" : "Enter Mod View"}
+                  title={isAdminView ? "Exit Review Hub" : "Enter Review Hub"}
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                 </button>
@@ -323,21 +323,19 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
         </div>
       </header>
 
-      {!isAdminView && (
-        <div className="flex gap-2 w-full">
-          <div className="relative flex-1">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-            <input type="text" placeholder="Filter registry..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-xl text-[10px] font-black uppercase tracking-widest outline-none focus:ring-2 focus:ring-orange-500 transition-all" />
-          </div>
-          <button 
-            onClick={() => fetchFromSource(true)}
-            className="w-12 h-12 flex items-center justify-center bg-black rounded-xl text-slate-400 hover:text-orange-600 transition-colors shadow-sm border-none"
-            title="Refresh Registry"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`}><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-          </button>
+      <div className="flex gap-2 w-full">
+        <div className="relative flex-1">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" placeholder="Filter registry..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-xl text-[10px] font-black uppercase tracking-widest outline-none focus:ring-2 focus:ring-orange-500 transition-all" />
         </div>
-      )}
+        <button 
+          onClick={() => fetchFromSource(true)}
+          className="w-12 h-12 flex items-center justify-center bg-black rounded-xl text-slate-400 hover:text-orange-600 transition-colors shadow-sm border-none"
+          title="Refresh Registry"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`}><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        </button>
+      </div>
 
       {isLoading ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
@@ -445,7 +443,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
         </div>
       )}
 
-      {/* Modals remain same as previous state for Folder/Rename/Edit/Details/Upload */}
+      {/* Modals for Folder/Rename/Edit/Details/Upload */}
       {showFolderModal && userProfile?.is_admin && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
           <div ref={modalRef} className="bg-white dark:bg-slate-950 rounded-[30px] w-full max-w-sm shadow-2xl border border-white/10 overflow-hidden flex flex-col">
