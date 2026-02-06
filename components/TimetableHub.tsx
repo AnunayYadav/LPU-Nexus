@@ -203,13 +203,13 @@ const PRESET_BATCHES = [
 const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile }) => {
   const [activeDay, setActiveDay] = useState(new Date().toLocaleDateString('en-US', { weekday: 'long' }) === 'Sunday' ? 'Monday' : new Date().toLocaleDateString('en-US', { weekday: 'long' }));
   const [myTimetable, setMyTimetable] = useState<TimetableData | null>(null);
-  const [friendTimetable, setFriendTimetable] = useState<TimetableData | null>(null);
-  const [selectedEntity, setSelectedEntity] = useState<'me' | 'friend'>('me');
+  const [friendTimetables, setFriendTimetables] = useState<TimetableData[]>([]);
+  const [selectedEntityId, setSelectedEntityId] = useState<string>('me');
   
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showPresetsModal, setShowPresetsModal] = useState(false);
   const [showRenameModal, setShowRenameModal] = useState(false);
-  const [renameTarget, setRenameTarget] = useState<'me' | 'friend' | null>(null);
+  const [renameTargetId, setRenameTargetId] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
   
   const [isProcessingAI, setIsProcessingAI] = useState(false);
@@ -234,27 +234,39 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
     if (records && records.length > 0) {
       setMyTimetable(records[0].content);
     } else {
-      // Default placeholder if no record
       setMyTimetable({ ownerId: userProfile.id, ownerName: userProfile.username || 'My Profile', schedule: [] });
     }
   };
 
   const handleRename = async () => {
-    if (!renameTarget || !newName.trim()) return;
+    if (!renameTargetId || !newName.trim()) return;
     
-    if (renameTarget === 'me' && myTimetable) {
+    if (renameTargetId === 'me' && myTimetable) {
       const updated = { ...myTimetable, ownerName: newName.trim() };
       setMyTimetable(updated);
       if (userProfile) {
         await NexusServer.saveRecord(userProfile.id, 'timetable_main', 'My Timetable', updated);
       }
-    } else if (renameTarget === 'friend' && friendTimetable) {
-      setFriendTimetable({ ...friendTimetable, ownerName: newName.trim() });
+    } else {
+      setFriendTimetables(prev => prev.map(f => f.ownerId === renameTargetId ? { ...f, ownerName: newName.trim() } : f));
     }
     
     setShowRenameModal(false);
-    setRenameTarget(null);
+    setRenameTargetId(null);
     setNewName('');
+  };
+
+  const handleRemoveFriend = (friendId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
+    // Using a simple confirm check that doesn't block the UI thread in strange ways
+    if (window.confirm("Disconnect this profile permanently?")) {
+      setFriendTimetables(prev => prev.filter(f => f.ownerId !== friendId));
+      if (selectedEntityId === friendId) {
+        setSelectedEntityId('me');
+      }
+    }
   };
 
   const readFileAsDataURL = (file: File): Promise<string> => {
@@ -289,9 +301,10 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
         });
       }
 
+      const newId = `friend-${Math.random().toString(36).substr(2, 9)}`;
       const data: TimetableData = { 
-        ownerId: targetForAction === 'me' ? (userProfile?.id || 'anon') : 'friend-id', 
-        ownerName: targetForAction === 'me' ? (myTimetable?.ownerName || userProfile?.username || 'My Profile') : (friendTimetable?.ownerName || 'Friend Profile'), 
+        ownerId: targetForAction === 'me' ? (userProfile?.id || 'anon') : newId, 
+        ownerName: targetForAction === 'me' ? (myTimetable?.ownerName || userProfile?.username || 'My Profile') : 'New Friend', 
         schedule: combinedSchedules 
       };
 
@@ -300,10 +313,10 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
           await NexusServer.saveRecord(userProfile.id, 'timetable_main', 'My Timetable', data);
         }
         setMyTimetable(data);
-        setSelectedEntity('me');
+        setSelectedEntityId('me');
       } else {
-        setFriendTimetable(data);
-        setSelectedEntity('friend');
+        setFriendTimetables(prev => [...prev, data]);
+        setSelectedEntityId(newId);
       }
       
       setShowUploadModal(false);
@@ -325,7 +338,10 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
     return today === activeDay;
   }, [activeDay]);
 
-  const activeTimetable = selectedEntity === 'me' ? myTimetable : friendTimetable;
+  const activeTimetable = useMemo(() => {
+    if (selectedEntityId === 'me') return myTimetable;
+    return friendTimetables.find(f => f.ownerId === selectedEntityId) || null;
+  }, [selectedEntityId, myTimetable, friendTimetables]);
 
   const daySlotsWithBreaks = useMemo(() => {
     if (!activeTimetable || !activeTimetable.schedule) return [];
@@ -355,12 +371,12 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
     return result;
   }, [activeTimetable, activeDay]);
 
-  // Comparison logic for common breaks
+  // Comparison logic for common breaks (Always compares selected friend with user's profile)
   const commonBreaks = useMemo(() => {
-    if (!myTimetable || !friendTimetable || !myTimetable.schedule || !friendTimetable.schedule) return [];
+    if (selectedEntityId === 'me' || !myTimetable || !activeTimetable || !myTimetable.schedule || !activeTimetable.schedule) return [];
     
     const myDay = myTimetable.schedule.find(s => s.day === activeDay);
-    const frDay = friendTimetable.schedule.find(s => s.day === activeDay);
+    const frDay = activeTimetable.schedule.find(s => s.day === activeDay);
     if (!myDay || !frDay) return [];
 
     const getGaps = (day: DaySchedule) => {
@@ -392,22 +408,23 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
       }
     }
     return overlaps;
-  }, [myTimetable, friendTimetable, activeDay]);
+  }, [myTimetable, activeTimetable, activeDay, selectedEntityId]);
 
   const applyPreset = async (batch: typeof PRESET_BATCHES[0]) => {
+    const newId = `friend-${Math.random().toString(36).substr(2, 9)}`;
     const data: TimetableData = { 
-      ownerId: targetForAction === 'me' ? (userProfile?.id || 'anon') : 'friend-id', 
-      ownerName: targetForAction === 'me' ? (myTimetable?.ownerName || userProfile?.username || 'My Profile') : (friendTimetable?.ownerName || 'Friend Profile'), 
+      ownerId: targetForAction === 'me' ? (userProfile?.id || 'anon') : newId, 
+      ownerName: targetForAction === 'me' ? (myTimetable?.ownerName || userProfile?.username || 'My Profile') : 'New Friend', 
       schedule: batch.schedule 
     };
 
     if (targetForAction === 'me') {
       if (userProfile) await NexusServer.saveRecord(userProfile.id, 'timetable_main', batch.name, data);
       setMyTimetable(data);
-      setSelectedEntity('me');
+      setSelectedEntityId('me');
     } else {
-      setFriendTimetable(data);
-      setSelectedEntity('friend');
+      setFriendTimetables(prev => [...prev, data]);
+      setSelectedEntityId(newId);
     }
     setShowPresetsModal(false);
   };
@@ -442,7 +459,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
             <div className="glass-panel p-16 rounded-[48px] border-4 border-dashed border-white/5 flex flex-col items-center justify-center text-center opacity-40 bg-black">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="w-20 h-20 mb-6"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
               <h3 className="text-xl font-black uppercase tracking-tighter">Empty Schedule</h3>
-              <p className="text-xs font-bold mt-2">Pick a Preset or Upload from LPU Touch for {activeTimetable?.ownerName || (selectedEntity === 'me' ? 'yourself' : 'friend')}.</p>
+              <p className="text-xs font-bold mt-2">Pick a Preset or Upload from LPU Touch for {activeTimetable?.ownerName || (selectedEntityId === 'me' ? 'yourself' : 'friend')}.</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -502,9 +519,9 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
            <div className="glass-panel p-8 rounded-[48px] bg-gradient-to-br from-orange-600 to-red-700 text-white border-none shadow-2xl relative overflow-hidden group">
               <div className="relative z-10">
                 <h3 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-80 mb-6">Common Breaks</h3>
-                {!friendTimetable || !friendTimetable.schedule || friendTimetable.schedule.length === 0 ? (
-                  <div className="py-4 text-center">
-                    <p className="text-xs font-black uppercase opacity-60 tracking-widest">Add a friend to see shared gaps.</p>
+                {selectedEntityId === 'me' ? (
+                   <div className="py-4 text-center">
+                    <p className="text-xs font-black uppercase opacity-60 tracking-widest">Select a friend below to compare gaps.</p>
                   </div>
                 ) : commonBreaks.length === 0 ? (
                   <div className="py-4 text-center">
@@ -531,47 +548,57 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
               <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-6">Connections</h3>
               <div className="space-y-4">
                  <div 
-                  onClick={() => setSelectedEntity('me')}
-                  className={`flex items-center justify-between p-4 rounded-2xl border cursor-pointer transition-all ${selectedEntity === 'me' ? 'bg-orange-600/10 border-orange-600' : 'bg-black border-white/5 hover:border-white/10'}`}
+                  onClick={() => setSelectedEntityId('me')}
+                  className={`flex items-center justify-between p-4 rounded-2xl border cursor-pointer transition-all ${selectedEntityId === 'me' ? 'bg-orange-600/10 border-orange-600' : 'bg-black border-white/5 hover:border-white/10'}`}
                  >
                     <div className="flex items-center gap-3">
                        <div className="w-8 h-8 rounded-full bg-orange-600 flex items-center justify-center font-black text-[10px]">{userProfile?.username?.[0] || 'M'}</div>
-                       <span className={`text-[10px] font-black uppercase ${selectedEntity === 'me' ? 'text-orange-500' : 'text-white'}`}>
+                       <span className={`text-[10px] font-black uppercase ${selectedEntityId === 'me' ? 'text-orange-500' : 'text-white'}`}>
                         {myTimetable?.ownerName || 'My Profile'}
                        </span>
                     </div>
                     <div className="flex items-center gap-2">
-                       <button onClick={(e) => { e.stopPropagation(); setRenameTarget('me'); setNewName(myTimetable?.ownerName || ''); setShowRenameModal(true); }} className="p-1 hover:text-orange-500 text-white/20 transition-colors border-none bg-transparent">
+                       <button 
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setRenameTargetId('me'); setNewName(myTimetable?.ownerName || ''); setShowRenameModal(true); }} 
+                        className="p-1 hover:text-orange-500 text-white/20 transition-colors border-none bg-transparent"
+                       >
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                        </button>
                        <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
                     </div>
                  </div>
 
-                 {friendTimetable && (
+                 {friendTimetables.map(friend => (
                    <div 
-                    onClick={() => setSelectedEntity('friend')}
-                    className={`flex items-center justify-between p-4 rounded-2xl border cursor-pointer transition-all ${selectedEntity === 'friend' ? 'bg-blue-600/10 border-blue-600' : 'bg-black border-white/5 hover:border-white/10'}`}
+                    key={friend.ownerId}
+                    onClick={() => setSelectedEntityId(friend.ownerId)}
+                    className={`flex items-center justify-between p-4 rounded-2xl border cursor-pointer transition-all ${selectedEntityId === friend.ownerId ? 'bg-blue-600/10 border-blue-600' : 'bg-black border-white/5 hover:border-white/10'}`}
                    >
                     <div className="flex items-center gap-3">
-                       <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center font-black text-[10px]">F</div>
-                       <span className={`text-[10px] font-black uppercase ${selectedEntity === 'friend' ? 'text-blue-500' : 'text-white'}`}>
-                        {friendTimetable.ownerName}
+                       <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center font-black text-[10px]">{friend.ownerName?.[0] || 'F'}</div>
+                       <span className={`text-[10px] font-black uppercase ${selectedEntityId === friend.ownerId ? 'text-blue-500' : 'text-white'}`}>
+                        {friend.ownerName}
                        </span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <button onClick={(e) => { e.stopPropagation(); setRenameTarget('friend'); setNewName(friendTimetable.ownerName); setShowRenameModal(true); }} className="p-1 hover:text-blue-500 text-white/20 transition-colors border-none bg-transparent">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      <button 
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setRenameTargetId(friend.ownerId); setNewName(friend.ownerName); setShowRenameModal(true); }} 
+                        className="p-1.5 hover:text-blue-500 text-white/20 transition-colors border-none bg-transparent"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                       </button>
                       <button 
-                        onClick={(e) => { e.stopPropagation(); setFriendTimetable(null); setSelectedEntity('me'); }}
-                        className="p-1 hover:text-red-500 text-white/20 transition-colors border-none bg-transparent"
+                        type="button"
+                        onClick={(e) => handleRemoveFriend(friend.ownerId, e)}
+                        className="p-1.5 group/del hover:bg-red-500 transition-all border-none bg-transparent rounded-lg"
                       >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4 text-white/20 group-hover/del:text-white"><path d="M18 6L6 18M6 6l12 12"/></svg>
                       </button>
                     </div>
                    </div>
-                 )}
+                 ))}
 
                  <button 
                   onClick={() => { setTargetForAction('friend'); setShowPresetsModal(true); }}
@@ -586,7 +613,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
 
       {showRenameModal && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-fade-in overflow-hidden">
-          <div className="bg-[#0a0a0a] rounded-[48px] w-full max-w-sm border border-white/10 shadow-[0_32px_128px_rgba(0,0,0,0.8)] overflow-hidden">
+          <div className="bg-[#0a0a0a] rounded-[48px] w-full max-sm border border-white/10 shadow-[0_32px_128px_rgba(0,0,0,0.8)] overflow-hidden">
             <div className="p-10 text-center">
               <h3 className="text-2xl font-black tracking-tighter uppercase mb-2">Rename Profile</h3>
               <p className="text-white/40 text-[9px] font-black uppercase tracking-[0.3em]">Personalize the identity</p>
@@ -612,7 +639,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
 
       {showUploadModal && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-fade-in overflow-hidden">
-          <div className="bg-[#0a0a0a] rounded-[56px] w-full max-w-md border border-white/10 shadow-[0_32px_128px_rgba(0,0,0,0.8)] overflow-hidden">
+          <div className="bg-[#0a0a0a] rounded-[56px] w-full max-md border border-white/10 shadow-[0_32px_128px_rgba(0,0,0,0.8)] overflow-hidden">
             <div className="bg-black p-10 text-center relative">
               <button onClick={() => setShowUploadModal(false)} className="absolute top-8 right-8 text-white/30 hover:text-white transition-colors border-none bg-transparent">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg>
@@ -621,7 +648,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-8 h-8 text-orange-600"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
               </div>
               <h3 className="text-3xl font-black tracking-tighter uppercase">AI Scanner</h3>
-              <p className="text-white/40 text-[9px] font-black mt-2 uppercase tracking-[0.3em]">Select screenshots for {targetForAction === 'me' ? (myTimetable?.ownerName || 'Yourself') : (friendTimetable?.ownerName || 'Friend')}</p>
+              <p className="text-white/40 text-[9px] font-black mt-2 uppercase tracking-[0.3em]">Select screenshots for {targetForAction === 'me' ? (myTimetable?.ownerName || 'Yourself') : 'New Friend'}</p>
             </div>
             <div className="p-10 space-y-6">
                {isProcessingAI ? (
@@ -658,7 +685,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
                <button onClick={() => setShowPresetsModal(false)} className="text-white/30 hover:text-white transition-colors border-none bg-transparent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             </div>
             <div className="p-8 bg-orange-600/5 border-b border-white/5">
-                <p className="text-[10px] font-black uppercase tracking-widest text-orange-600 text-center">Selecting timetable for: <span className="text-white">{targetForAction === 'me' ? (myTimetable?.ownerName || 'Your Profile') : (friendTimetable?.ownerName || 'A New Friend')}</span></p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-orange-600 text-center">Selecting timetable for: <span className="text-white">{targetForAction === 'me' ? (myTimetable?.ownerName || 'Your Profile') : 'A New Friend'}</span></p>
             </div>
             <div className="p-10 grid grid-cols-1 gap-4 max-h-[400px] overflow-y-auto no-scrollbar bg-black">
                {PRESET_BATCHES.map(batch => (
