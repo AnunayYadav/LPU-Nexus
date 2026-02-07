@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { extractTextFromPdf } from '../services/pdfUtils';
 import { analyzeResume } from '../services/geminiService';
 import { ResumeAnalysisResult, UserProfile } from '../types';
@@ -41,7 +41,6 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
   const [analysisMode, setAnalysisMode] = useState<'custom' | 'trend'>('trend');
   const [selectedRoleId, setSelectedRoleId] = useState<string>('');
   const [history, setHistory] = useState<any[]>([]);
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   useEffect(() => {
     loadHistory();
@@ -109,21 +108,6 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
     }
   };
 
-  const deleteHistory = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!userProfile) return;
-    if (confirm("Permanently delete this audit from your history?")) {
-      await NexusServer.deleteRecord(id, 'resume_audit', userProfile.id);
-      loadHistory();
-    }
-  };
-
-  const loadSnapshot = (record: any) => {
-    setResult(record.content);
-    setFileName(record.label || 'Archived Audit');
-    setIsHistoryOpen(false);
-  };
-
   const ScoreHex = ({ label, score, color }: { label: string, score: number, color: string }) => (
     <div className="flex flex-col items-center p-6 bg-black border border-white/5 rounded-[32px] flex-1">
       <p className="text-[8px] font-black uppercase tracking-[0.3em] text-slate-500 mb-4">{label}</p>
@@ -141,41 +125,13 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
           <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2 tracking-tighter">Placement Prefect</h2>
           <p className="text-slate-600 dark:text-slate-400 font-medium">Professional ATS Diagnostic Terminal. Zero sugarcoating, pure reality.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={() => setIsHistoryOpen(!isHistoryOpen)} 
-            className={`p-3 rounded-2xl transition-all border-none bg-transparent flex items-center justify-center ${isHistoryOpen ? 'text-orange-600' : 'text-slate-400 hover:text-orange-500'}`}
-            title="Archived Audits"
-          >
-             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-6 h-6"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/></svg>
+        {result && (
+          <button onClick={saveAudit} disabled={isSaving} className="bg-orange-600 text-white px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl flex items-center gap-2 active:scale-95 transition-all border-none">
+            {isSaving ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/></svg>}
+            Archive Results
           </button>
-          {result && (
-            <button onClick={saveAudit} disabled={isSaving} className="bg-orange-600 text-white px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl flex items-center gap-2 active:scale-95 transition-all border-none">
-              {isSaving ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/></svg>}
-              Archive
-            </button>
-          )}
-        </div>
+        )}
       </header>
-
-      {isHistoryOpen && (
-        <div className="glass-panel p-6 rounded-[32px] border border-orange-500/20 bg-orange-500/[0.03] animate-fade-in mb-8">
-           <h3 className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-6 px-2">History Vault</h3>
-           {history.length === 0 ? <p className="text-xs text-slate-400 font-bold py-10 text-center uppercase tracking-widest opacity-40">Registry Empty.</p> : (
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-               {history.map(h => (
-                  <div key={h.id} onClick={() => loadSnapshot(h)} className="p-5 bg-white dark:bg-black border border-slate-100 dark:border-white/5 rounded-3xl cursor-pointer hover:border-orange-500/50 transition-all flex items-center justify-between shadow-sm group">
-                     <div className="min-w-0">
-                        <p className="text-xs font-black uppercase tracking-tight dark:text-white truncate">{h.label}</p>
-                        <p className="text-[8px] font-bold text-slate-400 uppercase mt-1">{new Date(h.created_at).toLocaleDateString()} • {h.content?.totalScore}% Score</p>
-                     </div>
-                     <button onClick={(e) => deleteHistory(h.id, e)} className="p-2 text-red-500/20 hover:text-red-500 border-none bg-transparent opacity-0 group-hover:opacity-100 transition-opacity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>
-                  </div>
-               ))}
-             </div>
-           )}
-        </div>
-      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         <div className="lg:col-span-4 space-y-6">
@@ -231,28 +187,6 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
             </div>
           ) : result ? (
             <div className="space-y-8 animate-fade-in">
-              
-              {/* Total Nexus Score */}
-              <div className="glass-panel p-10 rounded-[56px] bg-gradient-to-br from-orange-600 to-red-700 text-white border-none shadow-2xl relative overflow-hidden group">
-                 <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
-                    <div className="text-center md:text-left">
-                       <h3 className="text-[11px] font-black uppercase tracking-[0.4em] opacity-80 mb-2">Total Nexus Score</h3>
-                       <p className="text-sm font-bold opacity-60 uppercase tracking-widest">Weighted Professional Standing</p>
-                    </div>
-                    <div className="relative flex items-center justify-center">
-                       <svg className="w-32 h-32 transform -rotate-90">
-                          <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-white/10" />
-                          <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray={364.4} strokeDashoffset={364.4 - (364.4 * (result.totalScore || 0)) / 100} strokeLinecap="round" className="text-white transition-all duration-[2000ms] ease-out" />
-                       </svg>
-                       <div className="absolute flex flex-col items-center">
-                          <span className="text-4xl font-black tracking-tighter">{result.totalScore || 0}</span>
-                          <span className="text-[10px] font-black uppercase tracking-widest opacity-60">/ 100</span>
-                       </div>
-                    </div>
-                 </div>
-                 <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/10 blur-[60px] rounded-full group-hover:scale-125 transition-transform" />
-              </div>
-
               {/* Score Breakdown */}
               <div className="flex flex-col md:flex-row gap-4">
                  <ScoreHex label="ATS Compliance" score={result.scores.atsMatch} color="text-orange-500" />
