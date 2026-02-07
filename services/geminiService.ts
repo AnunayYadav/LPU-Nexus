@@ -41,10 +41,11 @@ export const analyzeResume = async (resumeText: string, jdText: string, deepAnal
     ${depthInstruction}
     
     1. Score Breakdown: Calculate ATS Match, Recruiter Appeal (Odds of survival), and Formatting (Professionalism) (0-100).
-    2. Section Health: Audit Education, Projects, Experience, and Skills sections for weaknesses.
-    3. Skill Proof: Cross-reference skills with project descriptions. Flag anything that looks like a keyword-stuffed lie.
-    4. Top 1% Benchmark: How does this compare to elite tier candidates from IIT/MIT/Stanford? (Hint: It probably doesn't).
-    5. Keyword Ledger: Categorize Found, Missing, and Weak (low density) keywords.
+    2. Total Score: Provide an overall Nexus Score out of 100 based on a weighted average of the above scores and JD compatibility.
+    3. Section Health: Audit Education, Projects, Experience, and Skills sections for weaknesses.
+    4. Skill Proof: Cross-reference skills with project descriptions. Flag anything that looks like a keyword-stuffed lie.
+    5. Top 1% Benchmark: How does this compare to elite tier candidates from IIT/MIT/Stanford? (Hint: It probably doesn't).
+    6. Keyword Ledger: Categorize Found, Missing, and Weak (low density) keywords.
     
     Output a strict JSON object following the ResumeAnalysisResult schema. 
     IF deepAnalysis is true, the summary should be a scathing roast of their professional identity.
@@ -61,6 +62,7 @@ export const analyzeResume = async (resumeText: string, jdText: string, deepAnal
           formattingScore: { type: Type.INTEGER }
         }
       },
+      totalScore: { type: Type.INTEGER },
       sectionHealth: {
         type: Type.ARRAY,
         items: {

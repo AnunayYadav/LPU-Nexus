@@ -55,6 +55,7 @@ export interface ResumeAnalysisResult {
     recruiterScore: number;
     formattingScore: number;
   };
+  totalScore: number;
   sectionHealth: {
     section: string;
     status: 'OPTIMIZED' | 'STABLE' | 'CRITICAL';
