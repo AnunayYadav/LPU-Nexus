@@ -49,6 +49,35 @@ export interface TimetableData {
   schedule: DaySchedule[];
 }
 
+export interface ResumeAnalysisResult {
+  scores: {
+    atsMatch: number;
+    recruiterScore: number;
+    formattingScore: number;
+  };
+  sectionHealth: {
+    section: string;
+    status: 'OPTIMIZED' | 'STABLE' | 'CRITICAL';
+    feedback: string;
+  }[];
+  skillProof: {
+    skill: string;
+    isVerified: boolean;
+    feedback: string;
+  }[];
+  benchmarking: {
+    comparison: string;
+    gapToTop1Percent: string[];
+  };
+  keywords: {
+    found: string[];
+    missing: string[];
+    weak: string[];
+  };
+  phrasingAdvice: string[];
+  summary: string;
+}
+
 export interface FriendRequest {
   id: string;
   sender_id: string;
@@ -57,11 +86,6 @@ export interface FriendRequest {
   created_at: string;
   sender?: UserProfile;
   receiver?: UserProfile;
-}
-
-export interface MessageReaction {
-  emoji: string;
-  user_id: string;
 }
 
 export interface ChatMessage {
@@ -114,14 +138,6 @@ export interface Folder {
 export interface Flashcard {
   front: string;
   back: string;
-}
-
-export interface ResumeAnalysisResult {
-  matchScore: number;
-  missingKeywords: string[];
-  phrasingAdvice: string[];
-  projectFeedback: string;
-  summary: string;
 }
 
 export interface GroundingChunk {

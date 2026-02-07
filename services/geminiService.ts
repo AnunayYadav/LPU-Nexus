@@ -24,37 +24,82 @@ const callGeminiProxy = async (action: string, payload: any) => {
  * Module: Placement Prefect
  */
 export const analyzeResume = async (resumeText: string, jdText: string, deepAnalysis: boolean = false): Promise<ResumeAnalysisResult> => {
-  const analysisType = deepAnalysis ? "DEEP CRITICAL ANALYSIS (STRICT)" : "STANDARD ATS SCAN";
   const depthInstruction = deepAnalysis 
-    ? "Scrutunize every bullet point for quantifiable impact (metrics, percentages). Identify weak action verbs. Provide 'harsh' feedback on whether the candidate actually demonstrates seniority or proficiency. Scrutunize '2025 Industry Trends' alignment specifically."
-    : "Highlight missing keywords and provide high-level phrasing improvements to bypass modern ATS filters.";
+    ? "Act as a brutal FAANG recruiter. Scrutunize for quantifiable impact (%), action verbs, and verify skills against specific project contexts. If a skill is listed but not demonstrated in experience, flag it as 'unverified'."
+    : "Perform a high-level ATS scan focusing on keyword density and section layout.";
 
   const prompt = `
-    You are a ruthless technical recruiter at a FAANG+ company specializing in university hiring. 
-    Perform a ${analysisType} of the following Candidate Resume.
+    TASK: ANALYZE RESUME AGAINST TARGET JD/TRENDS.
     
-    TARGET TARGET (JD or Industry Trends):
+    TARGET CONTEXT:
     ${jdText}
 
-    CANDIDATE RESUME:
+    RESUME CONTENT:
     ${resumeText}
 
-    INSTRUCTIONS:
+    CRITICAL REQUIREMENTS:
     ${depthInstruction}
     
-    Output a strict JSON object with: matchScore, missingKeywords, phrasingAdvice, projectFeedback, summary.
+    1. Score Breakdown: Calculate ATS Match, Recruiter Appeal, and Formatting (0-100).
+    2. Section Health: Audit Education, Projects, Experience, and Skills sections for weaknesses.
+    3. Skill Proof: Cross-reference skills with project descriptions.
+    4. Top 1% Benchmark: How does this compare to elite tier candidates?
+    5. Keyword Ledger: Categorize Found, Missing, and Weak (low density) keywords.
+    
+    Output a strict JSON object following the ResumeAnalysisResult schema. Be brutal.
   `;
 
   const schema = {
     type: Type.OBJECT,
     properties: {
-      matchScore: { type: Type.INTEGER },
-      missingKeywords: { type: Type.ARRAY, items: { type: Type.STRING } },
+      scores: {
+        type: Type.OBJECT,
+        properties: {
+          atsMatch: { type: Type.INTEGER },
+          recruiterScore: { type: Type.INTEGER },
+          formattingScore: { type: Type.INTEGER }
+        }
+      },
+      sectionHealth: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            section: { type: Type.STRING },
+            status: { type: Type.STRING },
+            feedback: { type: Type.STRING }
+          }
+        }
+      },
+      skillProof: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            skill: { type: Type.STRING },
+            isVerified: { type: Type.BOOLEAN },
+            feedback: { type: Type.STRING }
+          }
+        }
+      },
+      benchmarking: {
+        type: Type.OBJECT,
+        properties: {
+          comparison: { type: Type.STRING },
+          gapToTop1Percent: { type: Type.ARRAY, items: { type: Type.STRING } }
+        }
+      },
+      keywords: {
+        type: Type.OBJECT,
+        properties: {
+          found: { type: Type.ARRAY, items: { type: Type.STRING } },
+          missing: { type: Type.ARRAY, items: { type: Type.STRING } },
+          weak: { type: Type.ARRAY, items: { type: Type.STRING } }
+        }
+      },
       phrasingAdvice: { type: Type.ARRAY, items: { type: Type.STRING } },
-      projectFeedback: { type: Type.STRING },
-      summary: { type: Type.STRING },
-    },
-    required: ["matchScore", "missingKeywords", "phrasingAdvice", "projectFeedback", "summary"],
+      summary: { type: Type.STRING }
+    }
   };
 
   const data = await callGeminiProxy("ANALYZE_RESUME", { prompt, schema, deep: deepAnalysis });
