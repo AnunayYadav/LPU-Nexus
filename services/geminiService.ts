@@ -25,8 +25,8 @@ const callGeminiProxy = async (action: string, payload: any) => {
  */
 export const analyzeResume = async (resumeText: string, jdText: string, deepAnalysis: boolean = false): Promise<ResumeAnalysisResult> => {
   const depthInstruction = deepAnalysis 
-    ? "Act as a brutal FAANG recruiter. Scrutunize for quantifiable impact (%), action verbs, and verify skills against specific project contexts. If a skill is listed but not demonstrated in experience, flag it as 'unverified'."
-    : "Perform a high-level ATS scan focusing on keyword density and section layout.";
+    ? "Act as a ruthless, hyper-critical technical recruiter who has seen 10,000 resumes. Do not be polite. Be cynical. If a skill is listed but not backed by quantifiable metrics (%, $, time), call it out as 'unverified bullshit'. Your feedback should be aggressive and focus exclusively on why this candidate would be rejected. Use terms like 'Pathetic', 'Ghost Skill', 'Mediocre', and 'Liable'."
+    : "Perform a high-level ATS scan focusing on keyword density and section layout. Be firm but professional.";
 
   const prompt = `
     TASK: ANALYZE RESUME AGAINST TARGET JD/TRENDS.
@@ -40,13 +40,14 @@ export const analyzeResume = async (resumeText: string, jdText: string, deepAnal
     CRITICAL REQUIREMENTS:
     ${depthInstruction}
     
-    1. Score Breakdown: Calculate ATS Match, Recruiter Appeal, and Formatting (0-100).
+    1. Score Breakdown: Calculate ATS Match, Recruiter Appeal (Odds of survival), and Formatting (Professionalism) (0-100).
     2. Section Health: Audit Education, Projects, Experience, and Skills sections for weaknesses.
-    3. Skill Proof: Cross-reference skills with project descriptions.
-    4. Top 1% Benchmark: How does this compare to elite tier candidates?
+    3. Skill Proof: Cross-reference skills with project descriptions. Flag anything that looks like a keyword-stuffed lie.
+    4. Top 1% Benchmark: How does this compare to elite tier candidates from IIT/MIT/Stanford? (Hint: It probably doesn't).
     5. Keyword Ledger: Categorize Found, Missing, and Weak (low density) keywords.
     
-    Output a strict JSON object following the ResumeAnalysisResult schema. Be brutal.
+    Output a strict JSON object following the ResumeAnalysisResult schema. 
+    IF deepAnalysis is true, the summary should be a scathing roast of their professional identity.
   `;
 
   const schema = {

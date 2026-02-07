@@ -123,7 +123,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
       <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2 tracking-tighter">Placement Prefect</h2>
-          <p className="text-slate-600 dark:text-slate-400 font-medium">Professional ATS Diagnostic Terminal. No sugarcoating.</p>
+          <p className="text-slate-600 dark:text-slate-400 font-medium">Professional ATS Diagnostic Terminal. Zero sugarcoating, pure reality.</p>
         </div>
         {result && (
           <button onClick={saveAudit} disabled={isSaving} className="bg-orange-600 text-white px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl flex items-center gap-2 active:scale-95 transition-all border-none">
@@ -166,13 +166,15 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
               )}
             </div>
 
-            <div className="mt-8 flex items-center gap-3 p-4 bg-red-600/5 rounded-2xl border border-red-600/10">
-              <input type="checkbox" id="deep" checked={deepAnalysis} onChange={e => setDeepAnalysis(e.target.checked)} className="w-4 h-4 rounded-lg accent-orange-600 cursor-pointer" />
-              <label htmlFor="deep" className="text-[9px] font-black uppercase tracking-widest text-red-500 cursor-pointer">Deep Scrutiny Mode</label>
+            <div className={`mt-8 flex items-center gap-3 p-4 rounded-2xl border transition-all ${deepAnalysis ? 'bg-red-600 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.3)]' : 'bg-red-600/5 border-red-600/10'}`}>
+              <input type="checkbox" id="deep" checked={deepAnalysis} onChange={e => setDeepAnalysis(e.target.checked)} className="w-4 h-4 rounded-lg accent-black cursor-pointer" />
+              <label htmlFor="deep" className={`text-[9px] font-black uppercase tracking-widest cursor-pointer ${deepAnalysis ? 'text-white' : 'text-red-500'}`}>
+                {deepAnalysis ? 'RUTHLESS ROAST ACTIVE' : 'RUTHLESS ROAST MODE'}
+              </label>
             </div>
 
-            <button onClick={handleAnalyze} disabled={!resumeText || !jdText || loading} className={`w-full mt-6 py-5 rounded-3xl font-black text-[11px] uppercase tracking-[0.3em] text-white shadow-2xl transition-all active:scale-95 border-none ${loading ? 'bg-slate-800' : 'bg-gradient-to-r from-orange-600 to-red-700'}`}>
-              {loading ? 'Synthesizing Intelligence...' : 'Initiate Audit'}
+            <button onClick={handleAnalyze} disabled={!resumeText || !jdText || loading} className={`w-full mt-6 py-5 rounded-3xl font-black text-[11px] uppercase tracking-[0.3em] text-white shadow-2xl transition-all active:scale-95 border-none ${loading ? 'bg-slate-800' : deepAnalysis ? 'bg-red-600 hover:bg-red-700' : 'bg-gradient-to-r from-orange-600 to-red-700'}`}>
+              {loading ? 'CRUSHING DREAMS...' : deepAnalysis ? 'COMMENCE DESTRUCTION' : 'INITIATE AUDIT'}
             </button>
           </div>
         </div>
@@ -180,27 +182,27 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
         <div className="lg:col-span-8">
           {loading ? (
             <div className="h-[600px] flex flex-col items-center justify-center space-y-6">
-               <div className="w-16 h-16 border-4 border-orange-600 border-t-transparent rounded-full animate-spin" />
-               <p className="text-[10px] font-black uppercase tracking-[0.4em] text-orange-600 animate-pulse">Deconstructing Professional Identity...</p>
+               <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full animate-spin" />
+               <p className="text-[10px] font-black uppercase tracking-[0.4em] text-red-600 animate-pulse">Scanning for mediocrity...</p>
             </div>
           ) : result ? (
             <div className="space-y-8 animate-fade-in">
               {/* Score Breakdown */}
               <div className="flex flex-col md:flex-row gap-4">
                  <ScoreHex label="ATS Compliance" score={result.scores.atsMatch} color="text-orange-500" />
-                 <ScoreHex label="Recruiter Appeal" score={result.scores.recruiterScore} color="text-blue-500" />
-                 <ScoreHex label="Formatting Health" score={result.scores.formattingScore} color="text-emerald-500" />
+                 <ScoreHex label="Hireability Odds" score={result.scores.recruiterScore} color="text-red-500" />
+                 <ScoreHex label="Formatting Sin" score={result.scores.formattingScore} color="text-emerald-500" />
               </div>
 
               {/* Section Health */}
               <div className="glass-panel p-8 rounded-[48px] border border-white/5 bg-black">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-6">Section Diagnostic</h3>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-6">Autopsy Report</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {result.sectionHealth.map((sh, i) => (
                     <div key={i} className="p-5 rounded-3xl bg-white/[0.02] border border-white/5">
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-[10px] font-black uppercase text-white">{sh.section}</span>
-                        <span className={`px-3 py-1 rounded-full text-[7px] font-black uppercase ${sh.status === 'OPTIMIZED' ? 'bg-emerald-500/10 text-emerald-500' : sh.status === 'CRITICAL' ? 'bg-red-500/10 text-red-500' : 'bg-orange-500/10 text-orange-500'}`}>{sh.status}</span>
+                        <span className={`px-3 py-1 rounded-full text-[7px] font-black uppercase ${sh.status === 'OPTIMIZED' ? 'bg-emerald-500/10 text-emerald-500' : sh.status === 'CRITICAL' ? 'bg-red-500 text-white' : 'bg-orange-500/10 text-orange-500'}`}>{sh.status}</span>
                       </div>
                       <p className="text-[11px] font-bold text-slate-500 leading-relaxed">{sh.feedback}</p>
                     </div>
@@ -210,18 +212,18 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
 
               {/* Skill Proof Checker */}
               <div className="glass-panel p-8 rounded-[48px] border border-white/5 bg-black">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-6">Skill Validation Ledger</h3>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-6">Lies & Liabilities Ledger</h3>
                 <div className="space-y-3">
                   {result.skillProof.map((sp, i) => (
-                    <div key={i} className={`flex items-center justify-between p-5 rounded-2xl border ${sp.isVerified ? 'bg-emerald-500/5 border-emerald-500/10' : 'bg-red-500/5 border-red-500/10'}`}>
+                    <div key={i} className={`flex items-center justify-between p-5 rounded-2xl border ${sp.isVerified ? 'bg-emerald-500/5 border-emerald-500/10' : 'bg-red-500/10 border-red-500'}`}>
                       <div className="flex items-center gap-4">
-                        <div className={`w-2 h-2 rounded-full ${sp.isVerified ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-red-500 animate-pulse'}`} />
+                        <div className={`w-2 h-2 rounded-full ${sp.isVerified ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-red-600 animate-pulse'}`} />
                         <div>
                           <p className="text-xs font-black uppercase tracking-tight text-white">{sp.skill}</p>
                           <p className="text-[10px] text-slate-500 font-bold mt-1">{sp.feedback}</p>
                         </div>
                       </div>
-                      <span className={`text-[8px] font-black uppercase tracking-widest ${sp.isVerified ? 'text-emerald-500' : 'text-red-500'}`}>{sp.isVerified ? 'Verified' : 'Ghost Skill'}</span>
+                      <span className={`text-[8px] font-black uppercase tracking-widest ${sp.isVerified ? 'text-emerald-500' : 'text-red-600'}`}>{sp.isVerified ? 'Verified' : 'BULLSHIT DETECTED'}</span>
                     </div>
                   ))}
                 </div>
@@ -230,12 +232,12 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
               {/* Benchmarking & Keywords */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="glass-panel p-8 rounded-[48px] border border-white/5 bg-black">
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-6">Elite Tier Gap</h3>
-                  <p className="text-sm font-black tracking-tight text-orange-500 mb-4">{result.benchmarking.comparison}</p>
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-6">Reality Check</h3>
+                  <p className="text-sm font-black tracking-tight text-red-500 mb-4">{result.benchmarking.comparison}</p>
                   <ul className="space-y-3">
                     {result.benchmarking.gapToTop1Percent.map((gap, i) => (
                       <li key={i} className="flex items-center gap-3 text-[11px] font-bold text-slate-400">
-                        <div className="w-1 h-1 bg-white/20 rounded-full" />
+                        <div className="w-1 h-1 bg-red-600 rounded-full" />
                         {gap}
                       </li>
                     ))}
@@ -246,22 +248,22 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
                   <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-6">Keyword Pulse</h3>
                   <div className="space-y-4">
                     <div>
-                      <p className="text-[8px] font-black uppercase text-emerald-500 mb-2 tracking-widest">Strong Match</p>
+                      <p className="text-[8px] font-black uppercase text-emerald-500 mb-2 tracking-widest">Bare Minimum Met</p>
                       <div className="flex flex-wrap gap-2">
                         {result.keywords.found.map((k, i) => <span key={i} className="px-3 py-1 bg-white/5 rounded-lg text-[9px] font-bold text-white uppercase">{k}</span>)}
                       </div>
                     </div>
                     <div>
-                      <p className="text-[8px] font-black uppercase text-red-500 mb-2 tracking-widest">Critical Gaps</p>
+                      <p className="text-[8px] font-black uppercase text-red-500 mb-2 tracking-widest">Pathetic Omissions</p>
                       <div className="flex flex-wrap gap-2">
-                        {result.keywords.missing.map((k, i) => <span key={i} className="px-3 py-1 bg-red-500/10 rounded-lg text-[9px] font-bold text-red-500 uppercase">{k}</span>)}
+                        {result.keywords.missing.map((k, i) => <span key={i} className="px-3 py-1 bg-red-500/20 rounded-lg text-[9px] font-bold text-red-500 uppercase">{k}</span>)}
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <button onClick={() => setResult(null)} className="w-full py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors border-none bg-transparent">Reset Terminal</button>
+              <button onClick={() => setResult(null)} className="w-full py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors border-none bg-transparent">Burn Evidence & Restart</button>
             </div>
           ) : (
             <div className="h-[600px] flex flex-col items-center justify-center glass-panel rounded-[56px] border-4 border-dashed border-white/5 opacity-30">
