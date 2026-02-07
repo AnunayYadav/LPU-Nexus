@@ -47,9 +47,9 @@ interface CGPACalculatorProps {
 const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
   const [inputMode, setInputMode] = useState<'marks' | 'grades'>('marks');
   const [currentSemester, setCurrentSemester] = useState<number>(1);
-  const [prevCGPA, setPrevCGPA] = useState<number>(0);
-  const [prevTotalCredits, setPrevTotalCredits] = useState<number>(0);
-  const [targetCGPA, setTargetCGPA] = useState<number>(0);
+  const [prevCGPA, setPrevCGPA] = useState<number | string>('');
+  const [prevTotalCredits, setPrevTotalCredits] = useState<number | string>('');
+  const [targetCGPA, setTargetCGPA] = useState<number | string>('');
   const [manualAdjustments, setManualAdjustments] = useState<Record<number, number>>({});
   const [courses, setCourses] = useState<Course[]>([]);
   
@@ -76,29 +76,39 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
   }, [userProfile]);
 
   const loadHistory = async () => {
+    if (!userProfile) return;
     try {
-      const records = await NexusServer.fetchRecords(userProfile?.id || null, 'cgpa_snapshot');
+      const records = await NexusServer.fetchRecords(userProfile.id, 'cgpa_snapshot');
       setHistory(records);
     } catch (e) { console.error(e); }
   };
 
   const saveSnapshot = async () => {
+    if (!userProfile) {
+      alert("Please sign in to save reports to your vault.");
+      return;
+    }
     setIsSaving(true);
     const content = {
       courses, prevCGPA, prevTotalCredits, targetCGPA, manualAdjustments, currentSemester, inputMode
     };
     try {
-      await NexusServer.saveRecord(userProfile?.id || null, 'cgpa_snapshot', `Saved: Sem ${currentSemester}`, content);
-      loadHistory();
-    } catch (e) { alert("Save failed"); } finally { setIsSaving(false); }
+      await NexusServer.saveRecord(userProfile.id, 'cgpa_snapshot', `Saved: Sem ${currentSemester}`, content);
+      await loadHistory();
+      alert("Report successfully archived in your vault.");
+    } catch (e) { 
+      alert("Registry error: Failed to save snapshot."); 
+    } finally { 
+      setIsSaving(false); 
+    }
   };
 
   const loadSnapshot = (record: any) => {
     const c = record.content;
     setCourses(c.courses || []);
-    setPrevCGPA(c.prevCGPA || 0);
-    setPrevTotalCredits(c.prevTotalCredits || 0);
-    setTargetCGPA(c.targetCGPA || 0);
+    setPrevCGPA(c.prevCGPA || '');
+    setPrevTotalCredits(c.prevTotalCredits || '');
+    setTargetCGPA(c.targetCGPA || '');
     setManualAdjustments(c.manualAdjustments || {});
     setCurrentSemester(c.currentSemester || 1);
     setInputMode(c.inputMode || 'marks');
@@ -107,8 +117,11 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
 
   const deleteHistory = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    await NexusServer.deleteRecord(id, 'cgpa_snapshot', userProfile?.id || null);
-    loadHistory();
+    if (!userProfile) return;
+    if (confirm("Delete this archive permanently?")) {
+      await NexusServer.deleteRecord(id, 'cgpa_snapshot', userProfile.id);
+      loadHistory();
+    }
   };
 
   const addCourse = () => {
@@ -141,18 +154,21 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
   }, [courses]);
 
   const overallCGPA = useMemo(() => {
-    const combinedPoints = (Number(prevCGPA) * Number(prevTotalCredits)) + currentStats.totalPoints;
-    const combinedCredits = Number(prevTotalCredits) + currentStats.totalCredits;
+    const pCGPA = Number(prevCGPA) || 0;
+    const pCredits = Number(prevTotalCredits) || 0;
+    const combinedPoints = (pCGPA * pCredits) + currentStats.totalPoints;
+    const combinedCredits = pCredits + currentStats.totalCredits;
     return combinedCredits === 0 ? 0 : (combinedPoints / combinedCredits);
   }, [prevCGPA, prevTotalCredits, currentStats]).toFixed(2);
 
   const roadmapData = useMemo(() => {
-    if (!targetCGPA || targetCGPA <= 0) return { roadmap: [], summary: null };
+    const tCGPA = Number(targetCGPA);
+    if (!tCGPA || tCGPA <= 0) return { roadmap: [], summary: null };
     
     const CREDITS_PER_SEM = 20; 
     const totalSems = 8;
-    const archivedCredits = Number(prevTotalCredits);
-    const archivedPoints = Number(prevCGPA) * archivedCredits;
+    const archivedCredits = Number(prevTotalCredits) || 0;
+    const archivedPoints = (Number(prevCGPA) || 0) * archivedCredits;
     
     const planSemIndices = [];
     for (let i = currentSemester; i <= totalSems; i++) planSemIndices.push(i);
@@ -160,7 +176,7 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
     if (planSemIndices.length === 0) return { roadmap: [], summary: null };
 
     const totalCreditsForDegree = archivedCredits + (planSemIndices.length * CREDITS_PER_SEM);
-    const totalPointsNeeded = targetCGPA * totalCreditsForDegree;
+    const totalPointsNeeded = tCGPA * totalCreditsForDegree;
     let pointsNeededFromFuture = totalPointsNeeded - archivedPoints;
 
     let manualCount = 0;
@@ -233,7 +249,7 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
           <button 
             onClick={saveSnapshot} 
             disabled={isSaving} 
-            className="p-3 rounded-2xl text-slate-400 hover:text-emerald-500 transition-all border-none bg-transparent flex items-center justify-center"
+            className={`p-3 rounded-2xl transition-all border-none bg-transparent flex items-center justify-center ${isSaving ? 'opacity-50' : 'text-slate-400 hover:text-emerald-500'}`}
             title="Save to Vault"
           >
             {isSaving ? <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" /> : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-6 h-6"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>}
@@ -297,6 +313,34 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
         </div>
       </div>
 
+      {currentSemester > 1 && (
+        <div className="glass-panel p-8 rounded-[40px] border border-orange-500/20 bg-orange-600/[0.02] shadow-sm mb-8 animate-fade-in">
+           <h3 className="text-[10px] font-black text-orange-600 uppercase tracking-[0.2em] mb-6">Academic History (Sems 1 - {currentSemester - 1})</h3>
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-[9px] font-black uppercase text-slate-400 mb-2 ml-1 tracking-widest">CGPA till Sem {currentSemester - 1}</label>
+                <input 
+                  type="number" step="0.01" max="10" 
+                  value={prevCGPA} 
+                  onChange={(e) => setPrevCGPA(e.target.value)}
+                  placeholder="e.g. 8.45"
+                  className="w-full bg-white dark:bg-black border border-slate-200 dark:border-white/10 rounded-2xl px-5 py-4 text-sm font-black dark:text-white outline-none focus:ring-2 focus:ring-orange-600"
+                />
+              </div>
+              <div>
+                <label className="block text-[9px] font-black uppercase text-slate-400 mb-2 ml-1 tracking-widest">Total Credits Earned</label>
+                <input 
+                  type="number" 
+                  value={prevTotalCredits} 
+                  onChange={(e) => setPrevTotalCredits(e.target.value)}
+                  placeholder="e.g. 42"
+                  className="w-full bg-white dark:bg-black border border-slate-200 dark:border-white/10 rounded-2xl px-5 py-4 text-sm font-black dark:text-white outline-none focus:ring-2 focus:ring-orange-600"
+                />
+              </div>
+           </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <div className="glass-panel p-8 rounded-[40px] space-y-6 shadow-sm border dark:border-white/5 bg-white dark:bg-black/40 relative">
@@ -333,12 +377,12 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Forecast individual semester performance</p>
               </div>
               <div className="relative">
-                 <input type="number" step="0.1" max="10" value={targetCGPA || ''} onChange={(e) => setTargetCGPA(parseFloat(e.target.value) || 0)} className="w-28 bg-white dark:bg-black/60 border border-blue-500/30 rounded-2xl px-4 py-3 text-base text-center font-black text-blue-600 outline-none focus:ring-4 focus:ring-blue-500/10" placeholder="9.0" />
+                 <input type="number" step="0.1" max="10" value={targetCGPA} onChange={(e) => setTargetCGPA(e.target.value)} className="w-28 bg-white dark:bg-black/60 border border-blue-500/30 rounded-2xl px-4 py-3 text-base text-center font-black text-blue-600 outline-none focus:ring-4 focus:ring-blue-500/10" placeholder="9.0" />
                  <span className="absolute -top-2 -right-2 w-4 h-4 bg-blue-600 rounded-full flex items-center justify-center text-white text-[8px] font-black">!</span>
               </div>
             </header>
 
-            {targetCGPA > 0 && roadmapData.summary ? (
+            {Number(targetCGPA) > 0 && roadmapData.summary ? (
               <div className="space-y-8 animate-fade-in">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {roadmapData.roadmap.map((item) => (
