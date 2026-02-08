@@ -41,17 +41,19 @@ export const analyzeResume = async (resumeText: string, jdText: string, deepAnal
     2. Validate "Action Verb + Skill + Metric" integrity.
     3. Meaningfulness Score: 0-100% based on project depth and impact.
     
-    CRITICAL: "annotatedContent" MUST BE THE FULL ORIGINAL RESUME TEXT.
-    Break down the EXACT provided resume text into a sequence of fragments. 
-    Every single character from the original text must be included in the fragments in the correct order.
-    Label each fragment as:
-    - 'good': (Relevant skills, keywords, strong action verbs, impactful metrics).
-    - 'bad': (Irrelevant filler text, weak buzzwords, keyword stuffing, lack of context).
-    - 'neutral': (Standard info like contact, names, or non-critical formatting).
+    CRITICAL X-RAY REQUIREMENT:
+    The "annotatedContent" field MUST contain the FULL AND COMPLETE original resume text provided. 
+    Do not skip, summarize, or omit any parts of the input text. 
+    Break the entire input text into a sequence of fragments that, when joined, exactly match the original resume.
     
-    For 'good' and 'bad' fragments, provide a 'reason' and a 'suggestion'.
+    Label each fragment:
+    - 'good': Strong impact, relevant keywords, metrics, or professional verbs.
+    - 'bad': Weak buzzwords, keyword stuffing, lack of context, or formatting issues.
+    - 'neutral': Standard information (names, contact info, dates) or connective text.
     
-    Output a JSON object exactly matching this schema:
+    For every 'good' and 'bad' fragment, you MUST provide a 'reason' and a 'suggestion'.
+    
+    Output a JSON object matching this schema:
     {
       "totalScore": number,
       "meaningScore": number,
