@@ -50,6 +50,8 @@ export interface TimetableData {
 }
 
 export interface ResumeAnalysisResult {
+  // Added totalScore property to match UI usage in PlacementPrefect.tsx
+  totalScore: number;
   scores: {
     atsMatch: number;
     recruiterScore: number;
@@ -86,6 +88,15 @@ export interface FriendRequest {
   created_at: string;
   sender?: UserProfile;
   receiver?: UserProfile;
+}
+
+// Defined MessageReaction interface used by ChatMessage and SocialHub.tsx
+export interface MessageReaction {
+  id?: string;
+  message_id: string;
+  user_id: string;
+  emoji: string;
+  created_at?: string;
 }
 
 export interface ChatMessage {

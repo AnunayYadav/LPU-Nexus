@@ -40,7 +40,7 @@ export const analyzeResume = async (resumeText: string, jdText: string, deepAnal
     CRITICAL REQUIREMENTS:
     ${depthInstruction}
     
-    1. Score Breakdown: Calculate ATS Match, Recruiter Appeal (Odds of survival), and Formatting (Professionalism) (0-100).
+    1. Score Breakdown: Calculate ATS Match, Recruiter Appeal (Odds of survival), and Formatting (Professionalism) (0-100). Also provide a totalScore (0-100) representing overall alignment.
     2. Section Health: Audit Education, Projects, Experience, and Skills sections for weaknesses.
     3. Skill Proof: Cross-reference skills with project descriptions. Flag anything that looks like a keyword-stuffed lie.
     4. Top 1% Benchmark: How does this compare to elite tier candidates from IIT/MIT/Stanford? (Hint: It probably doesn't).
@@ -50,9 +50,11 @@ export const analyzeResume = async (resumeText: string, jdText: string, deepAnal
     IF deepAnalysis is true, the summary should be a scathing roast of their professional identity.
   `;
 
+  // Added totalScore to the schema to match type definition and UI expectations
   const schema = {
     type: Type.OBJECT,
     properties: {
+      totalScore: { type: Type.INTEGER },
       scores: {
         type: Type.OBJECT,
         properties: {
