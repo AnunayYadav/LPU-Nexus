@@ -25,7 +25,7 @@ const callGeminiProxy = async (action: string, payload: any) => {
  */
 export const analyzeResume = async (resumeText: string, jdText: string, deepAnalysis: boolean = false): Promise<ResumeAnalysisResult> => {
   const depthInstruction = deepAnalysis 
-    ? "Act as a ruthless, hyper-critical technical recruiter. Do not be polite. Point out exactly where the candidate is lying or failing."
+    ? "Act as a ruthless, hyper-critical technical recruiter. Do not be polite. Point out exactly where the candidate is lying or failing. Be scathing in the summary."
     : "Perform a professional resume audit against modern tech standards and the provided context.";
 
   const prompt = `
@@ -45,13 +45,12 @@ export const analyzeResume = async (resumeText: string, jdText: string, deepAnal
     {
       "totalScore": number,
       "categories": {
-        "category_id": {
-          "score": number,
-          "description": string,
-          "found": string[],
-          "missing": string[],
-          "missingKeywordsExtended": [ { "name": string, "example": string, "importance": "High" | "Medium" | "Low" } ] (ONLY for keywordAnalysis)
-        }
+        "keywordAnalysis": { "score": number, "description": string, "found": string[], "missing": string[], "missingKeywordsExtended": [ { "name": string, "example": string, "importance": "High" | "Medium" | "Low" } ] },
+        "jobFit": { "score": number, "description": string, "found": string[], "missing": string[] },
+        "achievements": { "score": number, "description": string, "found": string[], "missing": string[] },
+        "formatting": { "score": number, "description": string, "found": string[], "missing": string[] },
+        "language": { "score": number, "description": string, "found": string[], "missing": string[] },
+        "branding": { "score": number, "description": string, "found": string[], "missing": string[] }
       },
       "summary": string
     }
@@ -92,7 +91,8 @@ export const analyzeResume = async (resumeText: string, jdText: string, deepAnal
           formatting: categorySchema,
           language: categorySchema,
           branding: categorySchema
-        }
+        },
+        required: ["keywordAnalysis", "jobFit", "achievements", "formatting", "language", "branding"]
       },
       summary: { type: Type.STRING }
     },
@@ -100,8 +100,22 @@ export const analyzeResume = async (resumeText: string, jdText: string, deepAnal
   };
 
   const data = await callGeminiProxy("ANALYZE_RESUME", { prompt, schema, deep: deepAnalysis });
+  const parsed = JSON.parse(data.text);
+  
+  // Normalize the response to prevent "undefined found" errors in UI
+  const defaultCategory = { score: 0, description: 'No data', found: [], missing: [] };
+  const categories = {
+    keywordAnalysis: parsed.categories?.keywordAnalysis || defaultCategory,
+    jobFit: parsed.categories?.jobFit || defaultCategory,
+    achievements: parsed.categories?.achievements || defaultCategory,
+    formatting: parsed.categories?.formatting || defaultCategory,
+    language: parsed.categories?.language || defaultCategory,
+    branding: parsed.categories?.branding || defaultCategory,
+  };
+
   return {
-    ...(JSON.parse(data.text)),
+    ...parsed,
+    categories,
     analysisDate: Date.now()
   } as ResumeAnalysisResult;
 };

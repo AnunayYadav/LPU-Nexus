@@ -186,7 +186,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
            </div>
            <div className="text-right">
               <p className="text-xs font-black uppercase tracking-widest">PLACEMENT PREFECT</p>
-              <p className="text-[10px] text-slate-500">{new Date(result.analysisDate).toLocaleString()}</p>
+              <p className="text-[10px] text-slate-500">{new Date(result.analysisDate || Date.now()).toLocaleString()}</p>
            </div>
         </div>
 
@@ -226,11 +226,11 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
              <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-3xl">
                    <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Top Tier Competency</p>
-                   <p className="text-sm font-bold text-emerald-500 uppercase">{result.categories.jobFit.found[0] || "Strategic Alignment"}</p>
+                   <p className="text-sm font-bold text-emerald-500 uppercase">{result.categories?.jobFit?.found?.[0] || "Strategic Alignment"}</p>
                 </div>
                 <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-3xl">
                    <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Critical Bottleneck</p>
-                   <p className="text-sm font-bold text-red-500 uppercase">{result.categories.keywordAnalysis.missing[0] || "Foundational Gap"}</p>
+                   <p className="text-sm font-bold text-red-500 uppercase">{result.categories?.keywordAnalysis?.missing?.[0] || "Foundational Gap"}</p>
                 </div>
              </div>
           </div>
@@ -241,7 +241,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
         {/* Category Selection Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 print:grid-cols-3 print:gap-2">
           {CATEGORIES.map((cat) => {
-            const catData = result.categories[cat.id];
+            const catData = result.categories?.[cat.id] || { score: 0 };
             const isActive = activeCategory === cat.id;
             return (
               <button
@@ -273,12 +273,12 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
                     </div>
                  </div>
                  <p className="text-base text-slate-600 dark:text-slate-300 font-medium leading-relaxed max-w-3xl">
-                    {result.categories[activeCategory].description}
+                    {result.categories?.[activeCategory]?.description || "No description available for this segment."}
                  </p>
               </div>
               <div className="flex flex-col items-center p-10 bg-slate-50 dark:bg-white/5 rounded-[48px] border dark:border-white/5 shadow-inner">
                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Confidence Level</p>
-                 <p className="text-6xl font-black text-orange-600 tracking-tighter">{result.categories[activeCategory].score}%</p>
+                 <p className="text-6xl font-black text-orange-600 tracking-tighter">{result.categories?.[activeCategory]?.score || 0}%</p>
               </div>
            </div>
 
@@ -292,13 +292,13 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
                     <h4 className="text-xs font-black uppercase tracking-widest text-emerald-500">Found / Validated Strengths</h4>
                  </div>
                  <div className="space-y-3">
-                   {result.categories[activeCategory].found.map((item, i) => (
+                   {result.categories?.[activeCategory]?.found?.map((item, i) => (
                      <div key={i} className="p-5 bg-emerald-500/[0.03] border border-emerald-500/10 rounded-[28px] flex items-start gap-4 hover:scale-[1.01] transition-transform">
                         <span className="text-emerald-500 font-black text-[10px] mt-0.5">•</span>
                         <p className="text-sm font-bold text-slate-700 dark:text-slate-300 leading-relaxed">{item}</p>
                      </div>
-                   ))}
-                   {result.categories[activeCategory].found.length === 0 && (
+                   )) || <p className="text-xs text-slate-500 italic p-6 border-2 border-dashed border-slate-100 dark:border-white/5 rounded-[28px]">No significant positive signals detected.</p>}
+                   {result.categories?.[activeCategory]?.found?.length === 0 && (
                      <p className="text-xs text-slate-500 italic p-6 border-2 border-dashed border-slate-100 dark:border-white/5 rounded-[28px]">No significant positive signals detected in this section.</p>
                    )}
                  </div>
@@ -313,13 +313,13 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
                     <h4 className="text-xs font-black uppercase tracking-widest text-red-500">Missing / Areas for Growth</h4>
                  </div>
                  <div className="space-y-3">
-                   {result.categories[activeCategory].missing.map((item, i) => (
+                   {result.categories?.[activeCategory]?.missing?.map((item, i) => (
                      <div key={i} className="p-5 bg-red-500/[0.03] border border-red-500/10 rounded-[28px] flex items-start gap-4 hover:scale-[1.01] transition-transform">
                         <span className="text-red-500 font-black text-[10px] mt-0.5">•</span>
                         <p className="text-sm font-bold text-slate-700 dark:text-slate-300 leading-relaxed">{item}</p>
                      </div>
-                   ))}
-                   {result.categories[activeCategory].missing.length === 0 && (
+                   )) || <p className="text-xs text-slate-500 italic p-6 border-2 border-dashed border-slate-100 dark:border-white/5 rounded-[28px]">No gaps identified.</p>}
+                   {result.categories?.[activeCategory]?.missing?.length === 0 && (
                      <p className="text-xs text-slate-500 italic p-6 border-2 border-dashed border-slate-100 dark:border-white/5 rounded-[28px]">Perfect alignment detected. No missing elements identified.</p>
                    )}
                  </div>
@@ -327,7 +327,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
            </div>
 
            {/* Special Table for Missing Keywords */}
-           {activeCategory === 'keywordAnalysis' && result.categories.keywordAnalysis.missingKeywordsExtended && (
+           {activeCategory === 'keywordAnalysis' && result.categories?.keywordAnalysis?.missingKeywordsExtended && (
              <div className="mt-16 space-y-8 animate-fade-in print:mt-10">
                 <div className="p-8 bg-orange-600/5 border border-orange-600/20 rounded-[40px] flex items-start gap-5">
                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6 text-orange-600 mt-1 flex-shrink-0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -352,7 +352,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
                                  <p className="text-base font-black text-slate-800 dark:text-white uppercase tracking-tight">{k.name}</p>
                               </td>
                               <td className="px-8 py-8 max-w-md">
-                                 <p className="text-xs text-slate-500 dark:text-slate-400 italic leading-relaxed italic">"{k.example}"</p>
+                                 <p className="text-xs text-slate-500 dark:text-slate-400 italic leading-relaxed">"{k.example}"</p>
                               </td>
                               <td className="px-8 py-8 text-right">
                                  <span className={`text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-xl ${k.importance === 'High' ? 'bg-red-500/10 text-red-500' : 'bg-orange-500/10 text-orange-500'}`}>
@@ -463,7 +463,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
                 <div key={idx} onClick={() => setResult(report)} className="p-6 bg-white dark:bg-black/40 border border-slate-100 dark:border-white/5 rounded-[32px] cursor-pointer hover:border-orange-500/50 transition-all group flex items-center justify-between">
                    <div>
                       <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tighter">Readiness: {report.totalScore}%</p>
-                      <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-1">{new Date(report.analysisDate).toLocaleDateString()}</p>
+                      <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-1">{new Date(report.analysisDate || Date.now()).toLocaleDateString()}</p>
                    </div>
                    <div className="w-8 h-8 rounded-xl bg-orange-600/10 flex items-center justify-center text-orange-600 opacity-0 group-hover:opacity-100 transition-opacity">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
