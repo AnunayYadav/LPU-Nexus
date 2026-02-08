@@ -13,6 +13,7 @@ import AboutUs from './components/AboutUs.tsx';
 import AuthModal from './components/AuthModal.tsx';
 import ProfileSection from './components/ProfileSection.tsx';
 import TimetableHub from './components/TimetableHub.tsx';
+import QuizTaker from './components/QuizTaker.tsx';
 import { ModuleType, UserProfile } from './types.ts';
 import NexusServer from './services/nexusServer.ts';
 import { Analytics } from "@vercel/analytics/react";
@@ -23,6 +24,7 @@ const getModuleFromPath = (path: string): ModuleType => {
   if (p.includes('/share-cgpa')) return ModuleType.SHARE_CGPA;
   if (p.endsWith('/attendance')) return ModuleType.ATTENDANCE;
   if (p.endsWith('/timetable')) return ModuleType.TIMETABLE;
+  if (p.endsWith('/quiz')) return ModuleType.QUIZ;
   if (p.endsWith('/cgpa')) return ModuleType.CGPA;
   if (p.endsWith('/placement')) return ModuleType.PLACEMENT;
   if (p.endsWith('/library')) return ModuleType.LIBRARY;
@@ -38,6 +40,7 @@ const getPathFromModule = (module: ModuleType): string => {
   switch (module) {
     case ModuleType.ATTENDANCE: return '/attendance';
     case ModuleType.TIMETABLE: return '/timetable';
+    case ModuleType.QUIZ: return '/quiz';
     case ModuleType.CGPA: return '/cgpa';
     case ModuleType.PLACEMENT: return '/placement';
     case ModuleType.LIBRARY: return '/library';
@@ -62,18 +65,18 @@ const Dashboard: React.FC<{ setModule: (m: ModuleType) => void }> = ({ setModule
       icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
     },
     { 
+      id: ModuleType.QUIZ, 
+      title: "Quiz Taker", 
+      desc: "Generate targeted MCQs from subject syllabus using Gemini AI.", 
+      color: "from-orange-500/20 to-red-500/20",
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+    },
+    { 
       id: ModuleType.CGPA, 
       title: "CGPA Calculator", 
       desc: "Precision SGPA & CGPA forecasting based on LPU standards.", 
-      color: "from-orange-500/20 to-red-500/20",
-      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="16" y1="14" x2="16" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>
-    },
-    { 
-      id: ModuleType.ATTENDANCE, 
-      title: "Attendance Tracker", 
-      desc: "Monitor sessions and hit that 75% threshold with ease.", 
       color: "from-emerald-500/20 to-teal-500/20",
-      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="16" y1="14" x2="16" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>
     },
     { 
       id: ModuleType.PLACEMENT, 
@@ -185,6 +188,7 @@ const App: React.FC = () => {
     switch (currentModule) {
       case ModuleType.PLACEMENT: return <PlacementPrefect userProfile={userProfile} />;
       case ModuleType.TIMETABLE: return <TimetableHub userProfile={userProfile} />;
+      case ModuleType.QUIZ: return <QuizTaker userProfile={userProfile} />;
       case ModuleType.LIBRARY: return <ContentLibrary userProfile={userProfile} />;
       case ModuleType.CAMPUS: return <CampusNavigator />;
       case ModuleType.HELP: return <HelpSection />;

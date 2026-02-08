@@ -39,6 +39,19 @@ export default async function handler(req: Request) {
         return new Response(JSON.stringify({ text: response.text }), { status: 200 });
       }
 
+      case "GENERATE_QUIZ": {
+        const response = await ai.models.generateContent({
+          model: "gemini-3-flash-preview",
+          contents: payload.prompt,
+          config: {
+            responseMimeType: "application/json",
+            responseSchema: payload.schema,
+            temperature: 0.7, // Higher temperature for diverse questions
+          },
+        });
+        return new Response(JSON.stringify({ text: response.text }), { status: 200 });
+      }
+
       case "EXTRACT_TIMETABLE": {
         // Fix: Changed contents structure to use { parts: [...] } format as per coding guidelines
         const response = await ai.models.generateContent({

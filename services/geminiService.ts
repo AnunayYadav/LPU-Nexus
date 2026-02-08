@@ -1,6 +1,6 @@
 
 import { Type } from "@google/genai";
-import { ResumeAnalysisResult, DaySchedule } from "../types.ts";
+import { ResumeAnalysisResult, DaySchedule, QuizQuestion } from "../types.ts";
 
 /**
  * Internal helper to communicate with the backend Gemini proxy
@@ -18,6 +18,56 @@ const callGeminiProxy = async (action: string, payload: any) => {
   }
 
   return await res.json();
+};
+
+/**
+ * Module: Quiz Taker
+ */
+export const generateQuizFromSyllabus = async (syllabusText: string, units: number[]): Promise<QuizQuestion[]> => {
+  const prompt = `
+    TASK: GENERATE A PROFESSIONAL MCQ QUIZ BASED ON LPU SYLLABUS CONTENT.
+    
+    SYLLABUS TEXT: ${syllabusText.substring(0, 8000)}
+    TARGET UNITS: ${units.join(", ")}
+
+    CRITICAL REQUIREMENTS:
+    1. Identify the specific topics belonging to the selected Units from the syllabus text.
+    2. Generate exactly 10 high-quality MCQ questions covering those topics.
+    3. Ensure options are challenging and not obvious.
+    4. Provide a detailed "explanation" for why the correct answer is right based on the syllabus.
+    
+    Output a JSON array of objects matching this schema:
+    {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "question": { "type": "string" },
+          "options": { "type": "array", "items": { "type": "string" }, "minItems": 4, "maxItems": 4 },
+          "correctAnswer": { "type": "integer", "description": "0-3 index of correct option" },
+          "explanation": { "type": "string" }
+        },
+        "required": ["question", "options", "correctAnswer", "explanation"]
+      }
+    }
+  `;
+
+  const schema = {
+    type: Type.ARRAY,
+    items: {
+      type: Type.OBJECT,
+      properties: {
+        question: { type: Type.STRING },
+        options: { type: Type.ARRAY, items: { type: Type.STRING } },
+        correctAnswer: { type: Type.INTEGER },
+        explanation: { type: Type.STRING }
+      },
+      required: ["question", "options", "correctAnswer", "explanation"]
+    }
+  };
+
+  const data = await callGeminiProxy("GENERATE_QUIZ", { prompt, schema });
+  return JSON.parse(data.text) as QuizQuestion[];
 };
 
 /**

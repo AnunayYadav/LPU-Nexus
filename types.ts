@@ -11,7 +11,8 @@ export enum ModuleType {
   SHARE_CGPA = 'SHARE_CGPA',
   ABOUT = 'ABOUT',
   PROFILE = 'PROFILE',
-  TIMETABLE = 'TIMETABLE'
+  TIMETABLE = 'TIMETABLE',
+  QUIZ = 'QUIZ'
 }
 
 export interface UserProfile {
@@ -86,6 +87,13 @@ export interface ResumeAnalysisResult {
   }[];
   summary: string;
   analysisDate: number;
+}
+
+export interface QuizQuestion {
+  question: string;
+  options: string[];
+  correctAnswer: number;
+  explanation: string;
 }
 
 export interface FriendRequest {
