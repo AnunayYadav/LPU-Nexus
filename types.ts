@@ -57,14 +57,22 @@ export interface ResumeCategoryDetail {
   missingKeywordsExtended?: { name: string; example: string; importance: string }[];
 }
 
+export interface AnnotatedFragment {
+  text: string;
+  type: 'good' | 'bad' | 'neutral';
+  reason?: string;
+  suggestion?: string;
+}
+
 export interface ResumeAnalysisResult {
   totalScore: number;
-  meaningScore: number; // 0-100 score based on context and impact
+  meaningScore: number;
   keywordQuality: {
     contextual: number;
     weak: number;
     stuffed: number;
   };
+  annotatedContent: AnnotatedFragment[];
   categories: {
     keywordAnalysis: ResumeCategoryDetail;
     jobFit: ResumeCategoryDetail;

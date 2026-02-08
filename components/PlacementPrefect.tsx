@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { extractTextFromPdf } from '../services/pdfUtils';
 import { analyzeResume } from '../services/geminiService';
-import { ResumeAnalysisResult, UserProfile, ResumeCategoryDetail } from '../types';
+import { ResumeAnalysisResult, UserProfile, AnnotatedFragment } from '../types';
 
 const IconFile = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-12 h-12 mx-auto mb-2 opacity-40">
@@ -40,17 +40,16 @@ const ScoreAura = ({ score, label, meaningScore }: { score: number; label: strin
 
   return (
     <div className="relative flex flex-col items-center group">
-      {/* Outer Glow Ring */}
       <div className={`absolute inset-0 bg-orange-600/10 blur-[60px] rounded-full transition-all duration-1000 ${score > 70 ? 'opacity-100 scale-110' : 'opacity-40 scale-100'}`} />
       
-      <svg height="320" width="320" className="transform -rotate-90 relative z-10">
+      <svg height="300" width="300" className="transform -rotate-90 relative z-10">
         <circle
-          cx="160" cy="160" r="90"
+          cx="150" cy="150" r="90"
           stroke="currentColor" strokeWidth="12" fill="transparent"
           className="text-slate-100 dark:text-white/5"
         />
         <circle
-          cx="160" cy="160" r="90"
+          cx="150" cy="150" r="90"
           stroke="url(#scoreGradient)" strokeWidth="12" fill="transparent"
           strokeDasharray={circumference}
           strokeDashoffset={offset}
@@ -68,11 +67,42 @@ const ScoreAura = ({ score, label, meaningScore }: { score: number; label: strin
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center z-20">
         <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] mb-1">{label}</p>
         <p className="text-7xl font-black tracking-tighter text-slate-900 dark:text-white">{score}%</p>
-        <div className="mt-4 flex flex-col items-center">
-           <p className="text-[9px] font-black uppercase text-orange-600 tracking-widest bg-orange-600/10 px-3 py-1 rounded-full border border-orange-600/20">Meaning Score: {meaningScore}%</p>
-        </div>
       </div>
     </div>
+  );
+};
+
+const FragmentHighlight = ({ fragment }: { fragment: AnnotatedFragment }) => {
+  const [showTooltip, setShowTooltip] = useState(false);
+  
+  if (fragment.type === 'neutral') return <span>{fragment.text} </span>;
+
+  const colorClass = fragment.type === 'good' 
+    ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20' 
+    : 'text-red-700 dark:text-red-400 bg-red-500/10 border-red-500/20';
+
+  return (
+    <span 
+      className={`relative inline-block px-1 rounded-md border-b-2 cursor-help transition-all duration-300 ${colorClass}`}
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+      onClick={() => setShowTooltip(!showTooltip)}
+    >
+      {fragment.text}
+      {showTooltip && (
+        <span className="absolute z-[100] bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl animate-fade-in pointer-events-none">
+          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Intelligence Note</p>
+          <p className="text-xs font-bold text-slate-800 dark:text-white mb-2 leading-tight">{fragment.reason}</p>
+          {fragment.suggestion && (
+            <div className="pt-2 border-t border-slate-100 dark:border-white/5">
+              <p className="text-[8px] font-black uppercase tracking-widest text-orange-600 mb-1">Improvement</p>
+              <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-relaxed italic">"{fragment.suggestion}"</p>
+            </div>
+          )}
+          <span className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-white dark:border-t-slate-900" />
+        </span>
+      )}
+    </span>
   );
 };
 
@@ -158,8 +188,8 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
           </div>
         </div>
         <div className="text-center space-y-2">
-          <h3 className="text-2xl font-black uppercase tracking-[0.3em] text-slate-800 dark:text-white">Synthesizing Report</h3>
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest animate-pulse">Scanning for semantic integrity & keyword stuffing...</p>
+          <h3 className="text-2xl font-black uppercase tracking-[0.3em] text-slate-800 dark:text-white">Synthesizing X-Ray</h3>
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest animate-pulse">Scanning fragments for semantic integrity...</p>
         </div>
       </div>
     );
@@ -204,78 +234,114 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
           </div>
         </header>
 
-        {/* Top Section: Score & Meaning */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
-           <div className="lg:col-span-7 glass-panel p-10 md:p-14 rounded-[56px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/40 shadow-2xl flex flex-col md:flex-row items-center gap-12 relative overflow-hidden">
-              <ScoreAura score={result.totalScore} meaningScore={result.meaningScore} label="Overall Match" />
-              <div className="flex-1 space-y-5">
-                 <div className="inline-block px-4 py-1.5 bg-orange-600 text-white text-[9px] font-black uppercase tracking-[0.2em] rounded-full">
-                   Executive Verdict
+        {/* 1. EXECUTIVE VERDICT TIER */}
+        <div className="glass-panel p-10 md:p-14 rounded-[56px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/40 shadow-2xl flex flex-col md:flex-row items-center gap-12 relative overflow-hidden">
+          <ScoreAura score={result.totalScore} meaningScore={result.meaningScore} label="Match Score" />
+          
+          <div className="flex-1 space-y-6">
+             <div className="inline-block px-4 py-1.5 bg-orange-600 text-white text-[9px] font-black uppercase tracking-[0.2em] rounded-full">
+               System Verdict
+             </div>
+             <p className="text-lg md:text-xl font-bold text-slate-800 dark:text-white leading-relaxed italic opacity-90">
+               "{result.summary}"
+             </p>
+             <div className="h-px bg-slate-100 dark:bg-white/5 w-full" />
+             <div className="space-y-3">
+                {result.flags.map((flag, idx) => (
+                  <div key={idx} className={`p-4 rounded-2xl border flex items-start gap-3 ${flag.type === 'critical' ? 'bg-red-500/10 border-red-500/20 text-red-500' : flag.type === 'warning' ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'}`}>
+                     <div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 bg-current" />
+                     <p className="text-[11px] font-black uppercase leading-tight">{flag.message}</p>
+                  </div>
+                ))}
+             </div>
+          </div>
+          <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-orange-600/5 blur-[100px] rounded-full pointer-events-none" />
+        </div>
+
+        {/* 2. QUALITY METRICS TIER */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+           {/* Keyword Quality Analysis Card */}
+           <div className="glass-panel p-8 md:p-10 rounded-[48px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/40 shadow-xl">
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-8 flex items-center gap-2">
+                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><circle cx="12" cy="12" r="10"/><path d="m12 16 4-4-4-4"/><path d="M8 12h8"/></svg>
+                 Keyword Quality Analysis
+              </h3>
+              <div className="grid grid-cols-3 gap-4">
+                 <div className="p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-3xl text-center">
+                    <p className="text-3xl font-black text-emerald-500">{result.keywordQuality.contextual}</p>
+                    <p className="text-[8px] font-black uppercase text-slate-400 mt-1">Contextual</p>
                  </div>
-                 <p className="text-base font-bold text-slate-800 dark:text-white leading-relaxed italic opacity-90">
-                   "{result.summary}"
-                 </p>
-                 <div className="space-y-3 pt-2">
-                    {result.flags.map((flag, idx) => (
-                      <div key={idx} className={`p-4 rounded-2xl border flex items-start gap-3 ${flag.type === 'critical' ? 'bg-red-500/10 border-red-500/20 text-red-500' : flag.type === 'warning' ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'}`}>
-                         <div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 bg-current" />
-                         <p className="text-[11px] font-black uppercase leading-tight">{flag.message}</p>
-                      </div>
-                    ))}
+                 <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-3xl text-center">
+                    <p className="text-3xl font-black text-amber-500">{result.keywordQuality.weak}</p>
+                    <p className="text-[8px] font-black uppercase text-slate-400 mt-1">Weak</p>
+                 </div>
+                 <div className="p-4 bg-red-500/5 border border-red-500/20 rounded-3xl text-center">
+                    <p className="text-3xl font-black text-red-500">{result.keywordQuality.stuffed}</p>
+                    <p className="text-[8px] font-black uppercase text-slate-400 mt-1">Stuffed</p>
                  </div>
               </div>
-              <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-orange-600/5 blur-[100px] rounded-full pointer-events-none" />
+              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest text-center mt-6 opacity-60">"ATS may reject resumes with low keyword meaning."</p>
            </div>
 
-           <div className="lg:col-span-5 flex flex-col gap-6">
-              {/* Keyword Quality Analysis Card */}
-              <div className="glass-panel p-8 rounded-[40px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/40 shadow-xl flex-1">
-                 <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-8 flex items-center gap-2">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><circle cx="12" cy="12" r="10"/><path d="m12 16 4-4-4-4"/><path d="M8 12h8"/></svg>
-                    Keyword Quality Analysis
-                 </h3>
-                 <div className="grid grid-cols-3 gap-4">
-                    <div className="p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-3xl text-center group hover:bg-emerald-500/10 transition-colors">
-                       <p className="text-2xl font-black text-emerald-500">{result.keywordQuality.contextual}</p>
-                       <p className="text-[8px] font-black uppercase text-slate-400 mt-1">Contextual</p>
-                    </div>
-                    <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-3xl text-center group hover:bg-amber-500/10 transition-colors">
-                       <p className="text-2xl font-black text-amber-500">{result.keywordQuality.weak}</p>
-                       <p className="text-[8px] font-black uppercase text-slate-400 mt-1">Weak</p>
-                    </div>
-                    <div className="p-4 bg-red-500/5 border border-red-500/20 rounded-3xl text-center group hover:bg-red-500/10 transition-colors">
-                       <p className="text-2xl font-black text-red-500">{result.keywordQuality.stuffed}</p>
-                       <p className="text-[8px] font-black uppercase text-slate-400 mt-1">Stuffed</p>
-                    </div>
-                 </div>
-                 <div className="mt-8 p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-white/5">
-                    <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed italic">
-                       "ATS may reject resumes with low keyword meaning. Tie your skills to concrete projects and metrics to improve the Contextual score."
-                    </p>
-                 </div>
+           {/* Meaning Score Card */}
+           <div className="glass-panel p-8 md:p-10 rounded-[48px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/40 shadow-xl flex flex-col justify-center">
+              <div className="flex items-center justify-between mb-4">
+                 <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Meaning Score</h3>
+                 <span className={`text-[9px] font-black uppercase ${result.meaningScore > 70 ? 'text-emerald-500' : 'text-red-500'}`}>
+                    {result.meaningScore > 70 ? 'High Impact' : 'Weak Credibility'}
+                 </span>
               </div>
-
-              {/* Meaning Score Card */}
-              <div className="glass-panel p-8 rounded-[40px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/40 shadow-xl flex flex-col justify-center">
-                 <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Meaning Score</h3>
-                    <span className={`text-[9px] font-black uppercase ${result.meaningScore > 70 ? 'text-emerald-500' : 'text-red-500'}`}>
-                       {result.meaningScore > 70 ? 'Strong Impact' : 'Weak Credibility'}
-                    </span>
-                 </div>
-                 <div className="h-4 w-full bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden mb-2 relative">
-                    <div className="absolute inset-0 bg-gradient-to-r from-red-500 via-amber-500 to-emerald-500 opacity-20" />
-                    <div 
-                      className={`h-full transition-all duration-1000 ${result.meaningScore > 70 ? 'bg-emerald-500' : result.meaningScore > 40 ? 'bg-amber-500' : 'bg-red-500'}`} 
-                      style={{ width: `${result.meaningScore}%` }} 
-                    />
-                 </div>
-                 <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest text-right">{result.meaningScore}% Meaningful Content</p>
+              <div className="h-4 w-full bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden mb-3 relative">
+                 <div className="absolute inset-0 bg-gradient-to-r from-red-500 via-amber-500 to-emerald-500 opacity-20" />
+                 <div 
+                   className={`h-full transition-all duration-1000 ${result.meaningScore > 70 ? 'bg-emerald-500 shadow-[0_0_12px_#10b981]' : result.meaningScore > 40 ? 'bg-amber-500' : 'bg-red-500'}`} 
+                   style={{ width: `${result.meaningScore}%` }} 
+                 />
               </div>
+              <p className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tighter text-right">{result.meaningScore}% Integrity</p>
            </div>
         </div>
 
-        {/* Category Icons Bar */}
+        {/* 3. X-RAY TEXT ANALYSIS TIER */}
+        <div className="glass-panel p-8 md:p-12 rounded-[56px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/60 shadow-2xl space-y-8 animate-fade-in">
+           <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-100 dark:border-white/5 pb-8">
+              <div>
+                 <h3 className="text-2xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">Extracted Resume Text Analysis</h3>
+                 <p className="text-[9px] font-black text-orange-600 uppercase tracking-[0.4em] mt-1.5">Semantic X-Ray Visualization</p>
+              </div>
+              <div className="flex flex-wrap gap-4">
+                 <div className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_6px_#10b981]" />
+                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Optimized</span>
+                 </div>
+                 <div className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_6px_#ef4444]" />
+                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Improvement</span>
+                 </div>
+              </div>
+           </header>
+
+           <div className="relative group">
+              <div className="max-h-[500px] overflow-y-auto no-scrollbar p-8 md:p-10 bg-slate-50 dark:bg-black/40 rounded-[40px] border border-slate-100 dark:border-white/5 shadow-inner">
+                 <div className="text-sm md:text-base text-slate-600 dark:text-slate-300 font-medium leading-loose whitespace-pre-wrap">
+                    {result.annotatedContent.map((fragment, i) => (
+                      <FragmentHighlight key={i} fragment={fragment} />
+                    ))}
+                 </div>
+              </div>
+              <div className="absolute top-4 right-4 pointer-events-none opacity-20 group-hover:opacity-100 transition-opacity">
+                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5 text-orange-600"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>
+              </div>
+           </div>
+
+           <div className="p-6 bg-orange-600/5 border border-orange-600/20 rounded-3xl">
+              <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 leading-relaxed">
+                <strong className="text-orange-600">Protocol Note:</strong> Hover over the highlighted sections to view diagnostic feedback and suggested corrections generated by the Nexus Intelligence engine.
+              </p>
+           </div>
+        </div>
+
+        {/* 4. CATEGORY SELECTOR TIER */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 print:grid-cols-3">
           {CATEGORIES.map((cat) => {
             const catData = result.categories?.[cat.id] || { score: 0 };
@@ -296,7 +362,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
           })}
         </div>
 
-        {/* Detail Report Body */}
+        {/* 5. DETAILED REPORT BODY */}
         <div className="glass-panel p-8 md:p-12 rounded-[56px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/60 shadow-sm animate-fade-in relative overflow-hidden print:shadow-none print:border-none print:p-8">
            <div className="flex flex-col md:flex-row md:items-start justify-between gap-10 mb-12">
               <div className="flex-1 space-y-4">
@@ -306,7 +372,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
                        <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">
                          {CATEGORIES.find(c => c.id === activeCategory)?.label}
                        </h3>
-                       <p className="text-[9px] font-black text-orange-600 uppercase tracking-[0.4em] mt-1.5">Registry Detail</p>
+                       <p className="text-[9px] font-black text-orange-600 uppercase tracking-[0.4em] mt-1.5">Segment Analysis</p>
                     </div>
                  </div>
                  <p className="text-sm text-slate-600 dark:text-slate-300 font-medium leading-relaxed max-w-3xl">
@@ -325,7 +391,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
                     <div className="w-7 h-7 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500">
                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><polyline points="20 6 9 17 4 12"/></svg>
                     </div>
-                    <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Semantic Strengths</h4>
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Validated signals</h4>
                  </div>
                  <div className="space-y-2">
                    {result.categories?.[activeCategory]?.found?.map((item, i) => (
@@ -361,7 +427,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5 text-orange-600 mt-0.5 shrink-0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                    <div>
                       <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight mb-1">ATS Optimization Guide</p>
-                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Implement these semantic signals to satisfy recruiter search heuristics.</p>
+                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Semantic signal requirements for recruiter search heuristics.</p>
                    </div>
                 </div>
                 <div className="overflow-hidden rounded-[32px] border border-slate-200 dark:border-white/5 bg-white dark:bg-black/30">

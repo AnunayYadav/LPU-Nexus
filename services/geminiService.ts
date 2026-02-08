@@ -25,11 +25,11 @@ const callGeminiProxy = async (action: string, payload: any) => {
  */
 export const analyzeResume = async (resumeText: string, jdText: string, deepAnalysis: boolean = false): Promise<ResumeAnalysisResult> => {
   const depthInstruction = deepAnalysis 
-    ? "Act as a ruthless, hyper-critical technical recruiter. Do not be polite. Expose 'fake' keywords, lack of metrics, and keyword dumping. Be scathing in the summary."
-    : "Perform a professional resume audit against modern tech standards and the provided context.";
+    ? "Act as a ruthless, hyper-critical technical recruiter. Point out exactly where the candidate is failing. Be scathing."
+    : "Perform a professional resume audit against modern tech standards.";
 
   const prompt = `
-    TASK: GENERATE A SEMANTIC ATS DIAGNOSTIC REPORT.
+    TASK: GENERATE A SEMANTIC ATS DIAGNOSTIC REPORT AND TEXTUAL X-RAY.
     
     TARGET CONTEXT (JD/TRENDS): ${jdText}
     RESUME CONTENT: ${resumeText}
@@ -37,17 +37,17 @@ export const analyzeResume = async (resumeText: string, jdText: string, deepAnal
     REQUIREMENTS:
     ${depthInstruction}
     
-    CRITICAL QUALITY CHECK (Is this written for humans or bots?):
-    1. Detect "Keyword Stuffing": Skills listed in a dump without being used in a sentence or project.
-    2. Detect "Action Verb + Skill" absence: Are skills tied to action verbs like "Developed", "Optimized", "Architected"?
-    3. Detect "Impact Metrics": Are there numbers/percentages/scale? (%, users, $, scale).
-    4. Meaningfulness Score: Calculate a 0-100% score based on Sentence Quality, Metrics Presence, and Contextual Usage.
+    1. Detect "Keyword Stuffing" and "No-Meaning List Dumping".
+    2. Validate "Action Verb + Skill + Metric" integrity.
+    3. Meaningfulness Score: 0-100% based on project depth and impact.
+    4. Annotated Content: Break down the original resume text into fragments. Label each as 'good' (strong impact/optimized), 'bad' (weak/stuffed/error), or 'neutral'. Include why and how to improve for good/bad ones.
     
     Output a JSON object exactly matching this schema:
     {
       "totalScore": number,
       "meaningScore": number,
       "keywordQuality": { "contextual": number, "weak": number, "stuffed": number },
+      "annotatedContent": [ { "text": string, "type": "good" | "bad" | "neutral", "reason": string, "suggestion": string } ],
       "flags": [ { "type": "warning" | "critical" | "success", "message": string } ],
       "categories": {
         "keywordAnalysis": { "score": number, "description": string, "found": string[], "missing": string[], "missingKeywordsExtended": [ { "name": string, "example": string, "importance": "High" | "Medium" | "Low" } ] },
@@ -96,6 +96,19 @@ export const analyzeResume = async (resumeText: string, jdText: string, deepAnal
           stuffed: { type: Type.INTEGER }
         }
       },
+      annotatedContent: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            text: { type: Type.STRING },
+            type: { type: Type.STRING },
+            reason: { type: Type.STRING },
+            suggestion: { type: Type.STRING }
+          },
+          required: ["text", "type"]
+        }
+      },
       flags: {
         type: Type.ARRAY,
         items: {
@@ -120,7 +133,7 @@ export const analyzeResume = async (resumeText: string, jdText: string, deepAnal
       },
       summary: { type: Type.STRING }
     },
-    required: ["totalScore", "meaningScore", "keywordQuality", "flags", "categories", "summary"]
+    required: ["totalScore", "meaningScore", "keywordQuality", "annotatedContent", "flags", "categories", "summary"]
   };
 
   const data = await callGeminiProxy("ANALYZE_RESUME", { prompt, schema, deep: deepAnalysis });
