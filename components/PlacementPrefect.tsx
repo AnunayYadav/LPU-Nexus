@@ -99,6 +99,15 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
     }
   };
 
+  // Define handleRoleSelect to process predefined role selection
+  const handleRoleSelect = (roleId: string) => {
+    setSelectedRoleId(roleId);
+    const role = INDUSTRY_ROLES.find(r => r.id === roleId);
+    if (role) {
+      setJdText(`Target Role: ${role.name}. Expected Keywords: ${role.keywords}`);
+    }
+  };
+
   const handleAnalyze = async () => {
     if (!resumeText || !jdText) return;
     setLoading(true);
