@@ -455,12 +455,14 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
           <div className="glass-panel p-8 rounded-[40px] border border-slate-200 dark:border-white/5 bg-white dark:bg-black/20">
              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 border-b border-slate-100 dark:border-white/5 pb-4">Grade Pulse</h3>
              <div className="space-y-4">
-                {Object.entries(currentStats.gradeCounts).filter(([_, count]) => count > 0).map(([grade, count]) => (
+                {/* Fix: Explicitly cast count to number as Object.entries value might be inferred as unknown */}
+                {Object.entries(currentStats.gradeCounts).filter(([_, count]) => (count as number) > 0).map(([grade, count]) => (
                   <div key={grade} className="flex items-center justify-between">
                     <span className="text-xs font-black dark:text-white uppercase">Grade {grade}</span>
                     <div className="flex items-center gap-3">
                        <div className="h-1.5 w-24 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
-                          <div className="h-full bg-orange-600" style={{ width: `${(count / courses.length) * 100}%` }} />
+                          {/* Fix: Explicitly cast count to number for arithmetic operations */}
+                          <div className="h-full bg-orange-600" style={{ width: `${((count as number) / courses.length) * 100}%` }} />
                        </div>
                        <span className="text-[10px] font-black text-orange-600">{count}</span>
                     </div>
