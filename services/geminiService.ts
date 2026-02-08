@@ -25,37 +25,24 @@ const callGeminiProxy = async (action: string, payload: any) => {
  */
 export const generateQuizFromSyllabus = async (subjectName: string, syllabusText: string, units: number[]): Promise<QuizQuestion[]> => {
   const prompt = `
-    TASK: GENERATE A PROFESSIONAL MCQ QUIZ STRICTLY FOR THE SUBJECT: "${subjectName}".
+    CRITICAL INSTRUCTION: GENERATE AN MCQ QUIZ STRICTLY FOR THE SUBJECT: "${subjectName}".
     
-    SYLLABUS CONTENT FOR REFERENCE: 
+    SOURCE MATERIAL (SYLLABUS):
     ---
-    ${syllabusText.substring(0, 10000)}
+    ${syllabusText.substring(0, 12000)}
     ---
 
-    TARGET UNITS TO COVER: ${units.join(", ")}
+    SCOPE: ONLY COVER TOPICS FROM UNIT(S): ${units.join(", ")}.
 
-    CRITICAL REQUIREMENTS:
-    1. The quiz MUST be about "${subjectName}". Do not hallucinate questions from other subjects.
-    2. Analyze the syllabus text to find exactly which topics are covered in Units ${units.join(", ")}.
-    3. Generate exactly 10 high-quality MCQ questions covering those SPECIFIC UNIT TOPICS.
-    4. Ensure options (A, B, C, D) are technically accurate and challenging.
-    5. Provide a detailed "explanation" referencing the subject concepts.
-    6. If the syllabus text provided does not contain information about the requested units, use your internal knowledge of the "${subjectName}" curriculum at LPU but prioritize the provided text.
-    
-    Output a JSON array of objects matching this schema:
-    {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "question": { "type": "string" },
-          "options": { "type": "array", "items": { "type": "string" }, "minItems": 4, "maxItems": 4 },
-          "correctAnswer": { "type": "integer", "description": "0-3 index of correct option" },
-          "explanation": { "type": "string" }
-        },
-        "required": ["question", "options", "correctAnswer", "explanation"]
-      }
-    }
+    STRICT GUIDELINES:
+    1. SUBJECT LOCK: You are restricted to "${subjectName}". Do not include generic questions or topics from unrelated engineering/management subjects.
+    2. TOPIC EXTRACTION: Scan the syllabus text for sections labeled "Unit ${units.join('", "Unit ')}" or similar numbering. Identify the technical keywords and concepts within these specific sections.
+    3. QUESTION QUALITY: Generate exactly 10 high-level MCQs. Questions should test understanding, application, and theory of the topics found.
+    4. DISTRACTORS: All 4 options must be plausible. No "none of the above" or "all of the above" unless absolutely necessary.
+    5. EXPLANATION: Each explanation MUST reference why the answer is correct according to the principles of "${subjectName}".
+    6. FALLBACK: If the provided text is too short or missing specific units, use your internal LPU curriculum knowledge for "${subjectName}" but anchor it heavily to any provided keywords.
+
+    Output format: JSON array of objects.
   `;
 
   const schema = {
@@ -64,8 +51,8 @@ export const generateQuizFromSyllabus = async (subjectName: string, syllabusText
       type: Type.OBJECT,
       properties: {
         question: { type: Type.STRING },
-        options: { type: Type.ARRAY, items: { type: Type.STRING } },
-        correctAnswer: { type: Type.INTEGER },
+        options: { type: Type.ARRAY, items: { type: Type.STRING }, minItems: 4, maxItems: 4 },
+        correctAnswer: { type: Type.INTEGER, description: "Index 0-3 of the correct option" },
         explanation: { type: Type.STRING }
       },
       required: ["question", "options", "correctAnswer", "explanation"]
@@ -286,7 +273,6 @@ export const fetchCampusNews = async (query: string) => {
   });
 };
 
-// Fix: Added missing export searchGlobalOpportunities for Global Gateway module
 /**
  * Module: Global Gateway
  */

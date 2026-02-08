@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { UserProfile, Folder, QuizQuestion, LibraryFile } from '../types.ts';
+import React, { useState, useEffect, useMemo } from 'react';
+import { UserProfile, QuizQuestion, LibraryFile } from '../types.ts';
 import NexusServer from '../services/nexusServer.ts';
 import { generateQuizFromSyllabus } from '../services/geminiService.ts';
 import { extractTextFromPdf } from '../services/pdfUtils.ts';
@@ -35,18 +35,20 @@ const QuizTaker: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
       // Fetch all approved files from the registry
       const allFiles = await NexusServer.fetchFiles();
       
-      // Filter for files that are explicitly syllabi
+      // Filter for files that are explicitly syllabi (name or category check)
       const syllabusFiles = allFiles.filter(f => 
         f.name.toLowerCase().includes('syllabus') || 
         (f.type && f.type.toLowerCase().includes('syllabus'))
       );
 
-      // Create a unique list of subjects that HAVE a syllabus
+      // Create a unique list of subjects that HAVE a syllabus protocol
       const subjectsMap = new Map<string, SubjectWithSyllabus>();
       
       syllabusFiles.forEach(file => {
-        if (!subjectsMap.has(file.subject)) {
-          subjectsMap.set(file.subject, {
+        // Normalizing subject names to prevent duplicates with slight casing diffs
+        const key = file.subject.trim();
+        if (!subjectsMap.has(key)) {
+          subjectsMap.set(key, {
             id: file.id,
             name: file.subject,
             syllabusFile: file
@@ -54,9 +56,10 @@ const QuizTaker: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
         }
       });
 
-      setSubjectsWithSyllabi(Array.from(subjectsMap.values()).sort((a, b) => a.name.localeCompare(b.name)));
+      const sortedSubjects = Array.from(subjectsMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+      setSubjectsWithSyllabi(sortedSubjects);
     } catch (err) {
-      console.error("Failed to load subjects:", err);
+      console.error("Registry Scan Failure:", err);
     } finally {
       setInitializing(false);
     }
@@ -72,32 +75,33 @@ const QuizTaker: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
     if (!selectedSubject || selectedUnits.length === 0) return;
     
     setLoading(true);
-    setStatus('Retrieving Syllabus Artifact...');
+    setStatus('Acquiring Target Syllabus...');
     
     try {
       const syllabusFile = selectedSubject.syllabusFile;
 
-      setStatus('Decoding Subject Schema...');
+      setStatus(`Decoding Protocols for ${selectedSubject.name}...`);
       const url = await NexusServer.getFileUrl(syllabusFile.storage_path);
       const response = await fetch(url);
       const blob = await response.blob();
       const file = new File([blob], "syllabus.pdf", { type: "application/pdf" });
       const syllabusText = await extractTextFromPdf(file);
 
-      setStatus(`Synthesizing Quiz for ${selectedSubject.name}...`);
+      setStatus(`Gemini is strictly analyzing Units: ${selectedUnits.join(', ')}...`);
       const questions = await generateQuizFromSyllabus(selectedSubject.name, syllabusText, selectedUnits);
       
       if (!questions || questions.length === 0) {
-        throw new Error("Gemini produced an empty response. Possible content restriction or malformed syllabus.");
+        throw new Error("Intelligence failure: Gemini returned an empty question set. Please verify the syllabus text integrity.");
       }
 
+      // Verify that the generated questions are relevant to the subject
       setQuizQuestions(questions);
       setCurrentQuestionIdx(0);
       setUserAnswers({});
       setQuizCompleted(false);
       setIsShowingExplanation(false);
     } catch (err: any) {
-      alert(err.message || "Gateway Congestion: Failed to generate quiz protocol.");
+      alert(err.message || "Protocol Interruption: Connection to Nexus Intelligence timed out.");
     } finally {
       setLoading(false);
       setStatus('');
@@ -128,8 +132,8 @@ const QuizTaker: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
   if (initializing) {
     return (
       <div className="h-[60vh] flex flex-col items-center justify-center space-y-6 animate-fade-in">
-        <div className="w-10 h-10 border-4 border-orange-500/10 border-t-orange-600 rounded-full animate-spin" />
-        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Scanning Registry for Syllabi...</p>
+        <div className="w-12 h-12 border-4 border-orange-500/10 border-t-orange-600 rounded-full animate-spin" />
+        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Scanning Registry for Valid Subject Schemas...</p>
       </div>
     );
   }
@@ -232,27 +236,27 @@ const QuizTaker: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                <div className="text-6xl font-black tracking-tighter text-white">{score}<span className="text-2xl text-slate-500">/{quizQuestions.length}</span></div>
             </div>
             <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-orange-600 text-white px-6 py-2 rounded-full font-black text-[10px] uppercase tracking-widest shadow-xl">
-               {percentage >= 70 ? 'Expert Verto' : percentage >= 40 ? 'Developing' : 'Registry Failure'}
+               {percentage >= 80 ? 'Master Protocol' : percentage >= 50 ? 'Developing Signal' : 'Registry Reboot Needed'}
             </div>
          </div>
          
          <div className="space-y-3">
-            <h2 className="text-4xl font-black tracking-tighter uppercase text-white">Exam Synthesized</h2>
-            <p className="text-slate-500 font-medium max-w-xs mx-auto">Protocol complete for <strong>{selectedSubject?.name}</strong>. Your mastery of the syllabus has been logged.</p>
+            <h2 className="text-4xl font-black tracking-tighter uppercase text-white">Analysis Complete</h2>
+            <p className="text-slate-500 font-medium max-w-xs mx-auto">Your understanding of <strong>{selectedSubject?.name}</strong> Units <strong>{selectedUnits.join(', ')}</strong> has been verified.</p>
          </div>
 
          <div className="flex gap-4">
             <button 
-              onClick={() => { setQuizQuestions([]); setQuizCompleted(false); }}
+              onClick={() => { setQuizQuestions([]); setQuizCompleted(false); setSelectedUnits([]); setSelectedSubject(null); }}
               className="flex-1 py-4 bg-black border border-white/10 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:border-orange-500 transition-all border-none"
             >
-              Main Menu
+              Back to Menu
             </button>
             <button 
               onClick={handleGenerate}
               className="flex-[2] py-4 bg-orange-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-orange-600/20 active:scale-95 transition-all border-none"
             >
-              Re-Synthesize Quiz
+              Retake Synthesized Exam
             </button>
          </div>
       </div>
@@ -263,7 +267,7 @@ const QuizTaker: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
     <div className="max-w-4xl mx-auto space-y-12 animate-fade-in pb-20 px-4 md:px-0">
       <header className="text-center space-y-4">
         <h2 className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none">Quiz Taker</h2>
-        <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-[10px]">AI-Generated Mock Exams from Official Syllabus</p>
+        <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-[10px]">Strict AI-Targeted Exams from Verified Syllabus Registry</p>
       </header>
 
       <div className="glass-panel p-8 md:p-12 rounded-[56px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/40 shadow-2xl space-y-10">
@@ -271,7 +275,7 @@ const QuizTaker: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
             <div className="space-y-6">
                <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-xl bg-orange-600/10 flex items-center justify-center text-orange-600 font-black text-[10px]">1</div>
-                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Select Subject</label>
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Select Valid Subject</label>
                </div>
                
                <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto no-scrollbar pr-2">
@@ -286,17 +290,18 @@ const QuizTaker: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                   ))}
                   {subjectsWithSyllabi.length === 0 && (
                     <div className="py-10 text-center space-y-4">
-                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest opacity-40">No syllabi found in Registry.</p>
-                      <button onClick={() => window.location.href='/library'} className="text-[9px] font-black text-orange-600 uppercase underline tracking-widest">Contribute Syllabus ↗</button>
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest opacity-40">No Subject Syllabi found in Registry.</p>
+                      <button onClick={() => window.location.href='/library'} className="text-[9px] font-black text-orange-600 uppercase underline tracking-widest">Contribute Protocol ↗</button>
                     </div>
                   )}
                </div>
+               <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest italic opacity-60">Note: Only subjects with a "Syllabus" document are visible here.</p>
             </div>
 
             <div className="space-y-6">
                <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-xl bg-orange-600/10 flex items-center justify-center text-orange-600 font-black text-[10px]">2</div>
-                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Select Target Units</label>
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Select Scope (Units)</label>
                </div>
 
                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -307,7 +312,7 @@ const QuizTaker: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                       className={`p-6 rounded-[32px] border transition-all flex flex-col items-center justify-center group ${selectedUnits.includes(u) ? 'bg-orange-600/10 border-orange-600 shadow-xl scale-105' : 'bg-black border-white/5 hover:border-orange-500/30'}`}
                     >
                        <span className={`text-2xl font-black tracking-tighter ${selectedUnits.includes(u) ? 'text-orange-600' : 'text-slate-700'}`}>0{u}</span>
-                       <span className={`text-[8px] font-black uppercase tracking-widest mt-1 ${selectedUnits.includes(u) ? 'text-orange-500' : 'text-slate-500 opacity-40'}`}>Unit Protocol</span>
+                       <span className={`text-[8px] font-black uppercase tracking-widest mt-1 ${selectedUnits.includes(u) ? 'text-orange-500' : 'text-slate-500 opacity-40'}`}>Unit protocol</span>
                     </button>
                   ))}
                </div>
@@ -318,7 +323,7 @@ const QuizTaker: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                     disabled={!selectedSubject || selectedUnits.length === 0}
                     className="w-full py-5 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.3em] shadow-2xl shadow-orange-600/30 hover:scale-[1.02] active:scale-95 disabled:opacity-30 transition-all border-none"
                   >
-                    Generate Quiz Protocol
+                    Generate Targeted Quiz
                   </button>
                </div>
             </div>
@@ -330,8 +335,10 @@ const QuizTaker: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-6 h-6"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="12" r="3"/></svg>
          </div>
          <div className="space-y-1">
-            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-600">Nexus Intelligence Engine</h4>
-            <p className="text-sm font-medium text-slate-400 leading-relaxed">The engine only lists subjects that have a verified <strong>Syllabus PDF</strong> in the Content Library. To use this feature for a new subject, upload its syllabus to the registry first.</p>
+            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-600">Contextual Precision Engine</h4>
+            <p className="text-sm font-medium text-slate-400 leading-relaxed">
+              The engine will strictly parse the <strong>Syllabus PDF</strong> of <strong>{selectedSubject?.name || 'the selected subject'}</strong>. It identifies unit-specific terminology and constraints to generate an exam that mirrors LPU's academic standards.
+            </p>
          </div>
       </div>
     </div>
