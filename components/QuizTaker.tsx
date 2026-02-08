@@ -5,11 +5,18 @@ import NexusServer from '../services/nexusServer.ts';
 import { generateQuizFromSyllabus } from '../services/geminiService.ts';
 import { extractTextFromPdf } from '../services/pdfUtils.ts';
 
+interface SubjectWithSyllabus {
+  id: string;
+  name: string;
+  syllabusFile: LibraryFile;
+}
+
 const QuizTaker: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile }) => {
-  const [subjects, setSubjects] = useState<Folder[]>([]);
-  const [selectedSubject, setSelectedSubject] = useState<Folder | null>(null);
+  const [subjectsWithSyllabi, setSubjectsWithSyllabi] = useState<SubjectWithSyllabus[]>([]);
+  const [selectedSubject, setSelectedSubject] = useState<SubjectWithSyllabus | null>(null);
   const [selectedUnits, setSelectedUnits] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
+  const [initializing, setInitializing] = useState(true);
   const [status, setStatus] = useState('');
   
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
@@ -19,12 +26,40 @@ const QuizTaker: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
   const [isShowingExplanation, setIsShowingExplanation] = useState(false);
 
   useEffect(() => {
-    loadSubjects();
+    loadValidSubjects();
   }, []);
 
-  const loadSubjects = async () => {
-    const folders = await NexusServer.fetchFolders();
-    setSubjects(folders.filter(f => f.type === 'subject'));
+  const loadValidSubjects = async () => {
+    setInitializing(true);
+    try {
+      // Fetch all approved files from the registry
+      const allFiles = await NexusServer.fetchFiles();
+      
+      // Filter for files that are explicitly syllabi
+      const syllabusFiles = allFiles.filter(f => 
+        f.name.toLowerCase().includes('syllabus') || 
+        (f.type && f.type.toLowerCase().includes('syllabus'))
+      );
+
+      // Create a unique list of subjects that HAVE a syllabus
+      const subjectsMap = new Map<string, SubjectWithSyllabus>();
+      
+      syllabusFiles.forEach(file => {
+        if (!subjectsMap.has(file.subject)) {
+          subjectsMap.set(file.subject, {
+            id: file.id,
+            name: file.subject,
+            syllabusFile: file
+          });
+        }
+      });
+
+      setSubjectsWithSyllabi(Array.from(subjectsMap.values()).sort((a, b) => a.name.localeCompare(b.name)));
+    } catch (err) {
+      console.error("Failed to load subjects:", err);
+    } finally {
+      setInitializing(false);
+    }
   };
 
   const toggleUnit = (unit: number) => {
@@ -37,36 +72,32 @@ const QuizTaker: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
     if (!selectedSubject || selectedUnits.length === 0) return;
     
     setLoading(true);
-    setStatus('Scouting Registry for Syllabus...');
+    setStatus('Retrieving Syllabus Artifact...');
     
     try {
-      // 1. Find Syllabus file in Content Library
-      const allFiles = await NexusServer.fetchFiles('', selectedSubject.name);
-      const syllabusFile = allFiles.find(f => 
-        f.name.toLowerCase().includes('syllabus') || 
-        f.type.toLowerCase().includes('syllabus')
-      );
+      const syllabusFile = selectedSubject.syllabusFile;
 
-      if (!syllabusFile) {
-        throw new Error(`Registry Alert: No syllabus protocol found for ${selectedSubject.name}. Please upload one to the Content Library first.`);
-      }
-
-      setStatus('Extracting Semantic Tokens...');
+      setStatus('Decoding Subject Schema...');
       const url = await NexusServer.getFileUrl(syllabusFile.storage_path);
       const response = await fetch(url);
       const blob = await response.blob();
       const file = new File([blob], "syllabus.pdf", { type: "application/pdf" });
       const syllabusText = await extractTextFromPdf(file);
 
-      setStatus('Gemini is synthesizing MCQs...');
-      const questions = await generateQuizFromSyllabus(syllabusText, selectedUnits);
+      setStatus(`Synthesizing Quiz for ${selectedSubject.name}...`);
+      const questions = await generateQuizFromSyllabus(selectedSubject.name, syllabusText, selectedUnits);
       
+      if (!questions || questions.length === 0) {
+        throw new Error("Gemini produced an empty response. Possible content restriction or malformed syllabus.");
+      }
+
       setQuizQuestions(questions);
       setCurrentQuestionIdx(0);
       setUserAnswers({});
       setQuizCompleted(false);
+      setIsShowingExplanation(false);
     } catch (err: any) {
-      alert(err.message || "Gateway Congestion: Failed to generate quiz.");
+      alert(err.message || "Gateway Congestion: Failed to generate quiz protocol.");
     } finally {
       setLoading(false);
       setStatus('');
@@ -93,6 +124,15 @@ const QuizTaker: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
       return acc + (ans === quizQuestions[parseInt(idx)].correctAnswer ? 1 : 0);
     }, 0);
   }, [userAnswers, quizQuestions]);
+
+  if (initializing) {
+    return (
+      <div className="h-[60vh] flex flex-col items-center justify-center space-y-6 animate-fade-in">
+        <div className="w-10 h-10 border-4 border-orange-500/10 border-t-orange-600 rounded-full animate-spin" />
+        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Scanning Registry for Syllabi...</p>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -127,7 +167,7 @@ const QuizTaker: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
               <h2 className="text-2xl font-black tracking-tighter uppercase text-white">Question {currentQuestionIdx + 1} of {quizQuestions.length}</h2>
            </div>
            <div className="text-right">
-              <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Selected Subject</p>
+              <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Active Subject</p>
               <p className="text-sm font-bold text-white uppercase">{selectedSubject?.name}</p>
            </div>
         </header>
@@ -235,7 +275,7 @@ const QuizTaker: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                </div>
                
                <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto no-scrollbar pr-2">
-                  {subjects.map(s => (
+                  {subjectsWithSyllabi.map(s => (
                     <button 
                       key={s.id}
                       onClick={() => setSelectedSubject(s)}
@@ -244,7 +284,12 @@ const QuizTaker: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                       <p className="text-xs font-black uppercase tracking-tight">{s.name}</p>
                     </button>
                   ))}
-                  {subjects.length === 0 && <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest opacity-40">No subjects in Registry...</p>}
+                  {subjectsWithSyllabi.length === 0 && (
+                    <div className="py-10 text-center space-y-4">
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest opacity-40">No syllabi found in Registry.</p>
+                      <button onClick={() => window.location.href='/library'} className="text-[9px] font-black text-orange-600 uppercase underline tracking-widest">Contribute Syllabus ↗</button>
+                    </div>
+                  )}
                </div>
             </div>
 
@@ -286,7 +331,7 @@ const QuizTaker: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
          </div>
          <div className="space-y-1">
             <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-600">Nexus Intelligence Engine</h4>
-            <p className="text-sm font-medium text-slate-400 leading-relaxed">The engine will scan the <strong>Content Library</strong> for the syllabus of your selected subject. Ensure you have contributed high-quality PDF syllabi to the registry for optimal generation.</p>
+            <p className="text-sm font-medium text-slate-400 leading-relaxed">The engine only lists subjects that have a verified <strong>Syllabus PDF</strong> in the Content Library. To use this feature for a new subject, upload its syllabus to the registry first.</p>
          </div>
       </div>
     </div>

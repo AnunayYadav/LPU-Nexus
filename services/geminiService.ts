@@ -23,18 +23,24 @@ const callGeminiProxy = async (action: string, payload: any) => {
 /**
  * Module: Quiz Taker
  */
-export const generateQuizFromSyllabus = async (syllabusText: string, units: number[]): Promise<QuizQuestion[]> => {
+export const generateQuizFromSyllabus = async (subjectName: string, syllabusText: string, units: number[]): Promise<QuizQuestion[]> => {
   const prompt = `
-    TASK: GENERATE A PROFESSIONAL MCQ QUIZ BASED ON LPU SYLLABUS CONTENT.
+    TASK: GENERATE A PROFESSIONAL MCQ QUIZ STRICTLY FOR THE SUBJECT: "${subjectName}".
     
-    SYLLABUS TEXT: ${syllabusText.substring(0, 8000)}
-    TARGET UNITS: ${units.join(", ")}
+    SYLLABUS CONTENT FOR REFERENCE: 
+    ---
+    ${syllabusText.substring(0, 10000)}
+    ---
+
+    TARGET UNITS TO COVER: ${units.join(", ")}
 
     CRITICAL REQUIREMENTS:
-    1. Identify the specific topics belonging to the selected Units from the syllabus text.
-    2. Generate exactly 10 high-quality MCQ questions covering those topics.
-    3. Ensure options are challenging and not obvious.
-    4. Provide a detailed "explanation" for why the correct answer is right based on the syllabus.
+    1. The quiz MUST be about "${subjectName}". Do not hallucinate questions from other subjects.
+    2. Analyze the syllabus text to find exactly which topics are covered in Units ${units.join(", ")}.
+    3. Generate exactly 10 high-quality MCQ questions covering those SPECIFIC UNIT TOPICS.
+    4. Ensure options (A, B, C, D) are technically accurate and challenging.
+    5. Provide a detailed "explanation" referencing the subject concepts.
+    6. If the syllabus text provided does not contain information about the requested units, use your internal knowledge of the "${subjectName}" curriculum at LPU but prioritize the provided text.
     
     Output a JSON array of objects matching this schema:
     {
