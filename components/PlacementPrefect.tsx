@@ -525,7 +525,6 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
   return (
     <div className="max-w-4xl mx-auto space-y-12 animate-fade-in pb-20 px-4 md:px-0">
       <header className="text-center space-y-4">
-        <div className="w-16 h-16 bg-orange-600 rounded-3xl mx-auto flex items-center justify-center text-white font-black text-2xl shadow-2xl shadow-orange-600/20">N</div>
         <h2 className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none">Placement Prefect</h2>
         <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-[10px]">Registry Hub for Professional Diagnostics</p>
       </header>
