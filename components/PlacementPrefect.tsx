@@ -72,7 +72,8 @@ const ScoreAura = ({ score, label, meaningScore }: { score: number; label: strin
   );
 };
 
-const FragmentHighlight = ({ fragment }: { fragment: AnnotatedFragment }) => {
+// Fix: Use React.FC to explicitly type the component and allow standard props like 'key' when rendering in a list (fixes TS error on line 328)
+const FragmentHighlight: React.FC<{ fragment: AnnotatedFragment }> = ({ fragment }) => {
   const [showTooltip, setShowTooltip] = useState(false);
   
   if (fragment.type === 'neutral') return <span>{fragment.text} </span>;
