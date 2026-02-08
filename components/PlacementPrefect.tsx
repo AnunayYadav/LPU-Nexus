@@ -57,7 +57,7 @@ const ScoreAura = ({ score, label, meaningScore }: { score: number; label: strin
           className="transition-all duration-[2500ms] ease-out drop-shadow-[0_0_12px_rgba(249,115,22,0.4)]"
         />
         <defs>
-          <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <linearGradient id="scoreGradient" x1="0%" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#f97316" />
             <stop offset="100%" stopColor="#ef4444" />
           </linearGradient>
@@ -78,7 +78,7 @@ interface FragmentProps {
 }
 
 const FragmentHighlight: React.FC<FragmentProps> = ({ fragment, onHover }) => {
-  if (fragment.type === 'neutral') return <span className="text-slate-400 dark:text-slate-500">{fragment.text}</span>;
+  if (fragment.type === 'neutral') return <span className="text-slate-400 dark:text-slate-500 whitespace-pre-wrap">{fragment.text}</span>;
 
   const colorClass = fragment.type === 'good' 
     ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20' 
@@ -86,7 +86,7 @@ const FragmentHighlight: React.FC<FragmentProps> = ({ fragment, onHover }) => {
 
   return (
     <span 
-      className={`inline px-0.5 rounded-md border-b-2 cursor-pointer transition-colors duration-200 ${colorClass}`}
+      className={`inline px-0.5 rounded-md border-b-2 cursor-pointer transition-colors duration-200 whitespace-pre-wrap ${colorClass}`}
       onMouseEnter={(e) => onHover(fragment, e.currentTarget)}
       onMouseLeave={() => onHover(null, null)}
     >
@@ -214,14 +214,13 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
       const rect = element.getBoundingClientRect();
       const parentRect = reportRef.current.getBoundingClientRect();
       
-      const tooltipHeight = 160;
       const margin = 12;
       
       // Calculate position relative to the reportRef container (which is relative)
       const relativeTop = rect.top - parentRect.top;
       const relativeLeft = rect.left - parentRect.left + (rect.width / 2);
       
-      const shouldFlip = rect.top < 200;
+      const shouldFlip = rect.top < 250;
 
       setTooltipPos({
         x: relativeLeft,
@@ -232,7 +231,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
     } else {
       hoverTimer.current = window.setTimeout(() => {
         setHoveredFragment(null);
-      }, 100);
+      }, 80);
     }
   };
 
@@ -370,6 +369,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
            </div>
         </div>
 
+        {/* X-Ray Box with Sleek Scrollbar */}
         <div className="glass-panel p-8 md:p-12 rounded-[56px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/60 shadow-2xl space-y-8 animate-fade-in relative overflow-visible">
            <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-100 dark:border-white/5 pb-8">
               <div>
@@ -389,7 +389,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
            </header>
 
            <div className="relative overflow-visible">
-              <div className="max-h-[700px] overflow-y-auto no-scrollbar p-8 md:p-12 bg-black rounded-[40px] border border-white/5 shadow-inner">
+              <div className="max-h-[600px] overflow-y-auto custom-scrollbar p-8 md:p-12 bg-black rounded-[40px] border border-white/5 shadow-inner">
                  <div className="text-sm md:text-base text-slate-300 font-medium leading-relaxed whitespace-pre-wrap font-mono">
                     {result.annotatedContent.map((fragment, i) => (
                       <FragmentHighlight key={i} fragment={fragment} onHover={handleFragmentHover} />
