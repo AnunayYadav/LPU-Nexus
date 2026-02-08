@@ -34,50 +34,43 @@ interface PlacementPrefectProps {
   userProfile?: UserProfile | null;
 }
 
-const SemiCircleGauge = ({ score, label, size = 300 }: { score: number; label: string; size?: number }) => {
-  const radius = 100;
-  const stroke = 18;
-  const normalizedRadius = radius - stroke * 2;
-  const circumference = normalizedRadius * Math.PI;
-  const strokeDashoffset = circumference - (score / 100) * circumference;
+const ScoreAura = ({ score, label, meaningScore }: { score: number; label: string; meaningScore: number }) => {
+  const circumference = 2 * Math.PI * 90;
+  const offset = circumference - (score / 100) * circumference;
 
   return (
-    <div className="relative flex flex-col items-center">
-      <svg
-        height={size / 1.6}
-        width={size}
-        viewBox={`0 0 ${radius * 2} ${radius}`}
-        className="transform transition-all duration-1000"
-      >
-        <path
-          d={`M ${stroke},${radius} A ${normalizedRadius},${normalizedRadius} 0 0,1 ${radius * 2 - stroke},${radius}`}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={stroke}
+    <div className="relative flex flex-col items-center group">
+      {/* Outer Glow Ring */}
+      <div className={`absolute inset-0 bg-orange-600/10 blur-[60px] rounded-full transition-all duration-1000 ${score > 70 ? 'opacity-100 scale-110' : 'opacity-40 scale-100'}`} />
+      
+      <svg height="320" width="320" className="transform -rotate-90 relative z-10">
+        <circle
+          cx="160" cy="160" r="90"
+          stroke="currentColor" strokeWidth="12" fill="transparent"
           className="text-slate-100 dark:text-white/5"
         />
-        <path
-          d={`M ${stroke},${radius} A ${normalizedRadius},${normalizedRadius} 0 0,1 ${radius * 2 - stroke},${radius}`}
-          fill="none"
-          stroke="url(#gaugeGradient)"
-          strokeWidth={stroke}
+        <circle
+          cx="160" cy="160" r="90"
+          stroke="url(#scoreGradient)" strokeWidth="12" fill="transparent"
           strokeDasharray={circumference}
-          strokeDashoffset={strokeDashoffset}
+          strokeDashoffset={offset}
           strokeLinecap="round"
-          className="transition-all duration-[2000ms] ease-out shadow-2xl"
+          className="transition-all duration-[2500ms] ease-out drop-shadow-[0_0_12px_rgba(249,115,22,0.4)]"
         />
         <defs>
-          <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+          <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#f97316" />
-            <stop offset="100%" stopColor="#dc2626" />
+            <stop offset="100%" stopColor="#ef4444" />
           </linearGradient>
         </defs>
       </svg>
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center mt-6">
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-1">{label}</p>
-        <p className="text-6xl font-black tracking-tighter text-slate-900 dark:text-white animate-fade-in">
-          {score}%
-        </p>
+      
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center z-20">
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] mb-1">{label}</p>
+        <p className="text-7xl font-black tracking-tighter text-slate-900 dark:text-white">{score}%</p>
+        <div className="mt-4 flex flex-col items-center">
+           <p className="text-[9px] font-black uppercase text-orange-600 tracking-widest bg-orange-600/10 px-3 py-1 rounded-full border border-orange-600/20">Meaning Score: {meaningScore}%</p>
+        </div>
       </div>
     </div>
   );
@@ -165,8 +158,8 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
           </div>
         </div>
         <div className="text-center space-y-2">
-          <h3 className="text-2xl font-black uppercase tracking-[0.3em] text-slate-800 dark:text-white">Analyzing DNA</h3>
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest animate-pulse">Mapping career trajectory against market signals...</p>
+          <h3 className="text-2xl font-black uppercase tracking-[0.3em] text-slate-800 dark:text-white">Synthesizing Report</h3>
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest animate-pulse">Scanning for semantic integrity & keyword stuffing...</p>
         </div>
       </div>
     );
@@ -175,7 +168,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
   if (result) {
     return (
       <div ref={reportRef} className="max-w-6xl mx-auto space-y-10 animate-fade-in pb-20 px-4 md:px-0 print:p-0 print:m-0 print:max-w-none print:bg-white print:text-black">
-        {/* Branding Overlay for PDF */}
+        {/* PDF Branding */}
         <div className="hidden print:flex items-center justify-between mb-10 border-b-4 border-orange-600 pb-6">
            <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-orange-600 rounded-2xl flex items-center justify-center text-white font-black">N</div>
@@ -185,61 +178,105 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
               </div>
            </div>
            <div className="text-right">
-              <p className="text-xs font-black uppercase tracking-widest">PLACEMENT PREFECT</p>
+              <p className="text-xs font-black uppercase tracking-widest">ATS DIAGNOSTIC REPORT</p>
               <p className="text-[10px] text-slate-500">{new Date(result.analysisDate || Date.now()).toLocaleString()}</p>
            </div>
         </div>
 
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 print:hidden">
           <div>
-            <h2 className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter uppercase mb-1">Resume Diagnostic</h2>
+            <h2 className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter uppercase mb-1">ATS Diagnostic</h2>
             <p className="text-slate-500 font-bold uppercase tracking-widest text-[9px] flex items-center gap-2">
               <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-              Registry Log: {fileName}
+              Source Artifact: {fileName}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button onClick={handleSaveReport} className="px-4 py-2 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-white rounded-xl font-black text-[9px] uppercase tracking-widest transition-all hover:border-orange-500 flex items-center gap-2 shadow-sm">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/></svg>
+            <button onClick={handleSaveReport} className="px-5 py-2.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-white rounded-xl font-black text-[9px] uppercase tracking-widest transition-all hover:border-orange-500 flex items-center gap-2 shadow-sm">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/></svg>
               Save Vault
             </button>
-            <button onClick={handleDownloadPdf} className="px-4 py-2 bg-orange-600 text-white rounded-xl font-black text-[9px] uppercase tracking-widest shadow-lg shadow-orange-600/10 active:scale-95 transition-all flex items-center gap-2 border-none">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <button onClick={handleDownloadPdf} className="px-5 py-2.5 bg-orange-600 text-white rounded-xl font-black text-[9px] uppercase tracking-widest shadow-lg shadow-orange-600/10 active:scale-95 transition-all flex items-center gap-2 border-none">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Export PDF
             </button>
-            <button onClick={() => setResult(null)} className="px-4 py-2 bg-slate-900 dark:bg-white text-white dark:text-black rounded-xl font-black text-[9px] uppercase tracking-widest active:scale-95 transition-all border-none">Restart</button>
+            <button onClick={() => setResult(null)} className="px-5 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-black rounded-xl font-black text-[9px] uppercase tracking-widest active:scale-95 transition-all border-none">Restart</button>
           </div>
         </header>
 
-        {/* Hero Score Section */}
-        <div className="glass-panel p-10 md:p-14 rounded-[56px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/40 shadow-2xl flex flex-col md:flex-row items-center gap-12 relative overflow-hidden">
-          <SemiCircleGauge score={result.totalScore} label="Total Readiness" size={400} />
-          
-          <div className="flex-1 space-y-6">
-             <div className="inline-block px-4 py-1.5 bg-orange-600 text-white text-[9px] font-black uppercase tracking-[0.2em] rounded-full">
-               System Verdict
-             </div>
-             <p className="text-lg md:text-xl font-bold text-slate-800 dark:text-white leading-relaxed italic opacity-90">
-               "{result.summary}"
-             </p>
-             <div className="h-px bg-slate-100 dark:bg-white/5 w-full" />
-             <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-3xl">
-                   <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Top Tier Competency</p>
-                   <p className="text-xs font-bold text-emerald-500 uppercase truncate">{result.categories?.jobFit?.found?.[0] || "Strategic Alignment"}</p>
-                </div>
-                <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-3xl">
-                   <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Critical Bottleneck</p>
-                   <p className="text-xs font-bold text-red-500 uppercase truncate">{result.categories?.keywordAnalysis?.missing?.[0] || "Foundational Gap"}</p>
-                </div>
-             </div>
-          </div>
+        {/* Top Section: Score & Meaning */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+           <div className="lg:col-span-7 glass-panel p-10 md:p-14 rounded-[56px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/40 shadow-2xl flex flex-col md:flex-row items-center gap-12 relative overflow-hidden">
+              <ScoreAura score={result.totalScore} meaningScore={result.meaningScore} label="Overall Match" />
+              <div className="flex-1 space-y-5">
+                 <div className="inline-block px-4 py-1.5 bg-orange-600 text-white text-[9px] font-black uppercase tracking-[0.2em] rounded-full">
+                   Executive Verdict
+                 </div>
+                 <p className="text-base font-bold text-slate-800 dark:text-white leading-relaxed italic opacity-90">
+                   "{result.summary}"
+                 </p>
+                 <div className="space-y-3 pt-2">
+                    {result.flags.map((flag, idx) => (
+                      <div key={idx} className={`p-4 rounded-2xl border flex items-start gap-3 ${flag.type === 'critical' ? 'bg-red-500/10 border-red-500/20 text-red-500' : flag.type === 'warning' ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'}`}>
+                         <div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 bg-current" />
+                         <p className="text-[11px] font-black uppercase leading-tight">{flag.message}</p>
+                      </div>
+                    ))}
+                 </div>
+              </div>
+              <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-orange-600/5 blur-[100px] rounded-full pointer-events-none" />
+           </div>
 
-          <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-orange-600/5 blur-[100px] rounded-full pointer-events-none" />
+           <div className="lg:col-span-5 flex flex-col gap-6">
+              {/* Keyword Quality Analysis Card */}
+              <div className="glass-panel p-8 rounded-[40px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/40 shadow-xl flex-1">
+                 <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-8 flex items-center gap-2">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><circle cx="12" cy="12" r="10"/><path d="m12 16 4-4-4-4"/><path d="M8 12h8"/></svg>
+                    Keyword Quality Analysis
+                 </h3>
+                 <div className="grid grid-cols-3 gap-4">
+                    <div className="p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-3xl text-center group hover:bg-emerald-500/10 transition-colors">
+                       <p className="text-2xl font-black text-emerald-500">{result.keywordQuality.contextual}</p>
+                       <p className="text-[8px] font-black uppercase text-slate-400 mt-1">Contextual</p>
+                    </div>
+                    <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-3xl text-center group hover:bg-amber-500/10 transition-colors">
+                       <p className="text-2xl font-black text-amber-500">{result.keywordQuality.weak}</p>
+                       <p className="text-[8px] font-black uppercase text-slate-400 mt-1">Weak</p>
+                    </div>
+                    <div className="p-4 bg-red-500/5 border border-red-500/20 rounded-3xl text-center group hover:bg-red-500/10 transition-colors">
+                       <p className="text-2xl font-black text-red-500">{result.keywordQuality.stuffed}</p>
+                       <p className="text-[8px] font-black uppercase text-slate-400 mt-1">Stuffed</p>
+                    </div>
+                 </div>
+                 <div className="mt-8 p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-white/5">
+                    <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed italic">
+                       "ATS may reject resumes with low keyword meaning. Tie your skills to concrete projects and metrics to improve the Contextual score."
+                    </p>
+                 </div>
+              </div>
+
+              {/* Meaning Score Card */}
+              <div className="glass-panel p-8 rounded-[40px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/40 shadow-xl flex flex-col justify-center">
+                 <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Meaning Score</h3>
+                    <span className={`text-[9px] font-black uppercase ${result.meaningScore > 70 ? 'text-emerald-500' : 'text-red-500'}`}>
+                       {result.meaningScore > 70 ? 'Strong Impact' : 'Weak Credibility'}
+                    </span>
+                 </div>
+                 <div className="h-4 w-full bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden mb-2 relative">
+                    <div className="absolute inset-0 bg-gradient-to-r from-red-500 via-amber-500 to-emerald-500 opacity-20" />
+                    <div 
+                      className={`h-full transition-all duration-1000 ${result.meaningScore > 70 ? 'bg-emerald-500' : result.meaningScore > 40 ? 'bg-amber-500' : 'bg-red-500'}`} 
+                      style={{ width: `${result.meaningScore}%` }} 
+                    />
+                 </div>
+                 <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest text-right">{result.meaningScore}% Meaningful Content</p>
+              </div>
+           </div>
         </div>
 
-        {/* Category Selection Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 print:grid-cols-3 print:gap-2">
+        {/* Category Icons Bar */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 print:grid-cols-3">
           {CATEGORIES.map((cat) => {
             const catData = result.categories?.[cat.id] || { score: 0 };
             const isActive = activeCategory === cat.id;
@@ -259,7 +296,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
           })}
         </div>
 
-        {/* Detailed Section View */}
+        {/* Detail Report Body */}
         <div className="glass-panel p-8 md:p-12 rounded-[56px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/60 shadow-sm animate-fade-in relative overflow-hidden print:shadow-none print:border-none print:p-8">
            <div className="flex flex-col md:flex-row md:items-start justify-between gap-10 mb-12">
               <div className="flex-1 space-y-4">
@@ -269,27 +306,26 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
                        <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">
                          {CATEGORIES.find(c => c.id === activeCategory)?.label}
                        </h3>
-                       <p className="text-[9px] font-black text-orange-600 uppercase tracking-[0.4em] mt-1.5">Segment Protocol</p>
+                       <p className="text-[9px] font-black text-orange-600 uppercase tracking-[0.4em] mt-1.5">Registry Detail</p>
                     </div>
                  </div>
                  <p className="text-sm text-slate-600 dark:text-slate-300 font-medium leading-relaxed max-w-3xl">
-                    {result.categories?.[activeCategory]?.description || "No description available for this segment."}
+                    {result.categories?.[activeCategory]?.description || "Analysis segment data pending review."}
                  </p>
               </div>
               <div className="flex flex-col items-center p-8 bg-slate-50 dark:bg-white/5 rounded-[40px] border dark:border-white/5 shadow-inner min-w-[140px]">
-                 <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Score</p>
+                 <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Sub-Score</p>
                  <p className="text-5xl font-black text-orange-600 tracking-tighter">{result.categories?.[activeCategory]?.score || 0}%</p>
               </div>
            </div>
 
            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10 print:gap-10">
-              {/* FOUND / STRENGTHS */}
               <div className="space-y-4">
                  <div className="flex items-center gap-3 mb-2">
                     <div className="w-7 h-7 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500">
                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><polyline points="20 6 9 17 4 12"/></svg>
                     </div>
-                    <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Validated Signals</h4>
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Semantic Strengths</h4>
                  </div>
                  <div className="space-y-2">
                    {result.categories?.[activeCategory]?.found?.map((item, i) => (
@@ -301,13 +337,12 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
                  </div>
               </div>
 
-              {/* MISSING / GAPS */}
               <div className="space-y-4">
                  <div className="flex items-center gap-3 mb-2">
                     <div className="w-7 h-7 rounded-full bg-red-500/10 flex items-center justify-center text-red-500">
                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </div>
-                    <h4 className="text-[10px] font-black uppercase tracking-widest text-red-500">Segment Gaps</h4>
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-red-500">Optimization Gaps</h4>
                  </div>
                  <div className="space-y-2">
                    {result.categories?.[activeCategory]?.missing?.map((item, i) => (
@@ -320,11 +355,10 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
               </div>
            </div>
 
-           {/* Polished ATS Optimization Guide Table */}
            {activeCategory === 'keywordAnalysis' && result.categories?.keywordAnalysis?.missingKeywordsExtended && (
              <div className="mt-12 space-y-6 animate-fade-in print:mt-10">
                 <div className="p-6 bg-orange-600/5 border border-orange-600/20 rounded-[32px] flex items-start gap-4">
-                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5 text-orange-600 mt-0.5 shrink-0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                    <div>
                       <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight mb-1">ATS Optimization Guide</p>
                       <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Implement these semantic signals to satisfy recruiter search heuristics.</p>
@@ -364,7 +398,6 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
            <div className="absolute top-0 right-0 w-80 h-80 bg-orange-600/5 blur-[120px] rounded-full pointer-events-none" />
         </div>
 
-        {/* Footer for PDF */}
         <div className="hidden print:block text-center mt-12 pt-6 border-t border-slate-100">
            <p className="text-[7px] font-black text-slate-400 uppercase tracking-[0.5em]">This is an AI-Synthesized Document by LPU-Nexus • Verify at nexus.verto.ai</p>
         </div>

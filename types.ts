@@ -54,12 +54,17 @@ export interface ResumeCategoryDetail {
   description: string;
   found: string[];
   missing: string[];
-  // Special fields for Keyword Analysis
   missingKeywordsExtended?: { name: string; example: string; importance: string }[];
 }
 
 export interface ResumeAnalysisResult {
   totalScore: number;
+  meaningScore: number; // 0-100 score based on context and impact
+  keywordQuality: {
+    contextual: number;
+    weak: number;
+    stuffed: number;
+  };
   categories: {
     keywordAnalysis: ResumeCategoryDetail;
     jobFit: ResumeCategoryDetail;
@@ -68,6 +73,10 @@ export interface ResumeAnalysisResult {
     language: ResumeCategoryDetail;
     branding: ResumeCategoryDetail;
   };
+  flags: {
+    type: 'warning' | 'critical' | 'success';
+    message: string;
+  }[];
   summary: string;
   analysisDate: number;
 }

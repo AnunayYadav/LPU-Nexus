@@ -25,11 +25,11 @@ const callGeminiProxy = async (action: string, payload: any) => {
  */
 export const analyzeResume = async (resumeText: string, jdText: string, deepAnalysis: boolean = false): Promise<ResumeAnalysisResult> => {
   const depthInstruction = deepAnalysis 
-    ? "Act as a ruthless, hyper-critical technical recruiter. Do not be polite. Point out exactly where the candidate is lying or failing. Be scathing in the summary."
+    ? "Act as a ruthless, hyper-critical technical recruiter. Do not be polite. Expose 'fake' keywords, lack of metrics, and keyword dumping. Be scathing in the summary."
     : "Perform a professional resume audit against modern tech standards and the provided context.";
 
   const prompt = `
-    TASK: GENERATE A COMPREHENSIVE ATS DIAGNOSTIC REPORT.
+    TASK: GENERATE A SEMANTIC ATS DIAGNOSTIC REPORT.
     
     TARGET CONTEXT (JD/TRENDS): ${jdText}
     RESUME CONTENT: ${resumeText}
@@ -37,13 +37,18 @@ export const analyzeResume = async (resumeText: string, jdText: string, deepAnal
     REQUIREMENTS:
     ${depthInstruction}
     
-    1. For EVERY category below, you MUST identify what is present (found) and what is absent (missing) relative to the target context.
-    2. Categories: keywordAnalysis, jobFit, achievements, formatting, language, branding.
-    3. totalScore: 0-100 overall ranking.
+    CRITICAL QUALITY CHECK (Is this written for humans or bots?):
+    1. Detect "Keyword Stuffing": Skills listed in a dump without being used in a sentence or project.
+    2. Detect "Action Verb + Skill" absence: Are skills tied to action verbs like "Developed", "Optimized", "Architected"?
+    3. Detect "Impact Metrics": Are there numbers/percentages/scale? (%, users, $, scale).
+    4. Meaningfulness Score: Calculate a 0-100% score based on Sentence Quality, Metrics Presence, and Contextual Usage.
     
     Output a JSON object exactly matching this schema:
     {
       "totalScore": number,
+      "meaningScore": number,
+      "keywordQuality": { "contextual": number, "weak": number, "stuffed": number },
+      "flags": [ { "type": "warning" | "critical" | "success", "message": string } ],
       "categories": {
         "keywordAnalysis": { "score": number, "description": string, "found": string[], "missing": string[], "missingKeywordsExtended": [ { "name": string, "example": string, "importance": "High" | "Medium" | "Low" } ] },
         "jobFit": { "score": number, "description": string, "found": string[], "missing": string[] },
@@ -82,6 +87,25 @@ export const analyzeResume = async (resumeText: string, jdText: string, deepAnal
     type: Type.OBJECT,
     properties: {
       totalScore: { type: Type.INTEGER },
+      meaningScore: { type: Type.INTEGER },
+      keywordQuality: {
+        type: Type.OBJECT,
+        properties: {
+          contextual: { type: Type.INTEGER },
+          weak: { type: Type.INTEGER },
+          stuffed: { type: Type.INTEGER }
+        }
+      },
+      flags: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            type: { type: Type.STRING },
+            message: { type: Type.STRING }
+          }
+        }
+      },
       categories: {
         type: Type.OBJECT,
         properties: {
@@ -96,13 +120,12 @@ export const analyzeResume = async (resumeText: string, jdText: string, deepAnal
       },
       summary: { type: Type.STRING }
     },
-    required: ["totalScore", "categories", "summary"]
+    required: ["totalScore", "meaningScore", "keywordQuality", "flags", "categories", "summary"]
   };
 
   const data = await callGeminiProxy("ANALYZE_RESUME", { prompt, schema, deep: deepAnalysis });
   const parsed = JSON.parse(data.text);
   
-  // Normalize the response to prevent "undefined found" errors in UI
   const defaultCategory = { score: 0, description: 'No data', found: [], missing: [] };
   const categories = {
     keywordAnalysis: parsed.categories?.keywordAnalysis || defaultCategory,
