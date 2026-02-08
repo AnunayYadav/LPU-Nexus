@@ -95,6 +95,10 @@ const FragmentHighlight: React.FC<FragmentProps> = ({ fragment, onHover }) => {
   );
 };
 
+interface SavedReport extends ResumeAnalysisResult {
+  label?: string;
+}
+
 const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
   const [resumeText, setResumeText] = useState<string>('');
   const [jdText, setJdText] = useState<string>('');
@@ -105,7 +109,12 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
   const [analysisMode, setAnalysisMode] = useState<'custom' | 'trend'>('trend');
   const [selectedRoleId, setSelectedRoleId] = useState<string>('');
   const [activeCategory, setActiveCategory] = useState<CategoryID>('keywordAnalysis');
-  const [savedReports, setSavedReports] = useState<ResumeAnalysisResult[]>([]);
+  const [savedReports, setSavedReports] = useState<SavedReport[]>([]);
+
+  // Rename & Delete UI state
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [renamingIdx, setRenamingIdx] = useState<number | null>(null);
+  const [renameValue, setRenameValue] = useState('');
 
   // Tooltip state with Flip Logic
   const [hoveredFragment, setHoveredFragment] = useState<AnnotatedFragment | null>(null);
@@ -158,10 +167,39 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
 
   const handleSaveReport = () => {
     if (!result) return;
-    const updated = [result, ...savedReports].slice(0, 10);
+    const reportToSave: SavedReport = {
+      ...result,
+      label: fileName || `Report ${new Date().toLocaleDateString()}`
+    };
+    const updated = [reportToSave, ...savedReports].slice(0, 10);
     setSavedReports(updated);
     localStorage.setItem('nexus_resume_reports', JSON.stringify(updated));
     alert("Report archived in your local vault.");
+  };
+
+  const handleDeleteReport = (idx: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!window.confirm("Remove this diagnostic report from history?")) return;
+    const updated = savedReports.filter((_, i) => i !== idx);
+    setSavedReports(updated);
+    localStorage.setItem('nexus_resume_reports', JSON.stringify(updated));
+  };
+
+  const initRename = (idx: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setRenamingIdx(idx);
+    setRenameValue(savedReports[idx].label || '');
+    setShowRenameModal(true);
+  };
+
+  const handleRenameExecute = () => {
+    if (renamingIdx === null || !renameValue.trim()) return;
+    const updated = [...savedReports];
+    updated[renamingIdx] = { ...updated[renamingIdx], label: renameValue.trim() };
+    setSavedReports(updated);
+    localStorage.setItem('nexus_resume_reports', JSON.stringify(updated));
+    setShowRenameModal(false);
+    setRenamingIdx(null);
   };
 
   const handleDownloadPdf = () => {
@@ -171,10 +209,9 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
   const handleFragmentHover = (fragment: AnnotatedFragment | null, event?: React.MouseEvent) => {
     if (fragment && event) {
       const rect = (event.target as HTMLElement).getBoundingClientRect();
-      const tooltipHeight = 160; // Approximate
+      const tooltipHeight = 160; 
       const margin = 12;
       
-      // Determine if tooltip should flip to bottom
       const spaceAbove = rect.top;
       const shouldShowBottom = spaceAbove < (tooltipHeight + 20);
 
@@ -213,7 +250,6 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
     return (
       <div ref={reportRef} className="max-w-6xl mx-auto space-y-10 animate-fade-in pb-20 px-4 md:px-0 print:p-0 print:m-0 print:max-w-none print:bg-white print:text-black relative">
         
-        {/* GLOBAL FIXED TOOLTIP with SOLID BLACK background and FLIP logic */}
         {hoveredFragment && (
           <div 
             className={`fixed z-[9999] p-5 bg-black border border-white/20 rounded-2xl shadow-[0_32px_128px_rgba(0,0,0,0.9)] animate-fade-in pointer-events-none transform -translate-x-1/2 w-[300px] ${tooltipState.position === 'top' ? '-translate-y-full' : ''}`}
@@ -234,8 +270,6 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
                 </div>
               )}
             </div>
-            
-            {/* Tooltip Arrow */}
             <div className={`absolute left-1/2 -translate-x-1/2 border-[8px] border-transparent ${tooltipState.position === 'top' ? 'top-full border-t-black' : 'bottom-full border-b-black'}`} />
           </div>
         )}
@@ -261,7 +295,6 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
           </div>
         </header>
 
-        {/* Tier 1: Match Score & Verdict */}
         <div className="glass-panel p-10 md:p-14 rounded-[56px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/40 shadow-2xl flex flex-col md:flex-row items-center gap-12 relative overflow-hidden">
           <ScoreAura score={result.totalScore} meaningScore={result.meaningScore} label="ATS Match" />
           
@@ -285,7 +318,6 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
           <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-orange-600/5 blur-[100px] rounded-full pointer-events-none" />
         </div>
 
-        {/* Tier 2: Analytical Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
            <div className="glass-panel p-8 md:p-10 rounded-[48px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/40 shadow-xl">
               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-8 flex items-center gap-2">
@@ -327,7 +359,6 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
            </div>
         </div>
 
-        {/* Tier 3: X-Ray Text Analysis (FULL RESUME) */}
         <div className="glass-panel p-8 md:p-12 rounded-[56px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/60 shadow-2xl space-y-8 animate-fade-in relative overflow-visible">
            <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-100 dark:border-white/5 pb-8">
               <div>
@@ -363,7 +394,6 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
            </div>
         </div>
 
-        {/* Tier 4: Category Selectors */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 print:grid-cols-3">
           {CATEGORIES.map((cat) => {
             const catData = result.categories?.[cat.id] || { score: 0 };
@@ -384,7 +414,6 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
           })}
         </div>
 
-        {/* Tier 5: Detailed Section View */}
         <div className="glass-panel p-8 md:p-12 rounded-[56px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/60 shadow-sm animate-fade-in relative overflow-hidden print:shadow-none print:border-none print:p-8">
            <div className="flex flex-col md:flex-row md:items-start justify-between gap-10 mb-12">
               <div className="flex-1 space-y-4">
@@ -430,7 +459,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
                     <div className="w-7 h-7 rounded-full bg-red-500/10 flex items-center justify-center text-red-500">
                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </div>
-                    <h4 className="text-[10px] font-black uppercase tracking-widest text-red-500">Optimization Gaps</h4>
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-red-500">Critical Gaps</h4>
                  </div>
                  <div className="space-y-2">
                    {result.categories?.[activeCategory]?.missing?.map((item, i) => (
@@ -575,18 +604,59 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
            <h3 className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500 text-center">Historical Archives</h3>
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {savedReports.map((report, idx) => (
-                <div key={idx} onClick={() => setResult(report)} className="p-4 bg-white dark:bg-black/40 border border-slate-100 dark:border-white/5 rounded-[24px] cursor-pointer hover:border-orange-500/50 transition-all group flex items-center justify-between">
-                   <div>
-                      <p className="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-tighter">Readiness: {report.totalScore}%</p>
-                      <p className="text-[7px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">{new Date(report.analysisDate || Date.now()).toLocaleDateString()}</p>
+                <div key={idx} onClick={() => setResult(report)} className="p-5 bg-white dark:bg-black/40 border border-slate-100 dark:border-white/5 rounded-[32px] cursor-pointer hover:border-orange-500/50 transition-all group flex items-center justify-between">
+                   <div className="min-w-0 flex-1 pr-4">
+                      <p className="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-tighter truncate">{report.label || `Report ${idx + 1}`}</p>
+                      <div className="flex items-center gap-3 mt-1">
+                        <span className="text-[8px] font-black text-orange-600 uppercase tracking-widest">Match: {report.totalScore}%</span>
+                        <span className="text-[7px] font-bold text-slate-500 uppercase tracking-widest">{new Date(report.analysisDate || Date.now()).toLocaleDateString()}</span>
+                      </div>
                    </div>
-                   <div className="w-7 h-7 rounded-lg bg-orange-600/10 flex items-center justify-center text-orange-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button 
+                        onClick={(e) => initRename(idx, e)}
+                        className="w-8 h-8 rounded-xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/10 flex items-center justify-center text-slate-400 hover:text-orange-500 transition-all border-none shadow-sm"
+                      >
+                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      </button>
+                      <button 
+                        onClick={(e) => handleDeleteReport(idx, e)}
+                        className="w-8 h-8 rounded-xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/10 flex items-center justify-center text-slate-400 hover:text-red-500 transition-all border-none shadow-sm"
+                      >
+                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+                      </button>
                    </div>
                 </div>
               ))}
            </div>
         </section>
+      )}
+
+      {/* Rename Modal */}
+      {showRenameModal && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-fade-in overflow-hidden">
+          <div className="bg-[#0a0a0a] rounded-[48px] w-full max-w-sm border border-white/10 shadow-[0_32px_128px_rgba(0,0,0,0.8)] overflow-hidden">
+            <div className="p-10 text-center">
+              <h3 className="text-2xl font-black tracking-tighter uppercase mb-2">Rename Report</h3>
+              <p className="text-white/40 text-[9px] font-black uppercase tracking-[0.3em]">Personalize the archive label</p>
+              <div className="mt-8">
+                <input 
+                  autoFocus
+                  type="text" 
+                  value={renameValue} 
+                  onChange={e => setRenameValue(e.target.value)} 
+                  placeholder="Enter label..."
+                  onKeyDown={e => e.key === 'Enter' && handleRenameExecute()}
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-sm font-black text-white outline-none focus:ring-4 focus:ring-orange-600/10 transition-all"
+                />
+              </div>
+              <div className="flex gap-4 mt-8">
+                <button onClick={() => setShowRenameModal(false)} className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors border-none bg-transparent">Cancel</button>
+                <button onClick={handleRenameExecute} className="flex-1 py-4 bg-orange-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition-all border-none">Update</button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
