@@ -49,17 +49,27 @@ export interface TimetableData {
   schedule: DaySchedule[];
 }
 
+export interface ResumeCategoryDetail {
+  score: number;
+  description: string;
+  found: string[];
+  missing: string[];
+  // Special fields for Keyword Analysis
+  missingKeywordsExtended?: { name: string; example: string; importance: string }[];
+}
+
 export interface ResumeAnalysisResult {
   totalScore: number;
   categories: {
-    keywordAnalysis: { score: number; description: string; missingKeywords: { name: string; example: string; importance: string }[] };
-    jobFit: { score: number; description: string; gaps: string[] };
-    achievements: { score: number; description: string; advice: string[] };
-    formatting: { score: number; description: string; issues: string[] };
-    language: { score: number; description: string; tone: string };
-    branding: { score: number; description: string; onlinePresence: string };
+    keywordAnalysis: ResumeCategoryDetail;
+    jobFit: ResumeCategoryDetail;
+    achievements: ResumeCategoryDetail;
+    formatting: ResumeCategoryDetail;
+    language: ResumeCategoryDetail;
+    branding: ResumeCategoryDetail;
   };
   summary: string;
+  analysisDate: number;
 }
 
 export interface FriendRequest {

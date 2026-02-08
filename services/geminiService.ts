@@ -25,25 +25,59 @@ const callGeminiProxy = async (action: string, payload: any) => {
  */
 export const analyzeResume = async (resumeText: string, jdText: string, deepAnalysis: boolean = false): Promise<ResumeAnalysisResult> => {
   const depthInstruction = deepAnalysis 
-    ? "Act as a ruthless, hyper-critical technical recruiter. Do not be polite. Focus on why this candidate fails."
-    : "Perform a professional resume audit against modern tech standards and the provided job description.";
+    ? "Act as a ruthless, hyper-critical technical recruiter. Do not be polite. Point out exactly where the candidate is lying or failing."
+    : "Perform a professional resume audit against modern tech standards and the provided context.";
 
   const prompt = `
-    TASK: GENERATE A DETAILED PROFESSIONAL RESUME REPORT.
+    TASK: GENERATE A COMPREHENSIVE ATS DIAGNOSTIC REPORT.
     
-    JD/CONTEXT: ${jdText}
-    RESUME: ${resumeText}
+    TARGET CONTEXT (JD/TRENDS): ${jdText}
+    RESUME CONTENT: ${resumeText}
 
-    CRITICAL REQUIREMENTS:
+    REQUIREMENTS:
     ${depthInstruction}
     
-    Return a structured JSON based on the ResumeAnalysisResult schema.
-    1. totalScore: 0-100 overall score.
-    2. categories: Break down into keywordAnalysis, jobFit, achievements, formatting, language, and branding.
-    3. keywordAnalysis: List missing keywords with concrete examples of how to incorporate them.
-    4. achievements: Focus on quantifying impact (%, $, scale).
-    5. summary: A high-level verdict.
+    1. For EVERY category below, you MUST identify what is present (found) and what is absent (missing) relative to the target context.
+    2. Categories: keywordAnalysis, jobFit, achievements, formatting, language, branding.
+    3. totalScore: 0-100 overall ranking.
+    
+    Output a JSON object exactly matching this schema:
+    {
+      "totalScore": number,
+      "categories": {
+        "category_id": {
+          "score": number,
+          "description": string,
+          "found": string[],
+          "missing": string[],
+          "missingKeywordsExtended": [ { "name": string, "example": string, "importance": "High" | "Medium" | "Low" } ] (ONLY for keywordAnalysis)
+        }
+      },
+      "summary": string
+    }
   `;
+
+  const categorySchema = {
+    type: Type.OBJECT,
+    properties: {
+      score: { type: Type.INTEGER },
+      description: { type: Type.STRING },
+      found: { type: Type.ARRAY, items: { type: Type.STRING } },
+      missing: { type: Type.ARRAY, items: { type: Type.STRING } },
+      missingKeywordsExtended: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            name: { type: Type.STRING },
+            example: { type: Type.STRING },
+            importance: { type: Type.STRING }
+          }
+        }
+      }
+    },
+    required: ["score", "description", "found", "missing"]
+  };
 
   const schema = {
     type: Type.OBJECT,
@@ -52,72 +86,24 @@ export const analyzeResume = async (resumeText: string, jdText: string, deepAnal
       categories: {
         type: Type.OBJECT,
         properties: {
-          keywordAnalysis: {
-            type: Type.OBJECT,
-            properties: {
-              score: { type: Type.INTEGER },
-              description: { type: Type.STRING },
-              missingKeywords: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    name: { type: Type.STRING },
-                    example: { type: Type.STRING },
-                    importance: { type: Type.STRING }
-                  }
-                }
-              }
-            }
-          },
-          jobFit: {
-            type: Type.OBJECT,
-            properties: {
-              score: { type: Type.INTEGER },
-              description: { type: Type.STRING },
-              gaps: { type: Type.ARRAY, items: { type: Type.STRING } }
-            }
-          },
-          achievements: {
-            type: Type.OBJECT,
-            properties: {
-              score: { type: Type.INTEGER },
-              description: { type: Type.STRING },
-              advice: { type: Type.ARRAY, items: { type: Type.STRING } }
-            }
-          },
-          formatting: {
-            type: Type.OBJECT,
-            properties: {
-              score: { type: Type.INTEGER },
-              description: { type: Type.STRING },
-              issues: { type: Type.ARRAY, items: { type: Type.STRING } }
-            }
-          },
-          language: {
-            type: Type.OBJECT,
-            properties: {
-              score: { type: Type.INTEGER },
-              description: { type: Type.STRING },
-              tone: { type: Type.STRING }
-            }
-          },
-          branding: {
-            type: Type.OBJECT,
-            properties: {
-              score: { type: Type.INTEGER },
-              description: { type: Type.STRING },
-              onlinePresence: { type: Type.STRING }
-            }
-          }
+          keywordAnalysis: categorySchema,
+          jobFit: categorySchema,
+          achievements: categorySchema,
+          formatting: categorySchema,
+          language: categorySchema,
+          branding: categorySchema
         }
       },
       summary: { type: Type.STRING }
-    }
+    },
+    required: ["totalScore", "categories", "summary"]
   };
 
   const data = await callGeminiProxy("ANALYZE_RESUME", { prompt, schema, deep: deepAnalysis });
-  return JSON.parse(data.text) as ResumeAnalysisResult;
+  return {
+    ...(JSON.parse(data.text)),
+    analysisDate: Date.now()
+  } as ResumeAnalysisResult;
 };
 
 /**

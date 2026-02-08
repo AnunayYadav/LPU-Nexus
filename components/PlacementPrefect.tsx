@@ -2,8 +2,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { extractTextFromPdf } from '../services/pdfUtils';
 import { analyzeResume } from '../services/geminiService';
-import { ResumeAnalysisResult, UserProfile } from '../types';
-import NexusServer from '../services/nexusServer.ts';
+import { ResumeAnalysisResult, UserProfile, ResumeCategoryDetail } from '../types';
 
 const IconFile = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-12 h-12 mx-auto mb-2 opacity-40">
@@ -35,36 +34,50 @@ interface PlacementPrefectProps {
   userProfile?: UserProfile | null;
 }
 
-const SemiCircleGauge = ({ score, size = 200 }: { score: number; size?: number }) => {
-  const radius = size / 2.5;
-  const strokeWidth = 14;
-  const circumference = Math.PI * radius;
-  const offset = circumference - (score / 100) * circumference;
+const SemiCircleGauge = ({ score, label, size = 300 }: { score: number; label: string; size?: number }) => {
+  const radius = 100;
+  const stroke = 18;
+  const normalizedRadius = radius - stroke * 2;
+  const circumference = normalizedRadius * Math.PI;
+  const strokeDashoffset = circumference - (score / 100) * circumference;
 
   return (
     <div className="relative flex flex-col items-center">
-      <svg width={size} height={size / 1.5} viewBox={`0 0 ${size} ${size / 2}`}>
+      <svg
+        height={size / 1.6}
+        width={size}
+        viewBox={`0 0 ${radius * 2} ${radius}`}
+        className="transform transition-all duration-1000"
+      >
         <path
-          d={`M ${size * 0.1} ${size / 2} A ${radius} ${radius} 0 0 1 ${size * 0.9} ${size / 2}`}
+          d={`M ${stroke},${radius} A ${normalizedRadius},${normalizedRadius} 0 0,1 ${radius * 2 - stroke},${radius}`}
           fill="none"
           stroke="currentColor"
-          strokeWidth={strokeWidth}
+          strokeWidth={stroke}
           className="text-slate-100 dark:text-white/5"
         />
         <path
-          d={`M ${size * 0.1} ${size / 2} A ${radius} ${radius} 0 0 1 ${size * 0.9} ${size / 2}`}
+          d={`M ${stroke},${radius} A ${normalizedRadius},${normalizedRadius} 0 0,1 ${radius * 2 - stroke},${radius}`}
           fill="none"
-          stroke="currentColor"
-          strokeWidth={strokeWidth}
+          stroke="url(#gaugeGradient)"
+          strokeWidth={stroke}
           strokeDasharray={circumference}
-          strokeDashoffset={offset}
+          strokeDashoffset={strokeDashoffset}
           strokeLinecap="round"
-          className="text-orange-600 transition-all duration-[1500ms] ease-out shadow-lg"
+          className="transition-all duration-[2000ms] ease-out shadow-2xl"
         />
+        <defs>
+          <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#f97316" />
+            <stop offset="100%" stopColor="#dc2626" />
+          </linearGradient>
+        </defs>
       </svg>
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center mt-4">
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Score</p>
-        <p className="text-5xl font-black tracking-tighter text-slate-900 dark:text-white">{score}%</p>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center mt-6">
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-1">{label}</p>
+        <p className="text-6xl font-black tracking-tighter text-slate-900 dark:text-white animate-fade-in">
+          {score}%
+        </p>
       </div>
     </div>
   );
@@ -80,8 +93,14 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
   const [analysisMode, setAnalysisMode] = useState<'custom' | 'trend'>('trend');
   const [selectedRoleId, setSelectedRoleId] = useState<string>('');
   const [activeCategory, setActiveCategory] = useState<CategoryID>('keywordAnalysis');
+  const [savedReports, setSavedReports] = useState<ResumeAnalysisResult[]>([]);
 
-  const detailRef = useRef<HTMLDivElement>(null);
+  const reportRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('nexus_resume_reports');
+    if (saved) setSavedReports(JSON.parse(saved));
+  }, []);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -92,19 +111,18 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
         setResumeText(text);
         setFileName(file.name);
       } catch (err) {
-        alert("Failed to read PDF.");
+        alert("Failed to read PDF artifact.");
       } finally {
         setLoading(false);
       }
     }
   };
 
-  // Define handleRoleSelect to process predefined role selection
   const handleRoleSelect = (roleId: string) => {
     setSelectedRoleId(roleId);
     const role = INDUSTRY_ROLES.find(r => r.id === roleId);
     if (role) {
-      setJdText(`Target Role: ${role.name}. Expected Keywords: ${role.keywords}`);
+      setJdText(`Target Role: ${role.name}. Expected Competencies: ${role.keywords}`);
     }
   };
 
@@ -116,27 +134,39 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
       const data = await analyzeResume(resumeText, jdText, deepAnalysis);
       setResult(data);
     } catch (err) {
-      alert("Analysis failed. Registry Congested.");
+      alert("Analysis failed. Gateway Congested.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCategoryClick = (id: CategoryID) => {
-    setActiveCategory(id);
-    detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const handleSaveReport = () => {
+    if (!result) return;
+    const updated = [result, ...savedReports].slice(0, 10);
+    setSavedReports(updated);
+    localStorage.setItem('nexus_resume_reports', JSON.stringify(updated));
+    alert("Report archived in your local vault.");
+  };
+
+  const handleDownloadPdf = () => {
+    window.print();
   };
 
   if (loading) {
     return (
-      <div className="h-[70vh] flex flex-col items-center justify-center space-y-8 animate-fade-in">
+      <div className="h-[70vh] flex flex-col items-center justify-center space-y-10 animate-fade-in">
         <div className="relative">
-          <div className="w-24 h-24 border-4 border-orange-500/10 rounded-full" />
-          <div className="absolute inset-0 w-24 h-24 border-4 border-orange-600 border-t-transparent rounded-full animate-spin" />
+          <div className="w-24 h-24 border-8 border-orange-500/10 rounded-full" />
+          <div className="absolute inset-0 w-24 h-24 border-8 border-orange-600 border-t-transparent rounded-full animate-spin" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8 text-orange-600 animate-pulse">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </div>
         </div>
-        <div className="text-center">
-          <h3 className="text-xl font-black uppercase tracking-widest text-slate-800 dark:text-white">Synthesizing Report</h3>
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-2 animate-pulse">Running Diagnostic Protocol...</p>
+        <div className="text-center space-y-2">
+          <h3 className="text-2xl font-black uppercase tracking-[0.3em] text-slate-800 dark:text-white">Analyzing DNA</h3>
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest animate-pulse">Mapping career trajectory against market signals...</p>
         </div>
       </div>
     );
@@ -144,182 +174,305 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
 
   if (result) {
     return (
-      <div className="max-w-6xl mx-auto space-y-10 animate-fade-in pb-20 px-4 md:px-0">
-        <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 bg-white dark:bg-slate-950 p-10 rounded-[48px] border border-slate-100 dark:border-white/5 shadow-sm">
+      <div ref={reportRef} className="max-w-6xl mx-auto space-y-10 animate-fade-in pb-20 px-4 md:px-0 print:p-0 print:m-0 print:max-w-none print:bg-white print:text-black">
+        {/* Branding Overlay for PDF */}
+        <div className="hidden print:flex items-center justify-between mb-10 border-b-4 border-orange-600 pb-6">
+           <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-orange-600 rounded-2xl flex items-center justify-center text-white font-black">N</div>
+              <div>
+                <h1 className="text-3xl font-black tracking-tighter">LPU-NEXUS</h1>
+                <p className="text-[10px] font-bold uppercase tracking-[0.4em]">Academic Intelligence Suite</p>
+              </div>
+           </div>
+           <div className="text-right">
+              <p className="text-xs font-black uppercase tracking-widest">PLACEMENT PREFECT</p>
+              <p className="text-[10px] text-slate-500">{new Date(result.analysisDate).toLocaleString()}</p>
+           </div>
+        </div>
+
+        <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 print:hidden">
           <div>
-            <h2 className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter uppercase mb-2">Resume Report</h2>
-            <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">{fileName}</p>
+            <h2 className="text-4xl font-black text-slate-800 dark:text-white tracking-tighter uppercase mb-2">Resume Diagnostic</h2>
+            <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] flex items-center gap-2">
+              <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+              Report generated for {fileName}
+            </p>
           </div>
           <div className="flex gap-3">
-            <button onClick={() => setResult(null)} className="px-8 py-4 bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all hover:bg-slate-200">Re-upload</button>
-            <button className="px-8 py-4 bg-orange-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-orange-600/20 active:scale-95 transition-all">Download PDF</button>
+            <button onClick={handleSaveReport} className="px-8 py-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-white rounded-[24px] font-black text-[10px] uppercase tracking-widest transition-all hover:border-orange-500 flex items-center gap-2">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/></svg>
+              Save to Vault
+            </button>
+            <button onClick={handleDownloadPdf} className="px-8 py-4 bg-orange-600 text-white rounded-[24px] font-black text-[10px] uppercase tracking-widest shadow-2xl shadow-orange-600/20 active:scale-95 transition-all flex items-center gap-2 border-none">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download PDF
+            </button>
+            <button onClick={() => setResult(null)} className="px-6 py-4 bg-slate-900 dark:bg-white text-white dark:text-black rounded-[24px] font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all border-none">Restart</button>
           </div>
         </header>
 
-        <div className="glass-panel p-10 md:p-14 rounded-[56px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/40 shadow-2xl flex flex-col items-center">
-          <SemiCircleGauge score={result.totalScore} size={350} />
-          <div className="mt-8 text-center max-w-xl">
-             <p className="text-sm font-bold text-slate-600 dark:text-slate-300 leading-relaxed italic">
+        {/* Hero Score Section */}
+        <div className="glass-panel p-10 md:p-14 rounded-[56px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/40 shadow-2xl flex flex-col md:flex-row items-center gap-12 relative overflow-hidden">
+          <SemiCircleGauge score={result.totalScore} label="Total Readiness" size={400} />
+          
+          <div className="flex-1 space-y-6">
+             <div className="inline-block px-4 py-1.5 bg-orange-600 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-full">
+               System Verdict
+             </div>
+             <p className="text-xl md:text-2xl font-black text-slate-800 dark:text-white leading-tight">
                "{result.summary}"
              </p>
+             <div className="h-px bg-slate-100 dark:bg-white/5 w-full" />
+             <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-3xl">
+                   <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Top Tier Competency</p>
+                   <p className="text-sm font-bold text-emerald-500 uppercase">{result.categories.jobFit.found[0] || "Strategic Alignment"}</p>
+                </div>
+                <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-3xl">
+                   <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Critical Bottleneck</p>
+                   <p className="text-sm font-bold text-red-500 uppercase">{result.categories.keywordAnalysis.missing[0] || "Foundational Gap"}</p>
+                </div>
+             </div>
           </div>
+
+          <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-orange-600/5 blur-[100px] rounded-full pointer-events-none" />
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        {/* Category Selection Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 print:grid-cols-3 print:gap-2">
           {CATEGORIES.map((cat) => {
             const catData = result.categories[cat.id];
             const isActive = activeCategory === cat.id;
             return (
               <button
                 key={cat.id}
-                onClick={() => handleCategoryClick(cat.id)}
-                className={`p-6 rounded-[32px] border text-left transition-all h-full flex flex-col justify-between ${isActive ? 'bg-orange-600 border-orange-500 shadow-xl shadow-orange-600/20 text-white' : 'bg-white dark:bg-black border-slate-100 dark:border-white/10 text-slate-500'}`}
+                onClick={() => setActiveCategory(cat.id)}
+                className={`p-6 rounded-[32px] border text-left transition-all h-full flex flex-col justify-between group print:border-slate-200 ${isActive ? 'bg-orange-600 border-orange-500 shadow-xl shadow-orange-600/20 text-white scale-[1.02]' : 'bg-white dark:bg-black border-slate-100 dark:border-white/10 text-slate-500 hover:border-orange-500/30'}`}
               >
-                <p className={`text-[18px] font-black mb-3 ${isActive ? 'text-white' : 'text-slate-800 dark:text-white'}`}>{catData.score}%</p>
-                <p className={`text-[9px] font-black uppercase tracking-tight leading-tight ${isActive ? 'text-white/80' : 'text-slate-500'}`}>{cat.label}</p>
+                <div className="flex items-center justify-between mb-4">
+                  <p className={`text-2xl font-black ${isActive ? 'text-white' : 'text-slate-900 dark:text-white group-hover:text-orange-600'}`}>{catData.score}%</p>
+                  <div className={`w-1.5 h-1.5 rounded-full ${catData.score > 80 ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]' : catData.score > 50 ? 'bg-orange-500' : 'bg-red-500 animate-pulse'}`} />
+                </div>
+                <p className={`text-[9px] font-black uppercase tracking-tight leading-tight ${isActive ? 'text-white/80' : 'text-slate-400'}`}>{cat.label}</p>
               </button>
             );
           })}
         </div>
 
-        <div ref={detailRef} className="glass-panel p-10 md:p-16 rounded-[64px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/60 shadow-sm animate-fade-in">
-           <div className="flex flex-col md:flex-row md:items-start justify-between gap-10 mb-12">
-              <div className="flex-1 space-y-4">
-                 <div className="flex items-center gap-3">
-                    <div className="w-1.5 h-10 bg-orange-600 rounded-full" />
-                    <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">
-                      {CATEGORIES.find(c => c.id === activeCategory)?.label}
-                    </h3>
+        {/* Detailed Section View */}
+        <div className="glass-panel p-8 md:p-16 rounded-[64px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/60 shadow-sm animate-fade-in relative overflow-hidden print:shadow-none print:border-none print:p-8">
+           <div className="flex flex-col md:flex-row md:items-start justify-between gap-10 mb-16">
+              <div className="flex-1 space-y-6">
+                 <div className="flex items-center gap-4">
+                    <div className="w-1.5 h-12 bg-orange-600 rounded-full" />
+                    <div>
+                       <h3 className="text-3xl md:text-4xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">
+                         {CATEGORIES.find(c => c.id === activeCategory)?.label}
+                       </h3>
+                       <p className="text-[10px] font-black text-orange-600 uppercase tracking-[0.4em] mt-2">Protocol Analysis</p>
+                    </div>
                  </div>
-                 <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed max-w-2xl">
+                 <p className="text-base text-slate-600 dark:text-slate-300 font-medium leading-relaxed max-w-3xl">
                     {result.categories[activeCategory].description}
                  </p>
               </div>
-              <div className="flex flex-col items-center p-8 bg-slate-50 dark:bg-white/5 rounded-[40px] border dark:border-white/5">
-                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Section Score</p>
-                 <p className="text-4xl font-black text-orange-600">{result.categories[activeCategory].score}%</p>
+              <div className="flex flex-col items-center p-10 bg-slate-50 dark:bg-white/5 rounded-[48px] border dark:border-white/5 shadow-inner">
+                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Confidence Level</p>
+                 <p className="text-6xl font-black text-orange-600 tracking-tighter">{result.categories[activeCategory].score}%</p>
               </div>
            </div>
 
-           <div className="space-y-6">
-              {activeCategory === 'keywordAnalysis' && (
-                <div className="space-y-8">
-                  <div className="p-8 bg-orange-600/5 border border-orange-600/20 rounded-[40px] flex items-start gap-4">
-                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5 text-orange-600 mt-1 flex-shrink-0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                     <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
-                       Your resume is missing important keywords related to your job title. Consider incorporating the keywords below to enhance your resume's effectiveness.
-                     </p>
-                  </div>
-                  <div className="overflow-hidden rounded-[32px] border border-slate-100 dark:border-white/5">
-                     <table className="w-full text-left border-collapse">
-                        <thead>
-                           <tr className="bg-slate-50 dark:bg-white/5">
-                              <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Missing keywords to include</th>
-                              <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Importance</th>
-                           </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-white/5 bg-white dark:bg-black/20">
-                           {result.categories.keywordAnalysis.missingKeywords.map((k, i) => (
-                             <tr key={i} className="group hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                                <td className="px-8 py-6">
-                                   <p className="text-sm font-black text-slate-800 dark:text-white mb-1 uppercase tracking-tight">{k.name}</p>
-                                   <p className="text-xs text-slate-500 dark:text-slate-400 italic">Example: {k.example}</p>
-                                </td>
-                                <td className="px-8 py-6 text-right">
-                                   <span className="text-[10px] font-black text-orange-600 uppercase tracking-widest bg-orange-600/10 px-3 py-1.5 rounded-lg">{k.importance}</span>
-                                </td>
-                             </tr>
-                           ))}
-                        </tbody>
-                     </table>
-                  </div>
-                </div>
-              )}
-
-              {activeCategory === 'jobFit' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {result.categories.jobFit.gaps.map((gap, i) => (
-                    <div key={i} className="p-8 bg-white/[0.02] border border-white/5 rounded-[32px] flex items-center gap-5">
-                       <div className="w-10 h-10 bg-red-500/10 rounded-2xl flex items-center justify-center text-red-500 border border-red-500/20"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><path d="M18 6L6 18M6 6l12 12"/></svg></div>
-                       <p className="text-sm font-bold text-slate-300">{gap}</p>
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10 print:gap-12">
+              {/* FOUND / STRENGTHS */}
+              <div className="space-y-6">
+                 <div className="flex items-center gap-3 mb-2">
+                    <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><polyline points="20 6 9 17 4 12"/></svg>
                     </div>
-                  ))}
-                </div>
-              )}
+                    <h4 className="text-xs font-black uppercase tracking-widest text-emerald-500">Found / Validated Strengths</h4>
+                 </div>
+                 <div className="space-y-3">
+                   {result.categories[activeCategory].found.map((item, i) => (
+                     <div key={i} className="p-5 bg-emerald-500/[0.03] border border-emerald-500/10 rounded-[28px] flex items-start gap-4 hover:scale-[1.01] transition-transform">
+                        <span className="text-emerald-500 font-black text-[10px] mt-0.5">•</span>
+                        <p className="text-sm font-bold text-slate-700 dark:text-slate-300 leading-relaxed">{item}</p>
+                     </div>
+                   ))}
+                   {result.categories[activeCategory].found.length === 0 && (
+                     <p className="text-xs text-slate-500 italic p-6 border-2 border-dashed border-slate-100 dark:border-white/5 rounded-[28px]">No significant positive signals detected in this section.</p>
+                   )}
+                 </div>
+              </div>
 
-              {activeCategory === 'achievements' && (
-                <div className="space-y-4">
-                  {result.categories.achievements.advice.map((item, i) => (
-                    <div key={i} className="p-6 bg-emerald-500/5 border border-emerald-500/10 rounded-3xl flex items-center gap-5">
-                       <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white font-black text-[10px]">{i+1}</div>
-                       <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{item}</p>
+              {/* MISSING / GAPS */}
+              <div className="space-y-6">
+                 <div className="flex items-center gap-3 mb-2">
+                    <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center text-red-500">
+                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </div>
-                  ))}
-                </div>
-              )}
-              
-              {/* Fallback for other categories */}
-              {activeCategory !== 'keywordAnalysis' && activeCategory !== 'jobFit' && activeCategory !== 'achievements' && (
-                <div className="p-10 border-2 border-dashed border-slate-100 dark:border-white/5 rounded-[48px] text-center opacity-40">
-                  <p className="text-xs font-black uppercase tracking-[0.3em]">Detailed ledger pending analysis...</p>
-                </div>
-              )}
+                    <h4 className="text-xs font-black uppercase tracking-widest text-red-500">Missing / Areas for Growth</h4>
+                 </div>
+                 <div className="space-y-3">
+                   {result.categories[activeCategory].missing.map((item, i) => (
+                     <div key={i} className="p-5 bg-red-500/[0.03] border border-red-500/10 rounded-[28px] flex items-start gap-4 hover:scale-[1.01] transition-transform">
+                        <span className="text-red-500 font-black text-[10px] mt-0.5">•</span>
+                        <p className="text-sm font-bold text-slate-700 dark:text-slate-300 leading-relaxed">{item}</p>
+                     </div>
+                   ))}
+                   {result.categories[activeCategory].missing.length === 0 && (
+                     <p className="text-xs text-slate-500 italic p-6 border-2 border-dashed border-slate-100 dark:border-white/5 rounded-[28px]">Perfect alignment detected. No missing elements identified.</p>
+                   )}
+                 </div>
+              </div>
            </div>
+
+           {/* Special Table for Missing Keywords */}
+           {activeCategory === 'keywordAnalysis' && result.categories.keywordAnalysis.missingKeywordsExtended && (
+             <div className="mt-16 space-y-8 animate-fade-in print:mt-10">
+                <div className="p-8 bg-orange-600/5 border border-orange-600/20 rounded-[40px] flex items-start gap-5">
+                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6 text-orange-600 mt-1 flex-shrink-0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                   <div>
+                      <p className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight mb-1">ATS Optimization Guide</p>
+                      <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Incorporate these semantic signals to bypass automated filters and satisfy recruiter search queries.</p>
+                   </div>
+                </div>
+                <div className="overflow-hidden rounded-[40px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/20 shadow-lg">
+                   <table className="w-full text-left border-collapse">
+                      <thead>
+                         <tr className="bg-slate-50 dark:bg-white/5">
+                            <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Required Semantic Signal</th>
+                            <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Implementation Example</th>
+                            <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Priority</th>
+                         </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                         {result.categories.keywordAnalysis.missingKeywordsExtended.map((k, i) => (
+                           <tr key={i} className="group hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                              <td className="px-8 py-8">
+                                 <p className="text-base font-black text-slate-800 dark:text-white uppercase tracking-tight">{k.name}</p>
+                              </td>
+                              <td className="px-8 py-8 max-w-md">
+                                 <p className="text-xs text-slate-500 dark:text-slate-400 italic leading-relaxed italic">"{k.example}"</p>
+                              </td>
+                              <td className="px-8 py-8 text-right">
+                                 <span className={`text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-xl ${k.importance === 'High' ? 'bg-red-500/10 text-red-500' : 'bg-orange-500/10 text-orange-500'}`}>
+                                   {k.importance}
+                                 </span>
+                              </td>
+                           </tr>
+                         ))}
+                      </tbody>
+                   </table>
+                </div>
+             </div>
+           )}
+
+           <div className="absolute top-0 right-0 w-80 h-80 bg-orange-600/5 blur-[120px] rounded-full pointer-events-none" />
+        </div>
+
+        {/* Footer for PDF */}
+        <div className="hidden print:block text-center mt-20 pt-10 border-t border-slate-100">
+           <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.5em]">This is an AI-Synthesized Document by LPU-Nexus • Verify at nexus.verto.ai</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-10 animate-fade-in pb-20">
-      <header className="text-center">
-        <h2 className="text-4xl font-black text-white tracking-tighter uppercase mb-4">Placement Prefect</h2>
-        <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Professional ATS Diagnostic Terminal</p>
+    <div className="max-w-4xl mx-auto space-y-12 animate-fade-in pb-20 px-4 md:px-0">
+      <header className="text-center space-y-4">
+        <div className="w-16 h-16 bg-orange-600 rounded-3xl mx-auto flex items-center justify-center text-white font-black text-2xl shadow-2xl shadow-orange-600/20">N</div>
+        <h2 className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter uppercase">Placement Prefect</h2>
+        <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-[10px]">Registry Hub for Professional Diagnostics</p>
       </header>
 
-      <div className="glass-panel p-10 rounded-[56px] border border-white/5 bg-black shadow-2xl space-y-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-           <div className="space-y-4">
-              <label className="text-[10px] font-black uppercase text-orange-600 tracking-[0.3em] block ml-1">1. Professional Artifact</label>
-              <div className="relative border-4 border-dashed border-white/5 rounded-[40px] p-12 text-center hover:border-orange-500/30 transition-all bg-white/[0.01] group cursor-pointer">
+      <div className="glass-panel p-10 md:p-14 rounded-[64px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/60 shadow-2xl space-y-12">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+           <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                 <div className="w-8 h-8 rounded-xl bg-orange-600/10 flex items-center justify-center text-orange-600 font-black">1</div>
+                 <label className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] block">Source Artifact</label>
+              </div>
+              <div className="relative border-4 border-dashed border-slate-100 dark:border-white/5 rounded-[48px] p-16 text-center hover:border-orange-500/40 transition-all bg-slate-50 dark:bg-white/[0.02] group cursor-pointer shadow-inner">
                 <input type="file" accept=".pdf" onChange={handleFileUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
                 <IconFile />
-                <p className="text-sm font-black uppercase tracking-widest text-slate-400">
-                  {fileName ? <span className="text-emerald-500">{fileName}</span> : "Upload PDF Resume"}
+                <p className="text-base font-black uppercase tracking-widest text-slate-400 group-hover:text-orange-600 transition-colors">
+                  {fileName ? fileName : "Inject Resume (PDF)"}
                 </p>
+                {!fileName && <p className="text-[8px] font-bold text-slate-400 uppercase mt-4 tracking-widest opacity-40">System accepts PDF & TXT protocols</p>}
               </div>
            </div>
 
-           <div className="space-y-4">
+           <div className="space-y-6">
               <div className="flex items-center justify-between">
-                <label className="text-[10px] font-black uppercase text-orange-600 tracking-[0.3em] block ml-1">2. Target Parameters</label>
-                <div className="flex bg-white/5 p-1 rounded-xl">
-                  <button onClick={() => setAnalysisMode('trend')} className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all ${analysisMode === 'trend' ? 'bg-orange-600 text-white' : 'text-slate-500'}`}>Presets</button>
-                  <button onClick={() => setAnalysisMode('custom')} className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all ${analysisMode === 'custom' ? 'bg-orange-600 text-white' : 'text-slate-500'}`}>JD Text</button>
+                <div className="flex items-center gap-3">
+                   <div className="w-8 h-8 rounded-xl bg-orange-600/10 flex items-center justify-center text-orange-600 font-black">2</div>
+                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] block">Target Parameter</label>
+                </div>
+                <div className="flex bg-slate-100 dark:bg-white/5 p-1.5 rounded-[20px]">
+                  <button onClick={() => setAnalysisMode('trend')} className={`px-6 py-2 rounded-2xl text-[10px] font-black uppercase transition-all ${analysisMode === 'trend' ? 'bg-orange-600 text-white shadow-lg' : 'text-slate-500'}`}>Presets</button>
+                  <button onClick={() => setAnalysisMode('custom')} className={`px-6 py-2 rounded-2xl text-[10px] font-black uppercase transition-all ${analysisMode === 'custom' ? 'bg-orange-600 text-white shadow-lg' : 'text-slate-500'}`}>Raw JD</button>
                 </div>
               </div>
               {analysisMode === 'trend' ? (
-                <div className="grid grid-cols-1 gap-2">
+                <div className="grid grid-cols-2 gap-3">
                   {INDUSTRY_ROLES.map(role => (
-                    <button key={role.id} onClick={() => handleRoleSelect(role.id)} className={`p-4 rounded-[24px] border text-left transition-all ${selectedRoleId === role.id ? 'bg-orange-600/10 border-orange-600 text-orange-500' : 'bg-black border-white/5 text-slate-500 hover:border-white/20'}`}>
-                      <p className="text-[10px] font-black uppercase tracking-tight">{role.name}</p>
+                    <button key={role.id} onClick={() => handleRoleSelect(role.id)} className={`p-5 rounded-[28px] border text-left transition-all ${selectedRoleId === role.id ? 'bg-orange-600/10 border-orange-600 text-orange-500 scale-[1.02]' : 'bg-slate-50 dark:bg-black border-slate-100 dark:border-white/5 text-slate-500 hover:border-orange-500/30'}`}>
+                      <p className="text-[10px] font-black uppercase tracking-tight leading-tight">{role.name}</p>
                     </button>
                   ))}
                 </div>
               ) : (
-                <textarea className="w-full h-44 bg-white/5 border border-white/10 rounded-[32px] p-6 text-sm text-white focus:ring-4 focus:ring-orange-600/10 outline-none resize-none transition-all font-bold placeholder:opacity-20" placeholder="Paste target description here..." value={jdText} onChange={(e) => setJdText(e.target.value)} />
+                <textarea 
+                  className="w-full h-[228px] bg-slate-50 dark:bg-black/60 border border-slate-100 dark:border-white/10 rounded-[32px] p-8 text-sm text-slate-800 dark:text-white focus:ring-4 focus:ring-orange-600/10 outline-none resize-none transition-all font-bold placeholder:opacity-30 shadow-inner" 
+                  placeholder="Paste official job description or market requirements..." 
+                  value={jdText} 
+                  onChange={(e) => setJdText(e.target.value)} 
+                />
               )}
            </div>
         </div>
 
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6 pt-6 border-t border-white/5">
-           <div className={`flex items-center gap-4 px-6 py-4 rounded-[28px] border transition-all cursor-pointer ${deepAnalysis ? 'bg-red-600 border-red-500 shadow-xl' : 'bg-white/5 border-white/5'}`} onClick={() => setDeepAnalysis(!deepAnalysis)}>
-              <div className={`w-3 h-3 rounded-full ${deepAnalysis ? 'bg-white animate-pulse' : 'bg-slate-600'}`} />
-              <span className="text-[10px] font-black uppercase tracking-widest">Ruthless Roast Mode</span>
-           </div>
-           <button onClick={handleAnalyze} disabled={!resumeText || !jdText || loading} className="w-full md:w-auto px-16 py-5 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-[28px] font-black text-xs uppercase tracking-[0.3em] shadow-2xl hover:scale-[1.02] active:scale-95 transition-all border-none">Commence Audit</button>
+        <div className="flex flex-col md:flex-row items-center justify-between gap-8 pt-10 border-t border-slate-100 dark:border-white/5">
+           <button 
+             onClick={() => setDeepAnalysis(!deepAnalysis)}
+             className={`flex items-center gap-5 px-8 py-5 rounded-[32px] border transition-all cursor-pointer group ${deepAnalysis ? 'bg-red-600 border-red-500 shadow-2xl shadow-red-600/30' : 'bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/5 hover:border-red-500/50'}`}
+           >
+              <div className={`w-4 h-4 rounded-full transition-all ${deepAnalysis ? 'bg-white shadow-[0_0_12px_#fff]' : 'bg-slate-400 group-hover:bg-red-500'}`} />
+              <div className="text-left">
+                <span className={`text-[10px] font-black uppercase tracking-widest block ${deepAnalysis ? 'text-white' : 'text-slate-400 group-hover:text-red-500'}`}>Deep Scrutiny</span>
+                <span className={`text-[8px] font-bold uppercase opacity-60 ${deepAnalysis ? 'text-white' : 'text-slate-400'}`}>Ruthless technical vetting</span>
+              </div>
+           </button>
+           <button 
+             onClick={handleAnalyze} 
+             disabled={!resumeText || !jdText || loading} 
+             className="w-full md:w-auto px-20 py-6 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-[32px] font-black text-xs uppercase tracking-[0.4em] shadow-2xl shadow-orange-600/40 hover:scale-[1.05] active:scale-95 transition-all border-none disabled:opacity-30"
+           >
+             Synthesize Report
+           </button>
         </div>
       </div>
+
+      {/* History Grid */}
+      {savedReports.length > 0 && (
+        <section className="space-y-6">
+           <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-500 text-center">Historical Archives</h3>
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {savedReports.map((report, idx) => (
+                <div key={idx} onClick={() => setResult(report)} className="p-6 bg-white dark:bg-black/40 border border-slate-100 dark:border-white/5 rounded-[32px] cursor-pointer hover:border-orange-500/50 transition-all group flex items-center justify-between">
+                   <div>
+                      <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tighter">Readiness: {report.totalScore}%</p>
+                      <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-1">{new Date(report.analysisDate).toLocaleDateString()}</p>
+                   </div>
+                   <div className="w-8 h-8 rounded-xl bg-orange-600/10 flex items-center justify-center text-orange-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                   </div>
+                </div>
+              ))}
+           </div>
+        </section>
+      )}
     </div>
   );
 };
