@@ -72,11 +72,13 @@ const ScoreAura = ({ score, label, meaningScore }: { score: number; label: strin
   );
 };
 
-// Fix: Use React.FC to explicitly type the component and allow standard props like 'key' when rendering in a list (fixes TS error on line 328)
-const FragmentHighlight: React.FC<{ fragment: AnnotatedFragment }> = ({ fragment }) => {
-  const [showTooltip, setShowTooltip] = useState(false);
-  
-  if (fragment.type === 'neutral') return <span>{fragment.text} </span>;
+interface FragmentProps {
+  fragment: AnnotatedFragment;
+  onHover: (fragment: AnnotatedFragment | null, event?: React.MouseEvent) => void;
+}
+
+const FragmentHighlight: React.FC<FragmentProps> = ({ fragment, onHover }) => {
+  if (fragment.type === 'neutral') return <span className="text-slate-400 dark:text-slate-500">{fragment.text}</span>;
 
   const colorClass = fragment.type === 'good' 
     ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20' 
@@ -84,25 +86,11 @@ const FragmentHighlight: React.FC<{ fragment: AnnotatedFragment }> = ({ fragment
 
   return (
     <span 
-      className={`relative inline-block px-1 rounded-md border-b-2 cursor-help transition-all duration-300 ${colorClass}`}
-      onMouseEnter={() => setShowTooltip(true)}
-      onMouseLeave={() => setShowTooltip(false)}
-      onClick={() => setShowTooltip(!showTooltip)}
+      className={`inline px-0.5 rounded-md border-b-2 cursor-help transition-all duration-300 ${colorClass}`}
+      onMouseEnter={(e) => onHover(fragment, e)}
+      onMouseLeave={() => onHover(null)}
     >
       {fragment.text}
-      {showTooltip && (
-        <span className="absolute z-[100] bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl animate-fade-in pointer-events-none">
-          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Intelligence Note</p>
-          <p className="text-xs font-bold text-slate-800 dark:text-white mb-2 leading-tight">{fragment.reason}</p>
-          {fragment.suggestion && (
-            <div className="pt-2 border-t border-slate-100 dark:border-white/5">
-              <p className="text-[8px] font-black uppercase tracking-widest text-orange-600 mb-1">Improvement</p>
-              <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-relaxed italic">"{fragment.suggestion}"</p>
-            </div>
-          )}
-          <span className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-white dark:border-t-slate-900" />
-        </span>
-      )}
     </span>
   );
 };
@@ -118,6 +106,10 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
   const [selectedRoleId, setSelectedRoleId] = useState<string>('');
   const [activeCategory, setActiveCategory] = useState<CategoryID>('keywordAnalysis');
   const [savedReports, setSavedReports] = useState<ResumeAnalysisResult[]>([]);
+
+  // Tooltip state to prevent clipping
+  const [hoveredFragment, setHoveredFragment] = useState<AnnotatedFragment | null>(null);
+  const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
 
   const reportRef = useRef<HTMLDivElement>(null);
 
@@ -176,6 +168,20 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
     window.print();
   };
 
+  const handleFragmentHover = (fragment: AnnotatedFragment | null, event?: React.MouseEvent) => {
+    if (fragment && event) {
+      const rect = (event.target as HTMLElement).getBoundingClientRect();
+      // Position above the fragment
+      setTooltipPos({
+        x: rect.left + rect.width / 2,
+        y: rect.top - 10
+      });
+      setHoveredFragment(fragment);
+    } else {
+      setHoveredFragment(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="h-[70vh] flex flex-col items-center justify-center space-y-10 animate-fade-in">
@@ -190,7 +196,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
         </div>
         <div className="text-center space-y-2">
           <h3 className="text-2xl font-black uppercase tracking-[0.3em] text-slate-800 dark:text-white">Synthesizing X-Ray</h3>
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest animate-pulse">Scanning fragments for semantic integrity...</p>
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest animate-pulse">Mapping semantic clusters for recruiters...</p>
         </div>
       </div>
     );
@@ -198,7 +204,30 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
 
   if (result) {
     return (
-      <div ref={reportRef} className="max-w-6xl mx-auto space-y-10 animate-fade-in pb-20 px-4 md:px-0 print:p-0 print:m-0 print:max-w-none print:bg-white print:text-black">
+      <div ref={reportRef} className="max-w-6xl mx-auto space-y-10 animate-fade-in pb-20 px-4 md:px-0 print:p-0 print:m-0 print:max-w-none print:bg-white print:text-black relative">
+        
+        {/* Floating Tooltip Fix - Rendered outside scroll container */}
+        {hoveredFragment && (
+          <div 
+            className="fixed z-[9999] p-4 bg-white dark:bg-black border border-slate-200 dark:border-white/10 rounded-2xl shadow-[0_32px_128px_rgba(0,0,0,0.5)] animate-fade-in pointer-events-none transform -translate-x-1/2 -translate-y-full w-72"
+            style={{ left: tooltipPos.x, top: tooltipPos.y }}
+          >
+            <div className="space-y-3">
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Diagnostic Detail</p>
+                <p className="text-[11px] font-bold text-slate-800 dark:text-white leading-tight">{hoveredFragment.reason}</p>
+              </div>
+              {hoveredFragment.suggestion && (
+                <div className="pt-2 border-t border-slate-100 dark:border-white/5">
+                  <p className="text-[8px] font-black uppercase tracking-widest text-orange-600 mb-1">Nexus Correction</p>
+                  <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-relaxed italic">"{hoveredFragment.suggestion}"</p>
+                </div>
+              )}
+            </div>
+            <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-white dark:border-t-black" />
+          </div>
+        )}
+
         {/* PDF Branding */}
         <div className="hidden print:flex items-center justify-between mb-10 border-b-4 border-orange-600 pb-6">
            <div className="flex items-center gap-4">
@@ -235,7 +264,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
           </div>
         </header>
 
-        {/* 1. EXECUTIVE VERDICT TIER */}
+        {/* Tier 1: Match Score & Verdict */}
         <div className="glass-panel p-10 md:p-14 rounded-[56px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/40 shadow-2xl flex flex-col md:flex-row items-center gap-12 relative overflow-hidden">
           <ScoreAura score={result.totalScore} meaningScore={result.meaningScore} label="Match Score" />
           
@@ -259,9 +288,8 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
           <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-orange-600/5 blur-[100px] rounded-full pointer-events-none" />
         </div>
 
-        {/* 2. QUALITY METRICS TIER */}
+        {/* Tier 2: Analytical Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-           {/* Keyword Quality Analysis Card */}
            <div className="glass-panel p-8 md:p-10 rounded-[48px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/40 shadow-xl">
               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-8 flex items-center gap-2">
                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><circle cx="12" cy="12" r="10"/><path d="m12 16 4-4-4-4"/><path d="M8 12h8"/></svg>
@@ -281,10 +309,9 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
                     <p className="text-[8px] font-black uppercase text-slate-400 mt-1">Stuffed</p>
                  </div>
               </div>
-              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest text-center mt-6 opacity-60">"ATS may reject resumes with low keyword meaning."</p>
+              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest text-center mt-6 opacity-60">ATS may reject resumes with high keyword stuffing.</p>
            </div>
 
-           {/* Meaning Score Card */}
            <div className="glass-panel p-8 md:p-10 rounded-[48px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/40 shadow-xl flex flex-col justify-center">
               <div className="flex items-center justify-between mb-4">
                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Meaning Score</h3>
@@ -299,50 +326,47 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
                    style={{ width: `${result.meaningScore}%` }} 
                  />
               </div>
-              <p className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tighter text-right">{result.meaningScore}% Integrity</p>
+              <p className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tighter text-right">{result.meaningScore}% Content Integrity</p>
            </div>
         </div>
 
-        {/* 3. X-RAY TEXT ANALYSIS TIER */}
-        <div className="glass-panel p-8 md:p-12 rounded-[56px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/60 shadow-2xl space-y-8 animate-fade-in">
+        {/* Tier 3: X-Ray Text Analysis */}
+        <div className="glass-panel p-8 md:p-12 rounded-[56px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/60 shadow-2xl space-y-8 animate-fade-in relative">
            <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-100 dark:border-white/5 pb-8">
               <div>
                  <h3 className="text-2xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">Extracted Resume Text Analysis</h3>
-                 <p className="text-[9px] font-black text-orange-600 uppercase tracking-[0.4em] mt-1.5">Semantic X-Ray Visualization</p>
+                 <p className="text-[9px] font-black text-orange-600 uppercase tracking-[0.4em] mt-1.5">Full Semantic Visualization</p>
               </div>
               <div className="flex flex-wrap gap-4">
-                 <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_6px_#10b981]" />
-                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Optimized</span>
+                 <div className="flex items-center gap-2 bg-emerald-500/5 px-3 py-1.5 rounded-full border border-emerald-500/10">
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]" />
+                    <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600">🟢 Optimized</span>
                  </div>
-                 <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_6px_#ef4444]" />
-                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Improvement</span>
+                 <div className="flex items-center gap-2 bg-red-500/5 px-3 py-1.5 rounded-full border border-red-500/10">
+                    <div className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_8px_#ef4444]" />
+                    <span className="text-[9px] font-black uppercase tracking-widest text-red-600">🔴 Needs Fixing</span>
                  </div>
               </div>
            </header>
 
-           <div className="relative group">
-              <div className="max-h-[500px] overflow-y-auto no-scrollbar p-8 md:p-10 bg-slate-50 dark:bg-black/40 rounded-[40px] border border-slate-100 dark:border-white/5 shadow-inner">
-                 <div className="text-sm md:text-base text-slate-600 dark:text-slate-300 font-medium leading-loose whitespace-pre-wrap">
+           <div className="relative overflow-visible">
+              <div className="max-h-[600px] overflow-y-auto no-scrollbar p-8 md:p-12 bg-slate-50 dark:bg-black/80 rounded-[40px] border border-slate-100 dark:border-white/5 shadow-inner">
+                 <div className="text-sm md:text-base text-slate-600 dark:text-slate-300 font-medium leading-relaxed whitespace-pre-wrap font-mono">
                     {result.annotatedContent.map((fragment, i) => (
-                      <FragmentHighlight key={i} fragment={fragment} />
+                      <FragmentHighlight key={i} fragment={fragment} onHover={handleFragmentHover} />
                     ))}
                  </div>
-              </div>
-              <div className="absolute top-4 right-4 pointer-events-none opacity-20 group-hover:opacity-100 transition-opacity">
-                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5 text-orange-600"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>
               </div>
            </div>
 
            <div className="p-6 bg-orange-600/5 border border-orange-600/20 rounded-3xl">
-              <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 leading-relaxed">
-                <strong className="text-orange-600">Protocol Note:</strong> Hover over the highlighted sections to view diagnostic feedback and suggested corrections generated by the Nexus Intelligence engine.
+              <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 leading-relaxed text-center">
+                <strong className="text-orange-600">Note:</strong> This view reconstructs your original file. Hover over colored text to see specific ATS optimization advice.
               </p>
            </div>
         </div>
 
-        {/* 4. CATEGORY SELECTOR TIER */}
+        {/* Tier 4: Category Grids */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 print:grid-cols-3">
           {CATEGORIES.map((cat) => {
             const catData = result.categories?.[cat.id] || { score: 0 };
@@ -363,7 +387,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
           })}
         </div>
 
-        {/* 5. DETAILED REPORT BODY */}
+        {/* Tier 5: Detailed Section View */}
         <div className="glass-panel p-8 md:p-12 rounded-[56px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/60 shadow-sm animate-fade-in relative overflow-hidden print:shadow-none print:border-none print:p-8">
            <div className="flex flex-col md:flex-row md:items-start justify-between gap-10 mb-12">
               <div className="flex-1 space-y-4">
@@ -373,15 +397,15 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
                        <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">
                          {CATEGORIES.find(c => c.id === activeCategory)?.label}
                        </h3>
-                       <p className="text-[9px] font-black text-orange-600 uppercase tracking-[0.4em] mt-1.5">Segment Analysis</p>
+                       <p className="text-[9px] font-black text-orange-600 uppercase tracking-[0.4em] mt-1.5">Sector Analysis</p>
                     </div>
                  </div>
                  <p className="text-sm text-slate-600 dark:text-slate-300 font-medium leading-relaxed max-w-3xl">
-                    {result.categories?.[activeCategory]?.description || "Analysis segment data pending review."}
+                    {result.categories?.[activeCategory]?.description || "Registry pending analysis."}
                  </p>
               </div>
               <div className="flex flex-col items-center p-8 bg-slate-50 dark:bg-white/5 rounded-[40px] border dark:border-white/5 shadow-inner min-w-[140px]">
-                 <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Sub-Score</p>
+                 <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Score</p>
                  <p className="text-5xl font-black text-orange-600 tracking-tighter">{result.categories?.[activeCategory]?.score || 0}%</p>
               </div>
            </div>
@@ -392,7 +416,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
                     <div className="w-7 h-7 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500">
                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><polyline points="20 6 9 17 4 12"/></svg>
                     </div>
-                    <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Validated signals</h4>
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Semantic Strengths</h4>
                  </div>
                  <div className="space-y-2">
                    {result.categories?.[activeCategory]?.found?.map((item, i) => (
@@ -400,7 +424,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
                         <span className="text-emerald-500 font-black text-[10px] mt-0.5">•</span>
                         <p className="text-xs font-bold text-slate-700 dark:text-slate-300 leading-relaxed">{item}</p>
                      </div>
-                   )) || <p className="text-xs text-slate-500 italic p-6 border-2 border-dashed border-slate-100 dark:border-white/5 rounded-[22px]">No signals detected.</p>}
+                   )) || <p className="text-xs text-slate-500 italic p-6 border-2 border-dashed border-slate-100 dark:border-white/5 rounded-[22px]">No data detected.</p>}
                  </div>
               </div>
 
@@ -409,7 +433,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
                     <div className="w-7 h-7 rounded-full bg-red-500/10 flex items-center justify-center text-red-500">
                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </div>
-                    <h4 className="text-[10px] font-black uppercase tracking-widest text-red-500">Optimization Gaps</h4>
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-red-500">Critical Gaps</h4>
                  </div>
                  <div className="space-y-2">
                    {result.categories?.[activeCategory]?.missing?.map((item, i) => (
@@ -428,7 +452,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5 text-orange-600 mt-0.5 shrink-0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                    <div>
                       <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight mb-1">ATS Optimization Guide</p>
-                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Semantic signal requirements for recruiter search heuristics.</p>
+                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Implement these semantic signals to satisfy recruiter search heuristics.</p>
                    </div>
                 </div>
                 <div className="overflow-hidden rounded-[32px] border border-slate-200 dark:border-white/5 bg-white dark:bg-black/30">
@@ -466,7 +490,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
         </div>
 
         <div className="hidden print:block text-center mt-12 pt-6 border-t border-slate-100">
-           <p className="text-[7px] font-black text-slate-400 uppercase tracking-[0.5em]">This is an AI-Synthesized Document by LPU-Nexus • Verify at nexus.verto.ai</p>
+           <p className="text-[7px] font-black text-slate-400 uppercase tracking-[0.5em]">AI-Synthesized Document by LPU-Nexus • Verify at nexus.verto.ai</p>
         </div>
       </div>
     );

@@ -29,7 +29,7 @@ export const analyzeResume = async (resumeText: string, jdText: string, deepAnal
     : "Perform a professional resume audit against modern tech standards.";
 
   const prompt = `
-    TASK: GENERATE A SEMANTIC ATS DIAGNOSTIC REPORT AND TEXTUAL X-RAY.
+    TASK: GENERATE A SEMANTIC ATS DIAGNOSTIC REPORT AND FULL TEXT X-RAY.
     
     TARGET CONTEXT (JD/TRENDS): ${jdText}
     RESUME CONTENT: ${resumeText}
@@ -40,7 +40,16 @@ export const analyzeResume = async (resumeText: string, jdText: string, deepAnal
     1. Detect "Keyword Stuffing" and "No-Meaning List Dumping".
     2. Validate "Action Verb + Skill + Metric" integrity.
     3. Meaningfulness Score: 0-100% based on project depth and impact.
-    4. Annotated Content: Break down the original resume text into fragments. Label each as 'good' (strong impact/optimized), 'bad' (weak/stuffed/error), or 'neutral'. Include why and how to improve for good/bad ones.
+    
+    CRITICAL: "annotatedContent" MUST BE THE FULL ORIGINAL RESUME TEXT.
+    Break down the EXACT provided resume text into a sequence of fragments. 
+    Every single character from the original text must be included in the fragments in the correct order.
+    Label each fragment as:
+    - 'good': (Relevant skills, keywords, strong action verbs, impactful metrics).
+    - 'bad': (Irrelevant filler text, weak buzzwords, keyword stuffing, lack of context).
+    - 'neutral': (Standard info like contact, names, or non-critical formatting).
+    
+    For 'good' and 'bad' fragments, provide a 'reason' and a 'suggestion'.
     
     Output a JSON object exactly matching this schema:
     {
