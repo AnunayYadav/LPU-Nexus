@@ -74,7 +74,7 @@ const ScoreAura = ({ score, label, meaningScore }: { score: number; label: strin
 
 interface FragmentProps {
   fragment: AnnotatedFragment;
-  onHover: (fragment: AnnotatedFragment | null, event?: React.MouseEvent) => void;
+  onHover: (fragment: AnnotatedFragment | null, rect: DOMRect | null) => void;
 }
 
 const FragmentHighlight: React.FC<FragmentProps> = ({ fragment, onHover }) => {
@@ -87,8 +87,8 @@ const FragmentHighlight: React.FC<FragmentProps> = ({ fragment, onHover }) => {
   return (
     <span 
       className={`inline px-0.5 rounded-md border-b-2 cursor-help transition-all duration-200 ${colorClass}`}
-      onMouseEnter={(e) => onHover(fragment, e)}
-      onMouseLeave={() => onHover(null)}
+      onMouseEnter={(e) => onHover(fragment, (e.target as HTMLElement).getBoundingClientRect())}
+      onMouseLeave={() => onHover(null, null)}
     >
       {fragment.text}
     </span>
@@ -116,9 +116,9 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
   const [renamingIdx, setRenamingIdx] = useState<number | null>(null);
   const [renameValue, setRenameValue] = useState('');
 
-  // Tooltip state with Flip Logic and Jitter Prevention
+  // Stable Tooltip State
   const [hoveredFragment, setHoveredFragment] = useState<AnnotatedFragment | null>(null);
-  const [tooltipState, setTooltipState] = useState({ x: 0, y: 0, position: 'top' as 'top' | 'bottom' });
+  const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0, flipped: false });
   const hoverTimer = useRef<number | null>(null);
 
   const reportRef = useRef<HTMLDivElement>(null);
@@ -207,30 +207,28 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
     window.print();
   };
 
-  const handleFragmentHover = (fragment: AnnotatedFragment | null, event?: React.MouseEvent) => {
-    if (hoverTimer.current) {
-        window.clearTimeout(hoverTimer.current);
-    }
+  // Fixed hover handler with stable rect calculation
+  const handleFragmentHover = (fragment: AnnotatedFragment | null, rect: DOMRect | null) => {
+    if (hoverTimer.current) window.clearTimeout(hoverTimer.current);
 
-    if (fragment && event) {
-      const rect = (event.target as HTMLElement).getBoundingClientRect();
-      const tooltipHeight = 160; 
+    if (fragment && rect) {
+      const tooltipHeight = 140;
       const margin = 12;
-      
       const spaceAbove = rect.top;
-      const shouldShowBottom = spaceAbove < (tooltipHeight + 20);
+      const shouldFlip = spaceAbove < (tooltipHeight + 40);
 
-      // Delayed update to stabilize coordinate fluctuation
-      hoverTimer.current = window.setTimeout(() => {
-        setTooltipState({
-            x: rect.left + rect.width / 2,
-            y: shouldShowBottom ? rect.bottom + margin : rect.top - margin,
-            position: shouldShowBottom ? 'bottom' : 'top'
-        });
-        setHoveredFragment(fragment);
-      }, 30);
+      // Lock position to the rect immediately to prevent jitter
+      setTooltipPos({
+        x: rect.left + rect.width / 2,
+        y: shouldFlip ? rect.bottom + margin : rect.top - margin,
+        flipped: shouldFlip
+      });
+      setHoveredFragment(fragment);
     } else {
-      setHoveredFragment(null);
+      // Small delay on exit to prevent flickering when mouse passes gaps between words
+      hoverTimer.current = window.setTimeout(() => {
+        setHoveredFragment(null);
+      }, 50);
     }
   };
 
@@ -258,10 +256,11 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
     return (
       <div ref={reportRef} className="max-w-6xl mx-auto space-y-10 animate-fade-in pb-20 px-4 md:px-0 print:p-0 print:m-0 print:max-w-none print:bg-white print:text-black relative">
         
+        {/* Fixed Diagnostic Tooltip */}
         {hoveredFragment && (
           <div 
-            className={`fixed z-[9999] p-5 bg-black border border-white/20 rounded-2xl shadow-[0_32px_128px_rgba(0,0,0,0.9)] transition-opacity duration-200 pointer-events-none transform -translate-x-1/2 w-[300px] ${tooltipState.position === 'top' ? '-translate-y-full' : ''}`}
-            style={{ left: tooltipState.x, top: tooltipState.y }}
+            className={`fixed z-[9999] p-5 bg-black border border-white/20 rounded-2xl shadow-[0_32px_128px_rgba(0,0,0,0.9)] pointer-events-none transform -translate-x-1/2 w-[300px] transition-all duration-75 ${tooltipPos.flipped ? '' : '-translate-y-full'}`}
+            style={{ left: tooltipPos.x, top: tooltipPos.y }}
           >
             <div className="space-y-4">
               <div>
@@ -269,16 +268,17 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
                    <span className="w-1 h-1 bg-orange-600 rounded-full" />
                    Diagnostic Insight
                 </p>
-                <p className="text-[11px] font-bold text-white leading-relaxed">{hoveredFragment.reason}</p>
+                <p className="text-[11px] font-bold text-white leading-relaxed">{hoveredFragment.reason || "Semantic signal detected by Nexus Intelligence."}</p>
               </div>
               {hoveredFragment.suggestion && (
                 <div className="pt-3 border-t border-white/10">
                   <p className="text-[8px] font-black uppercase tracking-widest text-emerald-500 mb-1">Nexus Recommended Fix</p>
-                  <p className="text-[10px] font-medium text-slate-400 leading-relaxed italic">"{hoveredFragment.suggestion}"</p>
+                  <p className="text-[10px] font-medium text-slate-300 leading-relaxed italic">"{hoveredFragment.suggestion}"</p>
                 </div>
               )}
             </div>
-            <div className={`absolute left-1/2 -translate-x-1/2 border-[8px] border-transparent ${tooltipState.position === 'top' ? 'top-full border-t-black' : 'bottom-full border-b-black'}`} />
+            {/* Tooltip Arrow */}
+            <div className={`absolute left-1/2 -translate-x-1/2 border-[8px] border-transparent ${tooltipPos.flipped ? 'bottom-full border-b-black' : 'top-full border-t-black'}`} />
           </div>
         )}
 
@@ -334,15 +334,15 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
               </h3>
               <div className="grid grid-cols-3 gap-4">
                  <div className="p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-3xl text-center">
-                    <p className="text-3xl font-black text-emerald-500">{result.keywordQuality.contextual}</p>
+                    <p className="text-3xl font-black text-emerald-500">{result.keywordQuality?.contextual || 0}</p>
                     <p className="text-[8px] font-black uppercase text-slate-400 mt-1">Contextual</p>
                  </div>
                  <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-3xl text-center">
-                    <p className="text-3xl font-black text-amber-500">{result.keywordQuality.weak}</p>
+                    <p className="text-3xl font-black text-amber-500">{result.keywordQuality?.weak || 0}</p>
                     <p className="text-[8px] font-black uppercase text-slate-400 mt-1">Weak</p>
                  </div>
                  <div className="p-4 bg-red-500/5 border border-red-500/20 rounded-3xl text-center">
-                    <p className="text-3xl font-black text-red-500">{result.keywordQuality.stuffed}</p>
+                    <p className="text-3xl font-black text-red-500">{result.keywordQuality?.stuffed || 0}</p>
                     <p className="text-[8px] font-black uppercase text-slate-400 mt-1">Stuffed</p>
                  </div>
               </div>
@@ -367,7 +367,6 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
            </div>
         </div>
 
-        {/* X-Ray Section */}
         <div className="glass-panel p-8 md:p-12 rounded-[56px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/60 shadow-2xl space-y-8 animate-fade-in relative overflow-visible">
            <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-100 dark:border-white/5 pb-8">
               <div>
@@ -403,7 +402,6 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
            </div>
         </div>
 
-        {/* Categories Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 print:grid-cols-3">
           {CATEGORIES.map((cat) => {
             const catData = result.categories?.[cat.id] || { score: 0 };
@@ -424,7 +422,6 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
           })}
         </div>
 
-        {/* Section Detail View */}
         <div className="glass-panel p-8 md:p-12 rounded-[56px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/60 shadow-sm animate-fade-in relative overflow-hidden print:shadow-none print:border-none print:p-8">
            <div className="flex flex-col md:flex-row md:items-start justify-between gap-10 mb-12">
               <div className="flex-1 space-y-4">
@@ -438,7 +435,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
                     </div>
                  </div>
                  <p className="text-sm text-slate-600 dark:text-slate-300 font-medium leading-relaxed max-w-3xl">
-                    {result.categories?.[activeCategory]?.description || "Detailed analysis completed for this segment."}
+                    {result.categories?.[activeCategory]?.description || "Comprehensive analysis of this resume segment is complete."}
                  </p>
               </div>
               <div className="flex flex-col items-center p-8 bg-slate-50 dark:bg-white/5 rounded-[40px] border dark:border-white/5 shadow-inner min-w-[140px]">
@@ -456,12 +453,16 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
                     <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Validated signals</h4>
                  </div>
                  <div className="space-y-2">
-                   {result.categories?.[activeCategory]?.found?.map((item, i) => (
+                   {(result.categories?.[activeCategory]?.found && result.categories[activeCategory].found.length > 0) ? result.categories[activeCategory].found.map((item, i) => (
                      <div key={i} className="p-4 bg-emerald-500/[0.03] border border-emerald-500/10 rounded-[22px] flex items-start gap-3 hover:bg-emerald-500/[0.05] transition-colors">
                         <span className="text-emerald-500 font-black text-[10px] mt-0.5">•</span>
                         <p className="text-xs font-bold text-slate-700 dark:text-slate-300 leading-relaxed">{item}</p>
                      </div>
-                   )) || <p className="text-xs text-slate-500 italic p-6 border-2 border-dashed border-slate-100 dark:border-white/5 rounded-[22px]">Awaiting signals.</p>}
+                   )) : (
+                     <div className="p-4 bg-emerald-500/[0.03] border border-emerald-500/10 rounded-[22px] flex items-start gap-3 italic">
+                        <p className="text-xs text-slate-500 font-medium">Registry indicates baseline compliance in this segment.</p>
+                     </div>
+                   )}
                  </div>
               </div>
 
@@ -473,12 +474,16 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
                     <h4 className="text-[10px] font-black uppercase tracking-widest text-red-500">Critical Gaps</h4>
                  </div>
                  <div className="space-y-2">
-                   {result.categories?.[activeCategory]?.missing?.map((item, i) => (
+                   {(result.categories?.[activeCategory]?.missing && result.categories[activeCategory].missing.length > 0) ? result.categories[activeCategory].missing.map((item, i) => (
                      <div key={i} className="p-4 bg-red-500/[0.03] border border-red-500/10 rounded-[22px] flex items-start gap-3 hover:bg-red-500/[0.05] transition-colors">
                         <span className="text-red-500 font-black text-[10px] mt-0.5">•</span>
                         <p className="text-xs font-bold text-slate-700 dark:text-slate-300 leading-relaxed">{item}</p>
                      </div>
-                   )) || <p className="text-xs text-slate-500 italic p-6 border-2 border-dashed border-slate-100 dark:border-white/5 rounded-[22px]">No gaps detected.</p>}
+                   )) : (
+                     <div className="p-4 bg-emerald-500/[0.03] border border-emerald-500/10 rounded-[22px] flex items-start gap-3">
+                        <p className="text-xs text-emerald-600 font-black uppercase tracking-widest">No optimization gaps detected.</p>
+                     </div>
+                   )}
                  </div>
               </div>
            </div>
