@@ -190,24 +190,24 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
            </div>
         </div>
 
-        <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 print:hidden">
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 print:hidden">
           <div>
-            <h2 className="text-4xl font-black text-slate-800 dark:text-white tracking-tighter uppercase mb-2">Resume Diagnostic</h2>
-            <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] flex items-center gap-2">
-              <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-              Report generated for {fileName}
+            <h2 className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter uppercase mb-1">Resume Diagnostic</h2>
+            <p className="text-slate-500 font-bold uppercase tracking-widest text-[9px] flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+              Registry Log: {fileName}
             </p>
           </div>
-          <div className="flex gap-3">
-            <button onClick={handleSaveReport} className="px-8 py-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-white rounded-[24px] font-black text-[10px] uppercase tracking-widest transition-all hover:border-orange-500 flex items-center gap-2">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/></svg>
-              Save to Vault
+          <div className="flex flex-wrap gap-2">
+            <button onClick={handleSaveReport} className="px-4 py-2 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-white rounded-xl font-black text-[9px] uppercase tracking-widest transition-all hover:border-orange-500 flex items-center gap-2 shadow-sm">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/></svg>
+              Save Vault
             </button>
-            <button onClick={handleDownloadPdf} className="px-8 py-4 bg-orange-600 text-white rounded-[24px] font-black text-[10px] uppercase tracking-widest shadow-2xl shadow-orange-600/20 active:scale-95 transition-all flex items-center gap-2 border-none">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Download PDF
+            <button onClick={handleDownloadPdf} className="px-4 py-2 bg-orange-600 text-white rounded-xl font-black text-[9px] uppercase tracking-widest shadow-lg shadow-orange-600/10 active:scale-95 transition-all flex items-center gap-2 border-none">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Export PDF
             </button>
-            <button onClick={() => setResult(null)} className="px-6 py-4 bg-slate-900 dark:bg-white text-white dark:text-black rounded-[24px] font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all border-none">Restart</button>
+            <button onClick={() => setResult(null)} className="px-4 py-2 bg-slate-900 dark:bg-white text-white dark:text-black rounded-xl font-black text-[9px] uppercase tracking-widest active:scale-95 transition-all border-none">Restart</button>
           </div>
         </header>
 
@@ -216,21 +216,21 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
           <SemiCircleGauge score={result.totalScore} label="Total Readiness" size={400} />
           
           <div className="flex-1 space-y-6">
-             <div className="inline-block px-4 py-1.5 bg-orange-600 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-full">
+             <div className="inline-block px-4 py-1.5 bg-orange-600 text-white text-[9px] font-black uppercase tracking-[0.2em] rounded-full">
                System Verdict
              </div>
-             <p className="text-xl md:text-2xl font-black text-slate-800 dark:text-white leading-tight">
+             <p className="text-lg md:text-xl font-bold text-slate-800 dark:text-white leading-relaxed italic opacity-90">
                "{result.summary}"
              </p>
              <div className="h-px bg-slate-100 dark:bg-white/5 w-full" />
              <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-3xl">
                    <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Top Tier Competency</p>
-                   <p className="text-sm font-bold text-emerald-500 uppercase">{result.categories?.jobFit?.found?.[0] || "Strategic Alignment"}</p>
+                   <p className="text-xs font-bold text-emerald-500 uppercase truncate">{result.categories?.jobFit?.found?.[0] || "Strategic Alignment"}</p>
                 </div>
                 <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-3xl">
                    <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Critical Bottleneck</p>
-                   <p className="text-sm font-bold text-red-500 uppercase">{result.categories?.keywordAnalysis?.missing?.[0] || "Foundational Gap"}</p>
+                   <p className="text-xs font-bold text-red-500 uppercase truncate">{result.categories?.keywordAnalysis?.missing?.[0] || "Foundational Gap"}</p>
                 </div>
              </div>
           </div>
@@ -247,115 +247,109 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
               <button
                 key={cat.id}
                 onClick={() => setActiveCategory(cat.id)}
-                className={`p-6 rounded-[32px] border text-left transition-all h-full flex flex-col justify-between group print:border-slate-200 ${isActive ? 'bg-orange-600 border-orange-500 shadow-xl shadow-orange-600/20 text-white scale-[1.02]' : 'bg-white dark:bg-black border-slate-100 dark:border-white/10 text-slate-500 hover:border-orange-500/30'}`}
+                className={`p-5 rounded-[32px] border text-left transition-all h-full flex flex-col justify-between group print:border-slate-200 ${isActive ? 'bg-orange-600 border-orange-500 shadow-xl shadow-orange-600/20 text-white scale-[1.02]' : 'bg-white dark:bg-black border-slate-100 dark:border-white/10 text-slate-500 hover:border-orange-500/30'}`}
               >
-                <div className="flex items-center justify-between mb-4">
-                  <p className={`text-2xl font-black ${isActive ? 'text-white' : 'text-slate-900 dark:text-white group-hover:text-orange-600'}`}>{catData.score}%</p>
+                <div className="flex items-center justify-between mb-3">
+                  <p className={`text-xl font-black ${isActive ? 'text-white' : 'text-slate-900 dark:text-white group-hover:text-orange-600'}`}>{catData.score}%</p>
                   <div className={`w-1.5 h-1.5 rounded-full ${catData.score > 80 ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]' : catData.score > 50 ? 'bg-orange-500' : 'bg-red-500 animate-pulse'}`} />
                 </div>
-                <p className={`text-[9px] font-black uppercase tracking-tight leading-tight ${isActive ? 'text-white/80' : 'text-slate-400'}`}>{cat.label}</p>
+                <p className={`text-[8px] font-black uppercase tracking-tight leading-tight ${isActive ? 'text-white/80' : 'text-slate-400'}`}>{cat.label}</p>
               </button>
             );
           })}
         </div>
 
         {/* Detailed Section View */}
-        <div className="glass-panel p-8 md:p-16 rounded-[64px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/60 shadow-sm animate-fade-in relative overflow-hidden print:shadow-none print:border-none print:p-8">
-           <div className="flex flex-col md:flex-row md:items-start justify-between gap-10 mb-16">
-              <div className="flex-1 space-y-6">
+        <div className="glass-panel p-8 md:p-12 rounded-[56px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/60 shadow-sm animate-fade-in relative overflow-hidden print:shadow-none print:border-none print:p-8">
+           <div className="flex flex-col md:flex-row md:items-start justify-between gap-10 mb-12">
+              <div className="flex-1 space-y-4">
                  <div className="flex items-center gap-4">
-                    <div className="w-1.5 h-12 bg-orange-600 rounded-full" />
+                    <div className="w-1.5 h-10 bg-orange-600 rounded-full" />
                     <div>
-                       <h3 className="text-3xl md:text-4xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">
+                       <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">
                          {CATEGORIES.find(c => c.id === activeCategory)?.label}
                        </h3>
-                       <p className="text-[10px] font-black text-orange-600 uppercase tracking-[0.4em] mt-2">Protocol Analysis</p>
+                       <p className="text-[9px] font-black text-orange-600 uppercase tracking-[0.4em] mt-1.5">Segment Protocol</p>
                     </div>
                  </div>
-                 <p className="text-base text-slate-600 dark:text-slate-300 font-medium leading-relaxed max-w-3xl">
+                 <p className="text-sm text-slate-600 dark:text-slate-300 font-medium leading-relaxed max-w-3xl">
                     {result.categories?.[activeCategory]?.description || "No description available for this segment."}
                  </p>
               </div>
-              <div className="flex flex-col items-center p-10 bg-slate-50 dark:bg-white/5 rounded-[48px] border dark:border-white/5 shadow-inner">
-                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Confidence Level</p>
-                 <p className="text-6xl font-black text-orange-600 tracking-tighter">{result.categories?.[activeCategory]?.score || 0}%</p>
+              <div className="flex flex-col items-center p-8 bg-slate-50 dark:bg-white/5 rounded-[40px] border dark:border-white/5 shadow-inner min-w-[140px]">
+                 <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Score</p>
+                 <p className="text-5xl font-black text-orange-600 tracking-tighter">{result.categories?.[activeCategory]?.score || 0}%</p>
               </div>
            </div>
 
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10 print:gap-12">
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10 print:gap-10">
               {/* FOUND / STRENGTHS */}
-              <div className="space-y-6">
+              <div className="space-y-4">
                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500">
-                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><polyline points="20 6 9 17 4 12"/></svg>
+                    <div className="w-7 h-7 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><polyline points="20 6 9 17 4 12"/></svg>
                     </div>
-                    <h4 className="text-xs font-black uppercase tracking-widest text-emerald-500">Found / Validated Strengths</h4>
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Validated Signals</h4>
                  </div>
-                 <div className="space-y-3">
+                 <div className="space-y-2">
                    {result.categories?.[activeCategory]?.found?.map((item, i) => (
-                     <div key={i} className="p-5 bg-emerald-500/[0.03] border border-emerald-500/10 rounded-[28px] flex items-start gap-4 hover:scale-[1.01] transition-transform">
+                     <div key={i} className="p-4 bg-emerald-500/[0.03] border border-emerald-500/10 rounded-[22px] flex items-start gap-3 hover:bg-emerald-500/[0.05] transition-colors">
                         <span className="text-emerald-500 font-black text-[10px] mt-0.5">•</span>
-                        <p className="text-sm font-bold text-slate-700 dark:text-slate-300 leading-relaxed">{item}</p>
+                        <p className="text-xs font-bold text-slate-700 dark:text-slate-300 leading-relaxed">{item}</p>
                      </div>
-                   )) || <p className="text-xs text-slate-500 italic p-6 border-2 border-dashed border-slate-100 dark:border-white/5 rounded-[28px]">No significant positive signals detected.</p>}
-                   {result.categories?.[activeCategory]?.found?.length === 0 && (
-                     <p className="text-xs text-slate-500 italic p-6 border-2 border-dashed border-slate-100 dark:border-white/5 rounded-[28px]">No significant positive signals detected in this section.</p>
-                   )}
+                   )) || <p className="text-xs text-slate-500 italic p-6 border-2 border-dashed border-slate-100 dark:border-white/5 rounded-[22px]">No signals detected.</p>}
                  </div>
               </div>
 
               {/* MISSING / GAPS */}
-              <div className="space-y-6">
+              <div className="space-y-4">
                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center text-red-500">
-                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    <div className="w-7 h-7 rounded-full bg-red-500/10 flex items-center justify-center text-red-500">
+                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </div>
-                    <h4 className="text-xs font-black uppercase tracking-widest text-red-500">Missing / Areas for Growth</h4>
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-red-500">Segment Gaps</h4>
                  </div>
-                 <div className="space-y-3">
+                 <div className="space-y-2">
                    {result.categories?.[activeCategory]?.missing?.map((item, i) => (
-                     <div key={i} className="p-5 bg-red-500/[0.03] border border-red-500/10 rounded-[28px] flex items-start gap-4 hover:scale-[1.01] transition-transform">
+                     <div key={i} className="p-4 bg-red-500/[0.03] border border-red-500/10 rounded-[22px] flex items-start gap-3 hover:bg-red-500/[0.05] transition-colors">
                         <span className="text-red-500 font-black text-[10px] mt-0.5">•</span>
-                        <p className="text-sm font-bold text-slate-700 dark:text-slate-300 leading-relaxed">{item}</p>
+                        <p className="text-xs font-bold text-slate-700 dark:text-slate-300 leading-relaxed">{item}</p>
                      </div>
-                   )) || <p className="text-xs text-slate-500 italic p-6 border-2 border-dashed border-slate-100 dark:border-white/5 rounded-[28px]">No gaps identified.</p>}
-                   {result.categories?.[activeCategory]?.missing?.length === 0 && (
-                     <p className="text-xs text-slate-500 italic p-6 border-2 border-dashed border-slate-100 dark:border-white/5 rounded-[28px]">Perfect alignment detected. No missing elements identified.</p>
-                   )}
+                   )) || <p className="text-xs text-slate-500 italic p-6 border-2 border-dashed border-slate-100 dark:border-white/5 rounded-[22px]">No gaps identified.</p>}
                  </div>
               </div>
            </div>
 
-           {/* Special Table for Missing Keywords */}
+           {/* Polished ATS Optimization Guide Table */}
            {activeCategory === 'keywordAnalysis' && result.categories?.keywordAnalysis?.missingKeywordsExtended && (
-             <div className="mt-16 space-y-8 animate-fade-in print:mt-10">
-                <div className="p-8 bg-orange-600/5 border border-orange-600/20 rounded-[40px] flex items-start gap-5">
-                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6 text-orange-600 mt-1 flex-shrink-0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+             <div className="mt-12 space-y-6 animate-fade-in print:mt-10">
+                <div className="p-6 bg-orange-600/5 border border-orange-600/20 rounded-[32px] flex items-start gap-4">
+                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                    <div>
-                      <p className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight mb-1">ATS Optimization Guide</p>
-                      <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Incorporate these semantic signals to bypass automated filters and satisfy recruiter search queries.</p>
+                      <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight mb-1">ATS Optimization Guide</p>
+                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Implement these semantic signals to satisfy recruiter search heuristics.</p>
                    </div>
                 </div>
-                <div className="overflow-hidden rounded-[40px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/20 shadow-lg">
+                <div className="overflow-hidden rounded-[32px] border border-slate-200 dark:border-white/5 bg-white dark:bg-black/30">
                    <table className="w-full text-left border-collapse">
                       <thead>
                          <tr className="bg-slate-50 dark:bg-white/5">
-                            <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Required Semantic Signal</th>
-                            <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Implementation Example</th>
-                            <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Priority</th>
+                            <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 dark:border-white/5">Required Signal</th>
+                            <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 dark:border-white/5">Example Implementation</th>
+                            <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 dark:border-white/5 text-right">Priority</th>
                          </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                          {result.categories.keywordAnalysis.missingKeywordsExtended.map((k, i) => (
                            <tr key={i} className="group hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                              <td className="px-8 py-8">
-                                 <p className="text-base font-black text-slate-800 dark:text-white uppercase tracking-tight">{k.name}</p>
+                              <td className="px-6 py-5">
+                                 <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight">{k.name}</p>
                               </td>
-                              <td className="px-8 py-8 max-w-md">
-                                 <p className="text-xs text-slate-500 dark:text-slate-400 italic leading-relaxed">"{k.example}"</p>
+                              <td className="px-6 py-5 max-w-xs md:max-w-md">
+                                 <p className="text-[11px] text-slate-500 dark:text-slate-400 italic leading-relaxed">"{k.example}"</p>
                               </td>
-                              <td className="px-8 py-8 text-right">
-                                 <span className={`text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-xl ${k.importance === 'High' ? 'bg-red-500/10 text-red-500' : 'bg-orange-500/10 text-orange-500'}`}>
+                              <td className="px-6 py-5 text-right">
+                                 <span className={`text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border ${k.importance === 'High' ? 'bg-red-500/5 border-red-500/20 text-red-500' : 'bg-orange-500/5 border-orange-500/20 text-orange-500'}`}>
                                    {k.importance}
                                  </span>
                               </td>
@@ -371,8 +365,8 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
         </div>
 
         {/* Footer for PDF */}
-        <div className="hidden print:block text-center mt-20 pt-10 border-t border-slate-100">
-           <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.5em]">This is an AI-Synthesized Document by LPU-Nexus • Verify at nexus.verto.ai</p>
+        <div className="hidden print:block text-center mt-12 pt-6 border-t border-slate-100">
+           <p className="text-[7px] font-black text-slate-400 uppercase tracking-[0.5em]">This is an AI-Synthesized Document by LPU-Nexus • Verify at nexus.verto.ai</p>
         </div>
       </div>
     );
@@ -382,49 +376,49 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
     <div className="max-w-4xl mx-auto space-y-12 animate-fade-in pb-20 px-4 md:px-0">
       <header className="text-center space-y-4">
         <div className="w-16 h-16 bg-orange-600 rounded-3xl mx-auto flex items-center justify-center text-white font-black text-2xl shadow-2xl shadow-orange-600/20">N</div>
-        <h2 className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter uppercase">Placement Prefect</h2>
+        <h2 className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none">Placement Prefect</h2>
         <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-[10px]">Registry Hub for Professional Diagnostics</p>
       </header>
 
-      <div className="glass-panel p-10 md:p-14 rounded-[64px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/60 shadow-2xl space-y-12">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-           <div className="space-y-6">
+      <div className="glass-panel p-8 md:p-12 rounded-[64px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/60 shadow-2xl space-y-10">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+           <div className="space-y-5">
               <div className="flex items-center gap-3">
-                 <div className="w-8 h-8 rounded-xl bg-orange-600/10 flex items-center justify-center text-orange-600 font-black">1</div>
-                 <label className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] block">Source Artifact</label>
+                 <div className="w-7 h-7 rounded-xl bg-orange-600/10 flex items-center justify-center text-orange-600 font-black text-[10px]">1</div>
+                 <label className="text-[9px] font-black uppercase text-slate-400 tracking-[0.2em] block">Source Artifact</label>
               </div>
-              <div className="relative border-4 border-dashed border-slate-100 dark:border-white/5 rounded-[48px] p-16 text-center hover:border-orange-500/40 transition-all bg-slate-50 dark:bg-white/[0.02] group cursor-pointer shadow-inner">
+              <div className="relative border-4 border-dashed border-slate-100 dark:border-white/5 rounded-[40px] p-12 text-center hover:border-orange-500/40 transition-all bg-slate-50 dark:bg-white/[0.02] group cursor-pointer shadow-inner">
                 <input type="file" accept=".pdf" onChange={handleFileUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
                 <IconFile />
-                <p className="text-base font-black uppercase tracking-widest text-slate-400 group-hover:text-orange-600 transition-colors">
+                <p className="text-sm font-black uppercase tracking-widest text-slate-400 group-hover:text-orange-600 transition-colors">
                   {fileName ? fileName : "Inject Resume (PDF)"}
                 </p>
                 {!fileName && <p className="text-[8px] font-bold text-slate-400 uppercase mt-4 tracking-widest opacity-40">System accepts PDF & TXT protocols</p>}
               </div>
            </div>
 
-           <div className="space-y-6">
+           <div className="space-y-5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                   <div className="w-8 h-8 rounded-xl bg-orange-600/10 flex items-center justify-center text-orange-600 font-black">2</div>
-                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] block">Target Parameter</label>
+                   <div className="w-7 h-7 rounded-xl bg-orange-600/10 flex items-center justify-center text-orange-600 font-black text-[10px]">2</div>
+                   <label className="text-[9px] font-black uppercase text-slate-400 tracking-[0.2em] block">Target Parameter</label>
                 </div>
-                <div className="flex bg-slate-100 dark:bg-white/5 p-1.5 rounded-[20px]">
-                  <button onClick={() => setAnalysisMode('trend')} className={`px-6 py-2 rounded-2xl text-[10px] font-black uppercase transition-all ${analysisMode === 'trend' ? 'bg-orange-600 text-white shadow-lg' : 'text-slate-500'}`}>Presets</button>
-                  <button onClick={() => setAnalysisMode('custom')} className={`px-6 py-2 rounded-2xl text-[10px] font-black uppercase transition-all ${analysisMode === 'custom' ? 'bg-orange-600 text-white shadow-lg' : 'text-slate-500'}`}>Raw JD</button>
+                <div className="flex bg-slate-100 dark:bg-white/5 p-1 rounded-[16px]">
+                  <button onClick={() => setAnalysisMode('trend')} className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase transition-all ${analysisMode === 'trend' ? 'bg-orange-600 text-white shadow-lg' : 'text-slate-500'}`}>Presets</button>
+                  <button onClick={() => setAnalysisMode('custom')} className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase transition-all ${analysisMode === 'custom' ? 'bg-orange-600 text-white shadow-lg' : 'text-slate-500'}`}>Raw JD</button>
                 </div>
               </div>
               {analysisMode === 'trend' ? (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-2">
                   {INDUSTRY_ROLES.map(role => (
-                    <button key={role.id} onClick={() => handleRoleSelect(role.id)} className={`p-5 rounded-[28px] border text-left transition-all ${selectedRoleId === role.id ? 'bg-orange-600/10 border-orange-600 text-orange-500 scale-[1.02]' : 'bg-slate-50 dark:bg-black border-slate-100 dark:border-white/5 text-slate-500 hover:border-orange-500/30'}`}>
-                      <p className="text-[10px] font-black uppercase tracking-tight leading-tight">{role.name}</p>
+                    <button key={role.id} onClick={() => handleRoleSelect(role.id)} className={`p-4 rounded-2xl border text-left transition-all ${selectedRoleId === role.id ? 'bg-orange-600/10 border-orange-600 text-orange-500 scale-[1.02]' : 'bg-slate-50 dark:bg-black border-slate-100 dark:border-white/5 text-slate-500 hover:border-orange-500/30'}`}>
+                      <p className="text-[9px] font-black uppercase tracking-tight leading-tight">{role.name}</p>
                     </button>
                   ))}
                 </div>
               ) : (
                 <textarea 
-                  className="w-full h-[228px] bg-slate-50 dark:bg-black/60 border border-slate-100 dark:border-white/10 rounded-[32px] p-8 text-sm text-slate-800 dark:text-white focus:ring-4 focus:ring-orange-600/10 outline-none resize-none transition-all font-bold placeholder:opacity-30 shadow-inner" 
+                  className="w-full h-[184px] bg-slate-50 dark:bg-black/60 border border-slate-100 dark:border-white/10 rounded-[32px] p-6 text-xs text-slate-800 dark:text-white focus:ring-4 focus:ring-orange-600/10 outline-none resize-none transition-all font-bold placeholder:opacity-30 shadow-inner" 
                   placeholder="Paste official job description or market requirements..." 
                   value={jdText} 
                   onChange={(e) => setJdText(e.target.value)} 
@@ -433,21 +427,21 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
            </div>
         </div>
 
-        <div className="flex flex-col md:flex-row items-center justify-between gap-8 pt-10 border-t border-slate-100 dark:border-white/5">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6 pt-8 border-t border-slate-100 dark:border-white/5">
            <button 
              onClick={() => setDeepAnalysis(!deepAnalysis)}
-             className={`flex items-center gap-5 px-8 py-5 rounded-[32px] border transition-all cursor-pointer group ${deepAnalysis ? 'bg-red-600 border-red-500 shadow-2xl shadow-red-600/30' : 'bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/5 hover:border-red-500/50'}`}
+             className={`flex items-center gap-4 px-6 py-3 rounded-[24px] border transition-all cursor-pointer group ${deepAnalysis ? 'bg-red-600 border-red-500 shadow-xl shadow-red-600/30' : 'bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/5 hover:border-red-500/50'}`}
            >
-              <div className={`w-4 h-4 rounded-full transition-all ${deepAnalysis ? 'bg-white shadow-[0_0_12px_#fff]' : 'bg-slate-400 group-hover:bg-red-500'}`} />
+              <div className={`w-3 h-3 rounded-full transition-all ${deepAnalysis ? 'bg-white shadow-[0_0_10px_#fff]' : 'bg-slate-400 group-hover:bg-red-500'}`} />
               <div className="text-left">
-                <span className={`text-[10px] font-black uppercase tracking-widest block ${deepAnalysis ? 'text-white' : 'text-slate-400 group-hover:text-red-500'}`}>Deep Scrutiny</span>
-                <span className={`text-[8px] font-bold uppercase opacity-60 ${deepAnalysis ? 'text-white' : 'text-slate-400'}`}>Ruthless technical vetting</span>
+                <span className={`text-[9px] font-black uppercase tracking-widest block ${deepAnalysis ? 'text-white' : 'text-slate-400 group-hover:text-red-500'}`}>Deep Scrutiny</span>
+                <span className={`text-[7px] font-bold uppercase opacity-60 ${deepAnalysis ? 'text-white' : 'text-slate-400'}`}>Hyper-critical vetting</span>
               </div>
            </button>
            <button 
              onClick={handleAnalyze} 
              disabled={!resumeText || !jdText || loading} 
-             className="w-full md:w-auto px-20 py-6 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-[32px] font-black text-xs uppercase tracking-[0.4em] shadow-2xl shadow-orange-600/40 hover:scale-[1.05] active:scale-95 transition-all border-none disabled:opacity-30"
+             className="w-full md:w-auto px-12 py-4 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] shadow-2xl shadow-orange-600/30 hover:scale-[1.03] active:scale-95 transition-all border-none disabled:opacity-30"
            >
              Synthesize Report
            </button>
@@ -457,16 +451,16 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
       {/* History Grid */}
       {savedReports.length > 0 && (
         <section className="space-y-6">
-           <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-500 text-center">Historical Archives</h3>
-           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+           <h3 className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500 text-center">Historical Archives</h3>
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {savedReports.map((report, idx) => (
-                <div key={idx} onClick={() => setResult(report)} className="p-6 bg-white dark:bg-black/40 border border-slate-100 dark:border-white/5 rounded-[32px] cursor-pointer hover:border-orange-500/50 transition-all group flex items-center justify-between">
+                <div key={idx} onClick={() => setResult(report)} className="p-4 bg-white dark:bg-black/40 border border-slate-100 dark:border-white/5 rounded-[24px] cursor-pointer hover:border-orange-500/50 transition-all group flex items-center justify-between">
                    <div>
-                      <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tighter">Readiness: {report.totalScore}%</p>
-                      <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-1">{new Date(report.analysisDate || Date.now()).toLocaleDateString()}</p>
+                      <p className="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-tighter">Readiness: {report.totalScore}%</p>
+                      <p className="text-[7px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">{new Date(report.analysisDate || Date.now()).toLocaleDateString()}</p>
                    </div>
-                   <div className="w-8 h-8 rounded-xl bg-orange-600/10 flex items-center justify-center text-orange-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                   <div className="w-7 h-7 rounded-lg bg-orange-600/10 flex items-center justify-center text-orange-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
                    </div>
                 </div>
               ))}
