@@ -25,8 +25,8 @@ const callGeminiProxy = async (action: string, payload: any) => {
  */
 export const analyzeResume = async (resumeText: string, jdText: string, deepAnalysis: boolean = false): Promise<ResumeAnalysisResult> => {
   const depthInstruction = deepAnalysis 
-    ? "Act as a ruthless, hyper-critical technical recruiter. Point out exactly where the candidate is failing. Be scathing."
-    : "Perform a professional resume audit against modern tech standards.";
+    ? "Act as a ruthless, hyper-critical technical recruiter. Point out exactly where the candidate is failing. Be scathing and exhaustive."
+    : "Perform a professional resume audit against modern tech standards. Be detailed in every section.";
 
   const prompt = `
     TASK: GENERATE A SEMANTIC ATS DIAGNOSTIC REPORT AND FULL TEXT X-RAY.
@@ -34,12 +34,13 @@ export const analyzeResume = async (resumeText: string, jdText: string, deepAnal
     TARGET CONTEXT (JD/TRENDS): ${jdText}
     RESUME CONTENT: ${resumeText}
 
-    REQUIREMENTS:
+    CRITICAL REQUIREMENTS:
     ${depthInstruction}
     
-    1. Detect "Keyword Stuffing" and "No-Meaning List Dumping".
-    2. Validate "Action Verb + Skill + Metric" integrity.
-    3. Meaningfulness Score: 0-100% based on project depth and impact.
+    1. EXHAUSTIVE ANALYSIS: You MUST provide detailed feedback for ALL 6 categories: keywordAnalysis, jobFit, achievements, formatting, language, and branding.
+    2. NO EMPTY SECTIONS: Every category's 'found' and 'missing' arrays MUST contain at least 2-4 specific, high-quality bullet points. Do not leave them empty.
+    3. DETECT: "Keyword Stuffing", "No-Meaning List Dumping", and "Generic Buzzwords".
+    4. VALIDATE: "Action Verb + Skill + Metric" integrity.
     
     CRITICAL X-RAY REQUIREMENT:
     The "annotatedContent" field MUST contain the FULL AND COMPLETE original resume text provided. 
@@ -150,14 +151,22 @@ export const analyzeResume = async (resumeText: string, jdText: string, deepAnal
   const data = await callGeminiProxy("ANALYZE_RESUME", { prompt, schema, deep: deepAnalysis });
   const parsed = JSON.parse(data.text);
   
-  const defaultCategory = { score: 0, description: 'No data', found: [], missing: [] };
+  // Robust normalization to prevent empty boxes in UI
+  const normalizeCategory = (cat: any) => ({
+    score: cat?.score ?? 0,
+    description: cat?.description || 'Analytical module completed.',
+    found: Array.isArray(cat?.found) && cat.found.length > 0 ? cat.found : ['Signal detected but requires more context.'],
+    missing: Array.isArray(cat?.missing) && cat.missing.length > 0 ? cat.missing : ['No critical gaps detected in this segment.'],
+    missingKeywordsExtended: cat?.missingKeywordsExtended || []
+  });
+
   const categories = {
-    keywordAnalysis: parsed.categories?.keywordAnalysis || defaultCategory,
-    jobFit: parsed.categories?.jobFit || defaultCategory,
-    achievements: parsed.categories?.achievements || defaultCategory,
-    formatting: parsed.categories?.formatting || defaultCategory,
-    language: parsed.categories?.language || defaultCategory,
-    branding: parsed.categories?.branding || defaultCategory,
+    keywordAnalysis: normalizeCategory(parsed.categories?.keywordAnalysis),
+    jobFit: normalizeCategory(parsed.categories?.jobFit),
+    achievements: normalizeCategory(parsed.categories?.achievements),
+    formatting: normalizeCategory(parsed.categories?.formatting),
+    language: normalizeCategory(parsed.categories?.language),
+    branding: normalizeCategory(parsed.categories?.branding),
   };
 
   return {

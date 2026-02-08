@@ -116,9 +116,10 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
   const [renamingIdx, setRenamingIdx] = useState<number | null>(null);
   const [renameValue, setRenameValue] = useState('');
 
-  // Tooltip state with Flip Logic
+  // Tooltip state with Flip Logic and Jitter Prevention
   const [hoveredFragment, setHoveredFragment] = useState<AnnotatedFragment | null>(null);
   const [tooltipState, setTooltipState] = useState({ x: 0, y: 0, position: 'top' as 'top' | 'bottom' });
+  const hoverTimer = useRef<number | null>(null);
 
   const reportRef = useRef<HTMLDivElement>(null);
 
@@ -207,6 +208,10 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
   };
 
   const handleFragmentHover = (fragment: AnnotatedFragment | null, event?: React.MouseEvent) => {
+    if (hoverTimer.current) {
+        window.clearTimeout(hoverTimer.current);
+    }
+
     if (fragment && event) {
       const rect = (event.target as HTMLElement).getBoundingClientRect();
       const tooltipHeight = 160; 
@@ -215,12 +220,15 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
       const spaceAbove = rect.top;
       const shouldShowBottom = spaceAbove < (tooltipHeight + 20);
 
-      setTooltipState({
-        x: rect.left + rect.width / 2,
-        y: shouldShowBottom ? rect.bottom + margin : rect.top - margin,
-        position: shouldShowBottom ? 'bottom' : 'top'
-      });
-      setHoveredFragment(fragment);
+      // Delayed update to stabilize coordinate fluctuation
+      hoverTimer.current = window.setTimeout(() => {
+        setTooltipState({
+            x: rect.left + rect.width / 2,
+            y: shouldShowBottom ? rect.bottom + margin : rect.top - margin,
+            position: shouldShowBottom ? 'bottom' : 'top'
+        });
+        setHoveredFragment(fragment);
+      }, 30);
     } else {
       setHoveredFragment(null);
     }
@@ -252,7 +260,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
         
         {hoveredFragment && (
           <div 
-            className={`fixed z-[9999] p-5 bg-black border border-white/20 rounded-2xl shadow-[0_32px_128px_rgba(0,0,0,0.9)] animate-fade-in pointer-events-none transform -translate-x-1/2 w-[300px] ${tooltipState.position === 'top' ? '-translate-y-full' : ''}`}
+            className={`fixed z-[9999] p-5 bg-black border border-white/20 rounded-2xl shadow-[0_32px_128px_rgba(0,0,0,0.9)] transition-opacity duration-200 pointer-events-none transform -translate-x-1/2 w-[300px] ${tooltipState.position === 'top' ? '-translate-y-full' : ''}`}
             style={{ left: tooltipState.x, top: tooltipState.y }}
           >
             <div className="space-y-4">
@@ -359,6 +367,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
            </div>
         </div>
 
+        {/* X-Ray Section */}
         <div className="glass-panel p-8 md:p-12 rounded-[56px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/60 shadow-2xl space-y-8 animate-fade-in relative overflow-visible">
            <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-100 dark:border-white/5 pb-8">
               <div>
@@ -394,6 +403,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
            </div>
         </div>
 
+        {/* Categories Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 print:grid-cols-3">
           {CATEGORIES.map((cat) => {
             const catData = result.categories?.[cat.id] || { score: 0 };
@@ -414,6 +424,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
           })}
         </div>
 
+        {/* Section Detail View */}
         <div className="glass-panel p-8 md:p-12 rounded-[56px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/60 shadow-sm animate-fade-in relative overflow-hidden print:shadow-none print:border-none print:p-8">
            <div className="flex flex-col md:flex-row md:items-start justify-between gap-10 mb-12">
               <div className="flex-1 space-y-4">
@@ -427,7 +438,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
                     </div>
                  </div>
                  <p className="text-sm text-slate-600 dark:text-slate-300 font-medium leading-relaxed max-w-3xl">
-                    {result.categories?.[activeCategory]?.description || "Data segment pending."}
+                    {result.categories?.[activeCategory]?.description || "Detailed analysis completed for this segment."}
                  </p>
               </div>
               <div className="flex flex-col items-center p-8 bg-slate-50 dark:bg-white/5 rounded-[40px] border dark:border-white/5 shadow-inner min-w-[140px]">
@@ -472,7 +483,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
               </div>
            </div>
 
-           {activeCategory === 'keywordAnalysis' && result.categories?.keywordAnalysis?.missingKeywordsExtended && (
+           {activeCategory === 'keywordAnalysis' && result.categories?.keywordAnalysis?.missingKeywordsExtended && result.categories.keywordAnalysis.missingKeywordsExtended.length > 0 && (
              <div className="mt-12 space-y-6 animate-fade-in print:mt-10">
                 <div className="p-6 bg-orange-600/5 border border-orange-600/20 rounded-[32px] flex items-start gap-4">
                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5 text-orange-600 mt-0.5 shrink-0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
