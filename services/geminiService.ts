@@ -221,21 +221,22 @@ export const extractTimetableFromImage = async (base64Image: string): Promise<Da
 };
 
 /**
- * Module: Global Gateway
- */
-export const searchGlobalOpportunities = async (query: string) => {
-  return await callGeminiProxy("GLOBAL_GATEWAY", {
-    prompt: `Student query: ${query}`,
-    systemInstruction: `You are the "LPU Global Gateway" counselor. Provide up-to-date information on international programs, visas, and scholarships for Indian students.`
-  });
-};
-
-/**
  * Module: LPU Pulse News
  */
 export const fetchCampusNews = async (query: string) => {
   return await callGeminiProxy("CAMPUS_NEWS", {
     prompt: query,
     systemInstruction: `You are "LPU Pulse", a campus news scout for LPU Phagwara. Use Google Search to find 2025 events, placements, and notices.`
+  });
+};
+
+// Fix: Added missing export searchGlobalOpportunities for Global Gateway module
+/**
+ * Module: Global Gateway
+ */
+export const searchGlobalOpportunities = async (query: string) => {
+  return await callGeminiProxy("GLOBAL_SEARCH", {
+    prompt: query,
+    systemInstruction: `You are "Global Gateway", a study-abroad expert for LPU Phagwara. Use Google Search to find 2025 details on masters programs, visa rules, and scholarships for Indian students.`
   });
 };

@@ -18,13 +18,6 @@ const HelpSection: React.FC = () => {
       ]
     },
     {
-      category: 'Global Gateway (Live)',
-      questions: [
-        { q: "Is the data real-time?", a: "Yes. The Gateway uses 'Google Search Grounding' with Gemini 3 Flash. It crawls official university and embassy sites at the moment of your query to find current 2025 deadlines and rules." },
-        { q: "Can I convert costs to INR?", a: "The system is programmed to prioritize Indian student needs. It will often provide cost estimates in INR and focus on visa processing times from Indian VFS centers." }
-      ]
-    },
-    {
       category: 'Campus Navigator',
       questions: [
         { q: "Why can't I see the 'Powered by' text on the map?", a: "We've optimized the map viewport for a cleaner, immersive 3D experience. The map is updated periodically to reflect new blocks and auditorium locations." },

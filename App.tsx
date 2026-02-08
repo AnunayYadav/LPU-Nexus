@@ -4,7 +4,6 @@ import Sidebar from './components/Sidebar.tsx';
 import PlacementPrefect from './components/PlacementPrefect.tsx';
 import ContentLibrary from './components/ContentLibrary.tsx';
 import CampusNavigator from './components/CampusNavigator.tsx';
-import GlobalGateway from './components/GlobalGateway.tsx';
 import HelpSection from './components/HelpSection.tsx';
 import FreshersKit from './components/FreshersKit.tsx';
 import CGPACalculator from './components/CGPACalculator.tsx';
@@ -28,7 +27,6 @@ const getModuleFromPath = (path: string): ModuleType => {
   if (p.endsWith('/placement')) return ModuleType.PLACEMENT;
   if (p.endsWith('/library')) return ModuleType.LIBRARY;
   if (p.endsWith('/campus')) return ModuleType.CAMPUS;
-  if (p.endsWith('/global')) return ModuleType.GLOBAL;
   if (p.endsWith('/freshers')) return ModuleType.FRESHERS;
   if (p.endsWith('/help')) return ModuleType.HELP;
   if (p.endsWith('/about')) return ModuleType.ABOUT;
@@ -44,7 +42,6 @@ const getPathFromModule = (module: ModuleType): string => {
     case ModuleType.PLACEMENT: return '/placement';
     case ModuleType.LIBRARY: return '/library';
     case ModuleType.CAMPUS: return '/campus';
-    case ModuleType.GLOBAL: return '/global';
     case ModuleType.FRESHERS: return '/freshers';
     case ModuleType.HELP: return '/help';
     case ModuleType.ABOUT: return '/about';
@@ -190,7 +187,6 @@ const App: React.FC = () => {
       case ModuleType.TIMETABLE: return <TimetableHub userProfile={userProfile} />;
       case ModuleType.LIBRARY: return <ContentLibrary userProfile={userProfile} />;
       case ModuleType.CAMPUS: return <CampusNavigator />;
-      case ModuleType.GLOBAL: return <GlobalGateway />;
       case ModuleType.HELP: return <HelpSection />;
       case ModuleType.FRESHERS: return <FreshersKit />;
       case ModuleType.CGPA: return <CGPACalculator userProfile={userProfile} />;

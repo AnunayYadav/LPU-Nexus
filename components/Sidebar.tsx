@@ -68,11 +68,6 @@ const Sidebar: React.FC<SidebarProps> = ({
       icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg> 
     },
     { 
-      id: ModuleType.GLOBAL, 
-      label: 'Global Gateway', 
-      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> 
-    },
-    { 
       id: ModuleType.FRESHERS, 
       label: "Freshmen Kit", 
       icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M4 20V10a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M9 6V4a3 3 0 0 1 6 0v2"/><path d="M8 21v-5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v5"/></svg> 
@@ -112,7 +107,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       {showFeedbackModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-          <div ref={feedbackModalRef} className="bg-white dark:bg-slate-950 rounded-3xl p-8 w-full max-w-md shadow-2xl animate-fade-in border border-white/5 relative overflow-hidden">
+          <div ref={feedbackModalRef} className="bg-white dark:bg-slate-950 rounded-3xl p-8 w-full max-md shadow-2xl animate-fade-in border border-white/5 relative overflow-hidden">
             {submitSuccess ? (
               <div className="text-center py-10 space-y-4 animate-fade-in">
                 <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto text-green-500">

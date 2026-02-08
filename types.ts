@@ -4,7 +4,6 @@ export enum ModuleType {
   PLACEMENT = 'PLACEMENT',
   LIBRARY = 'LIBRARY',
   CAMPUS = 'CAMPUS',
-  GLOBAL = 'GLOBAL',
   FRESHERS = 'FRESHERS',
   HELP = 'HELP',
   CGPA = 'CGPA',

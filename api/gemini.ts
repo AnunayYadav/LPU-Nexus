@@ -40,12 +40,15 @@ export default async function handler(req: Request) {
       }
 
       case "EXTRACT_TIMETABLE": {
+        // Fix: Changed contents structure to use { parts: [...] } format as per coding guidelines
         const response = await ai.models.generateContent({
           model: "gemini-3-flash-preview",
-          contents: [
-            { text: payload.prompt },
-            { inlineData: { mimeType: "image/png", data: payload.imageData } }
-          ],
+          contents: {
+            parts: [
+              { text: payload.prompt },
+              { inlineData: { mimeType: "image/png", data: payload.imageData } }
+            ]
+          },
           config: {
             responseMimeType: "application/json",
             responseSchema: payload.schema,
@@ -55,23 +58,9 @@ export default async function handler(req: Request) {
         return new Response(JSON.stringify({ text: response.text }), { status: 200 });
       }
 
-      case "GLOBAL_GATEWAY": {
-        const response = await ai.models.generateContent({
-          model: "gemini-3-flash-preview",
-          contents: payload.prompt,
-          config: {
-            systemInstruction: payload.systemInstruction,
-            tools: [{ googleSearch: {} }],
-            temperature: 0.2,
-          },
-        });
-        return new Response(JSON.stringify({
-          text: response.text,
-          groundingChunks: response.candidates?.[0]?.groundingMetadata?.groundingChunks
-        }), { status: 200 });
-      }
-
-      case "CAMPUS_NEWS": {
+      case "CAMPUS_NEWS":
+      // Fix: Added GLOBAL_SEARCH action handling for study-abroad grounding queries
+      case "GLOBAL_SEARCH": {
         const response = await ai.models.generateContent({
           model: "gemini-3-flash-preview",
           contents: payload.prompt,
