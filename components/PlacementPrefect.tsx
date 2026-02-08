@@ -86,7 +86,7 @@ const FragmentHighlight: React.FC<FragmentProps> = ({ fragment, onHover }) => {
 
   return (
     <span 
-      className={`inline px-0.5 rounded-md border-b-2 cursor-help transition-all duration-300 ${colorClass}`}
+      className={`inline px-0.5 rounded-md border-b-2 cursor-help transition-all duration-200 ${colorClass}`}
       onMouseEnter={(e) => onHover(fragment, e)}
       onMouseLeave={() => onHover(null)}
     >
@@ -107,9 +107,9 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
   const [activeCategory, setActiveCategory] = useState<CategoryID>('keywordAnalysis');
   const [savedReports, setSavedReports] = useState<ResumeAnalysisResult[]>([]);
 
-  // Tooltip state to prevent clipping and hidden elements
+  // Tooltip state with Flip Logic
   const [hoveredFragment, setHoveredFragment] = useState<AnnotatedFragment | null>(null);
-  const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+  const [tooltipState, setTooltipState] = useState({ x: 0, y: 0, position: 'top' as 'top' | 'bottom' });
 
   const reportRef = useRef<HTMLDivElement>(null);
 
@@ -171,12 +171,17 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
   const handleFragmentHover = (fragment: AnnotatedFragment | null, event?: React.MouseEvent) => {
     if (fragment && event) {
       const rect = (event.target as HTMLElement).getBoundingClientRect();
-      const scrollY = window.scrollY || document.documentElement.scrollTop;
+      const tooltipHeight = 160; // Approximate
+      const margin = 12;
       
-      // Fixed positioning coordinates
-      setTooltipPos({
+      // Determine if tooltip should flip to bottom
+      const spaceAbove = rect.top;
+      const shouldShowBottom = spaceAbove < (tooltipHeight + 20);
+
+      setTooltipState({
         x: rect.left + rect.width / 2,
-        y: rect.top - 15
+        y: shouldShowBottom ? rect.bottom + margin : rect.top - margin,
+        position: shouldShowBottom ? 'bottom' : 'top'
       });
       setHoveredFragment(fragment);
     } else {
@@ -208,11 +213,11 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
     return (
       <div ref={reportRef} className="max-w-6xl mx-auto space-y-10 animate-fade-in pb-20 px-4 md:px-0 print:p-0 print:m-0 print:max-w-none print:bg-white print:text-black relative">
         
-        {/* GLOBAL FIXED TOOLTIP - Fixes clipping/hiding issues */}
+        {/* GLOBAL FIXED TOOLTIP with SOLID BLACK background and FLIP logic */}
         {hoveredFragment && (
           <div 
-            className="fixed z-[9999] p-5 bg-black dark:bg-black border border-slate-200 dark:border-white/20 rounded-2xl shadow-[0_32px_128px_rgba(0,0,0,0.8)] animate-fade-in pointer-events-none transform -translate-x-1/2 -translate-y-full w-[320px]"
-            style={{ left: tooltipPos.x, top: tooltipPos.y }}
+            className={`fixed z-[9999] p-5 bg-black border border-white/20 rounded-2xl shadow-[0_32px_128px_rgba(0,0,0,0.9)] animate-fade-in pointer-events-none transform -translate-x-1/2 w-[300px] ${tooltipState.position === 'top' ? '-translate-y-full' : ''}`}
+            style={{ left: tooltipState.x, top: tooltipState.y }}
           >
             <div className="space-y-4">
               <div>
@@ -229,11 +234,12 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
                 </div>
               )}
             </div>
-            <div className="absolute top-full left-1/2 -translate-x-1/2 border-[10px] border-transparent border-t-black" />
+            
+            {/* Tooltip Arrow */}
+            <div className={`absolute left-1/2 -translate-x-1/2 border-[8px] border-transparent ${tooltipState.position === 'top' ? 'top-full border-t-black' : 'bottom-full border-b-black'}`} />
           </div>
         )}
 
-        {/* Header Section */}
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 print:hidden">
           <div>
             <h2 className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter uppercase mb-1">ATS Diagnostic Report</h2>
@@ -255,7 +261,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
           </div>
         </header>
 
-        {/* Tier 1: System Verdict */}
+        {/* Tier 1: Match Score & Verdict */}
         <div className="glass-panel p-10 md:p-14 rounded-[56px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/40 shadow-2xl flex flex-col md:flex-row items-center gap-12 relative overflow-hidden">
           <ScoreAura score={result.totalScore} meaningScore={result.meaningScore} label="ATS Match" />
           
@@ -378,7 +384,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
           })}
         </div>
 
-        {/* Tier 5: Section Deep-Dive */}
+        {/* Tier 5: Detailed Section View */}
         <div className="glass-panel p-8 md:p-12 rounded-[56px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/60 shadow-sm animate-fade-in relative overflow-hidden print:shadow-none print:border-none print:p-8">
            <div className="flex flex-col md:flex-row md:items-start justify-between gap-10 mb-12">
               <div className="flex-1 space-y-4">
