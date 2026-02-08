@@ -74,7 +74,7 @@ const ScoreAura = ({ score, label, meaningScore }: { score: number; label: strin
 
 interface FragmentProps {
   fragment: AnnotatedFragment;
-  onHover: (fragment: AnnotatedFragment | null, rect: DOMRect | null) => void;
+  onHover: (fragment: AnnotatedFragment | null, element: HTMLElement | null) => void;
 }
 
 const FragmentHighlight: React.FC<FragmentProps> = ({ fragment, onHover }) => {
@@ -86,8 +86,8 @@ const FragmentHighlight: React.FC<FragmentProps> = ({ fragment, onHover }) => {
 
   return (
     <span 
-      className={`inline px-0.5 rounded-md border-b-2 cursor-help transition-all duration-200 ${colorClass}`}
-      onMouseEnter={(e) => onHover(fragment, (e.target as HTMLElement).getBoundingClientRect())}
+      className={`inline px-0.5 rounded-md border-b-2 cursor-pointer transition-colors duration-200 ${colorClass}`}
+      onMouseEnter={(e) => onHover(fragment, e.currentTarget)}
       onMouseLeave={() => onHover(null, null)}
     >
       {fragment.text}
@@ -207,28 +207,32 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
     window.print();
   };
 
-  // Fixed hover handler with stable rect calculation
-  const handleFragmentHover = (fragment: AnnotatedFragment | null, rect: DOMRect | null) => {
+  const handleFragmentHover = (fragment: AnnotatedFragment | null, element: HTMLElement | null) => {
     if (hoverTimer.current) window.clearTimeout(hoverTimer.current);
 
-    if (fragment && rect) {
-      const tooltipHeight = 140;
+    if (fragment && element && reportRef.current) {
+      const rect = element.getBoundingClientRect();
+      const parentRect = reportRef.current.getBoundingClientRect();
+      
+      const tooltipHeight = 160;
       const margin = 12;
-      const spaceAbove = rect.top;
-      const shouldFlip = spaceAbove < (tooltipHeight + 40);
+      
+      // Calculate position relative to the reportRef container (which is relative)
+      const relativeTop = rect.top - parentRect.top;
+      const relativeLeft = rect.left - parentRect.left + (rect.width / 2);
+      
+      const shouldFlip = rect.top < 200;
 
-      // Lock position to the rect immediately to prevent jitter
       setTooltipPos({
-        x: rect.left + rect.width / 2,
-        y: shouldFlip ? rect.bottom + margin : rect.top - margin,
+        x: relativeLeft,
+        y: shouldFlip ? (relativeTop + rect.height + margin) : (relativeTop - margin),
         flipped: shouldFlip
       });
       setHoveredFragment(fragment);
     } else {
-      // Small delay on exit to prevent flickering when mouse passes gaps between words
       hoverTimer.current = window.setTimeout(() => {
         setHoveredFragment(null);
-      }, 50);
+      }, 100);
     }
   };
 
@@ -256,10 +260,10 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
     return (
       <div ref={reportRef} className="max-w-6xl mx-auto space-y-10 animate-fade-in pb-20 px-4 md:px-0 print:p-0 print:m-0 print:max-w-none print:bg-white print:text-black relative">
         
-        {/* Fixed Diagnostic Tooltip */}
+        {/* Absolute-positioned Diagnostic Tooltip relative to reportRef */}
         {hoveredFragment && (
           <div 
-            className={`fixed z-[9999] p-5 bg-black border border-white/20 rounded-2xl shadow-[0_32px_128px_rgba(0,0,0,0.9)] pointer-events-none transform -translate-x-1/2 w-[300px] transition-all duration-75 ${tooltipPos.flipped ? '' : '-translate-y-full'}`}
+            className={`absolute z-[1000] p-5 bg-black border border-white/20 rounded-2xl shadow-[0_32px_128px_rgba(0,0,0,0.9)] pointer-events-none transform -translate-x-1/2 w-[300px] ${tooltipPos.flipped ? '' : '-translate-y-full'}`}
             style={{ left: tooltipPos.x, top: tooltipPos.y }}
           >
             <div className="space-y-4">
@@ -268,7 +272,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
                    <span className="w-1 h-1 bg-orange-600 rounded-full" />
                    Diagnostic Insight
                 </p>
-                <p className="text-[11px] font-bold text-white leading-relaxed">{hoveredFragment.reason || "Semantic signal detected by Nexus Intelligence."}</p>
+                <p className="text-[11px] font-bold text-white leading-relaxed">{hoveredFragment.reason || "Semantic signal detected."}</p>
               </div>
               {hoveredFragment.suggestion && (
                 <div className="pt-3 border-t border-white/10">
@@ -277,7 +281,6 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
                 </div>
               )}
             </div>
-            {/* Tooltip Arrow */}
             <div className={`absolute left-1/2 -translate-x-1/2 border-[8px] border-transparent ${tooltipPos.flipped ? 'bottom-full border-b-black' : 'top-full border-t-black'}`} />
           </div>
         )}
