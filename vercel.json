@@ -5,11 +5,10 @@
       "dest": "/api/$1"
     },
     {
-      "src": "/(favicon.ico|apple-touch-icon.png|favicon-16x16.png|favicon-32x32.png|android-chrome-192x192.png|android-chrome-512x512.png|site.webmanifest)",
-      "dest": "/$1"
+      "handle": "filesystem"
     },
     {
-      "src": "/(.*)",
+      "src": "/.*",
       "dest": "/index.html"
     }
   ],
