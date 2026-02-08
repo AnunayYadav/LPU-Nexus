@@ -57,7 +57,8 @@ const ScoreAura = ({ score, label, meaningScore }: { score: number; label: strin
           className="transition-all duration-[2500ms] ease-out drop-shadow-[0_0_12px_rgba(249,115,22,0.4)]"
         />
         <defs>
-          <linearGradient id="scoreGradient" x1="0%" x1="0%" y1="0%" x2="100%" y2="100%">
+          {/* Fix: Remove duplicate x1 attribute that caused JSX compilation error */}
+          <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#f97316" />
             <stop offset="100%" stopColor="#ef4444" />
           </linearGradient>
@@ -653,7 +654,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
       {/* Rename Modal */}
       {showRenameModal && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-fade-in overflow-hidden">
-          <div className="bg-[#0a0a0a] rounded-[48px] w-full max-w-sm border border-white/10 shadow-[0_32px_128px_rgba(0,0,0,0.8)] overflow-hidden">
+          <div className="bg-[#0a0a0a] rounded-[48px] w-full max-sm border border-white/10 shadow-[0_32px_128px_rgba(0,0,0,0.8)] overflow-hidden">
             <div className="p-10 text-center">
               <h3 className="text-2xl font-black tracking-tighter uppercase mb-2">Rename Report</h3>
               <p className="text-white/40 text-[9px] font-black uppercase tracking-[0.3em]">Personalize the archive label</p>
