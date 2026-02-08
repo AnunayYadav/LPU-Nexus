@@ -25,82 +25,93 @@ const callGeminiProxy = async (action: string, payload: any) => {
  */
 export const analyzeResume = async (resumeText: string, jdText: string, deepAnalysis: boolean = false): Promise<ResumeAnalysisResult> => {
   const depthInstruction = deepAnalysis 
-    ? "Act as a ruthless, hyper-critical technical recruiter who has seen 10,000 resumes. Do not be polite. Be cynical. If a skill is listed but not backed by quantifiable metrics (%, $, time), call it out as 'unverified bullshit'. Your feedback should be aggressive and focus exclusively on why this candidate would be rejected. Use terms like 'Pathetic', 'Ghost Skill', 'Mediocre', and 'Liable'."
-    : "Perform a high-level ATS scan focusing on keyword density and section layout. Be firm but professional.";
+    ? "Act as a ruthless, hyper-critical technical recruiter. Do not be polite. Focus on why this candidate fails."
+    : "Perform a professional resume audit against modern tech standards and the provided job description.";
 
   const prompt = `
-    TASK: ANALYZE RESUME AGAINST TARGET JD/TRENDS.
+    TASK: GENERATE A DETAILED PROFESSIONAL RESUME REPORT.
     
-    TARGET CONTEXT:
-    ${jdText}
-
-    RESUME CONTENT:
-    ${resumeText}
+    JD/CONTEXT: ${jdText}
+    RESUME: ${resumeText}
 
     CRITICAL REQUIREMENTS:
     ${depthInstruction}
     
-    1. Score Breakdown: Calculate ATS Match, Recruiter Appeal (Odds of survival), and Formatting (Professionalism) (0-100). Also provide a totalScore (0-100) representing overall alignment.
-    2. Section Health: Audit Education, Projects, Experience, and Skills sections for weaknesses.
-    3. Skill Proof: Cross-reference skills with project descriptions. Flag anything that looks like a keyword-stuffed lie.
-    4. Top 1% Benchmark: How does this compare to elite tier candidates from IIT/MIT/Stanford? (Hint: It probably doesn't).
-    5. Keyword Ledger: Categorize Found, Missing, and Weak (low density) keywords.
-    
-    Output a strict JSON object following the ResumeAnalysisResult schema. 
-    IF deepAnalysis is true, the summary should be a scathing roast of their professional identity.
+    Return a structured JSON based on the ResumeAnalysisResult schema.
+    1. totalScore: 0-100 overall score.
+    2. categories: Break down into keywordAnalysis, jobFit, achievements, formatting, language, and branding.
+    3. keywordAnalysis: List missing keywords with concrete examples of how to incorporate them.
+    4. achievements: Focus on quantifying impact (%, $, scale).
+    5. summary: A high-level verdict.
   `;
 
-  // Added totalScore to the schema to match type definition and UI expectations
   const schema = {
     type: Type.OBJECT,
     properties: {
       totalScore: { type: Type.INTEGER },
-      scores: {
+      categories: {
         type: Type.OBJECT,
         properties: {
-          atsMatch: { type: Type.INTEGER },
-          recruiterScore: { type: Type.INTEGER },
-          formattingScore: { type: Type.INTEGER }
-        }
-      },
-      sectionHealth: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            section: { type: Type.STRING },
-            status: { type: Type.STRING },
-            feedback: { type: Type.STRING }
+          keywordAnalysis: {
+            type: Type.OBJECT,
+            properties: {
+              score: { type: Type.INTEGER },
+              description: { type: Type.STRING },
+              missingKeywords: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    name: { type: Type.STRING },
+                    example: { type: Type.STRING },
+                    importance: { type: Type.STRING }
+                  }
+                }
+              }
+            }
+          },
+          jobFit: {
+            type: Type.OBJECT,
+            properties: {
+              score: { type: Type.INTEGER },
+              description: { type: Type.STRING },
+              gaps: { type: Type.ARRAY, items: { type: Type.STRING } }
+            }
+          },
+          achievements: {
+            type: Type.OBJECT,
+            properties: {
+              score: { type: Type.INTEGER },
+              description: { type: Type.STRING },
+              advice: { type: Type.ARRAY, items: { type: Type.STRING } }
+            }
+          },
+          formatting: {
+            type: Type.OBJECT,
+            properties: {
+              score: { type: Type.INTEGER },
+              description: { type: Type.STRING },
+              issues: { type: Type.ARRAY, items: { type: Type.STRING } }
+            }
+          },
+          language: {
+            type: Type.OBJECT,
+            properties: {
+              score: { type: Type.INTEGER },
+              description: { type: Type.STRING },
+              tone: { type: Type.STRING }
+            }
+          },
+          branding: {
+            type: Type.OBJECT,
+            properties: {
+              score: { type: Type.INTEGER },
+              description: { type: Type.STRING },
+              onlinePresence: { type: Type.STRING }
+            }
           }
         }
       },
-      skillProof: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            skill: { type: Type.STRING },
-            isVerified: { type: Type.BOOLEAN },
-            feedback: { type: Type.STRING }
-          }
-        }
-      },
-      benchmarking: {
-        type: Type.OBJECT,
-        properties: {
-          comparison: { type: Type.STRING },
-          gapToTop1Percent: { type: Type.ARRAY, items: { type: Type.STRING } }
-        }
-      },
-      keywords: {
-        type: Type.OBJECT,
-        properties: {
-          found: { type: Type.ARRAY, items: { type: Type.STRING } },
-          missing: { type: Type.ARRAY, items: { type: Type.STRING } },
-          weak: { type: Type.ARRAY, items: { type: Type.STRING } }
-        }
-      },
-      phrasingAdvice: { type: Type.ARRAY, items: { type: Type.STRING } },
       summary: { type: Type.STRING }
     }
   };
@@ -117,9 +128,6 @@ export const extractTimetableFromImage = async (base64Image: string): Promise<Da
     Extract the LPU University timetable from this screenshot. 
     Identify the days (Monday to Saturday) and slots.
     Return a structured JSON array of DaySchedule objects.
-    Each object has: day, slots (array of objects with id, subject, room, startTime, endTime, type).
-    Subject should ONLY be the subject code (e.g. CSE101).
-    Ensure startTime and endTime are in 'HH:mm' 24-hour format.
   `;
 
   const schema = {

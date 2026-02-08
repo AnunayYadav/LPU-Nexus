@@ -50,33 +50,15 @@ export interface TimetableData {
 }
 
 export interface ResumeAnalysisResult {
-  // Added totalScore property to match UI usage in PlacementPrefect.tsx
   totalScore: number;
-  scores: {
-    atsMatch: number;
-    recruiterScore: number;
-    formattingScore: number;
+  categories: {
+    keywordAnalysis: { score: number; description: string; missingKeywords: { name: string; example: string; importance: string }[] };
+    jobFit: { score: number; description: string; gaps: string[] };
+    achievements: { score: number; description: string; advice: string[] };
+    formatting: { score: number; description: string; issues: string[] };
+    language: { score: number; description: string; tone: string };
+    branding: { score: number; description: string; onlinePresence: string };
   };
-  sectionHealth: {
-    section: string;
-    status: 'OPTIMIZED' | 'STABLE' | 'CRITICAL';
-    feedback: string;
-  }[];
-  skillProof: {
-    skill: string;
-    isVerified: boolean;
-    feedback: string;
-  }[];
-  benchmarking: {
-    comparison: string;
-    gapToTop1Percent: string[];
-  };
-  keywords: {
-    found: string[];
-    missing: string[];
-    weak: string[];
-  };
-  phrasingAdvice: string[];
   summary: string;
 }
 
@@ -90,7 +72,6 @@ export interface FriendRequest {
   receiver?: UserProfile;
 }
 
-// Defined MessageReaction interface used by ChatMessage and SocialHub.tsx
 export interface MessageReaction {
   id?: string;
   message_id: string;
