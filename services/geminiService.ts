@@ -41,6 +41,7 @@ export const generateQuizFromSyllabus = async (subjectName: string, syllabusText
     4. DISTRACTORS: All 4 options must be plausible. No "none of the above" or "all of the above" unless absolutely necessary.
     5. EXPLANATION: Each explanation MUST reference why the answer is correct according to the principles of "${subjectName}".
     6. FALLBACK: If the provided text is too short or missing specific units, use your internal LPU curriculum knowledge for "${subjectName}" but anchor it heavily to any provided keywords.
+    7. UNIT ATTRIBUTION: Each question object MUST include a "unit" field indicating which unit from the requested list (${units.join(", ")}) it primarily belongs to.
 
     Output format: JSON array of objects.
   `;
@@ -50,12 +51,13 @@ export const generateQuizFromSyllabus = async (subjectName: string, syllabusText
     items: {
       type: Type.OBJECT,
       properties: {
+        unit: { type: Type.INTEGER, description: "The unit number this question belongs to" },
         question: { type: Type.STRING },
         options: { type: Type.ARRAY, items: { type: Type.STRING }, minItems: 4, maxItems: 4 },
         correctAnswer: { type: Type.INTEGER, description: "Index 0-3 of the correct option" },
         explanation: { type: Type.STRING }
       },
-      required: ["question", "options", "correctAnswer", "explanation"]
+      required: ["unit", "question", "options", "correctAnswer", "explanation"]
     }
   };
 

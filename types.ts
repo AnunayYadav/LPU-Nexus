@@ -90,6 +90,7 @@ export interface ResumeAnalysisResult {
 }
 
 export interface QuizQuestion {
+  unit: number;
   question: string;
   options: string[];
   correctAnswer: number;
