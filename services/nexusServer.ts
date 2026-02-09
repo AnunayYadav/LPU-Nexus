@@ -1,6 +1,6 @@
 
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
-import { LibraryFile, UserProfile, Folder, ChatMessage, FriendRequest } from '../types.ts';
+import { LibraryFile, UserProfile, Folder, ChatMessage, FriendRequest, QuizQuestion } from '../types.ts';
 
 const getEnvVar = (name: string): string => {
   try {
@@ -32,6 +32,47 @@ const getSupabase = () => {
 class NexusServer {
   static isConfigured(): boolean { return !!getSupabase(); }
 
+  // ... (recordVisit, getSiteStats, auth methods remain same)
+
+  /**
+   * Quiz Taker: Persistent Storage Methods
+   */
+  static async fetchQuestionsFromBank(subject: string, units: number[]): Promise<QuizQuestion[]> {
+    const client = getSupabase();
+    if (!client) return [];
+    
+    // Fetch questions for each unit from the bank
+    const { data, error } = await client
+      .from('question_banks')
+      .select('*')
+      .eq('subject_name', subject)
+      .in('unit_number', units);
+
+    if (error || !data) return [];
+    
+    // Combine questions from all found units
+    let combined: QuizQuestion[] = [];
+    data.forEach(row => {
+      if (Array.isArray(row.questions)) {
+        combined = [...combined, ...row.questions];
+      }
+    });
+    
+    return combined;
+  }
+
+  static async saveQuestionsToBank(subject: string, unit: number, questions: QuizQuestion[]) {
+    const client = getSupabase();
+    if (!client) return;
+    
+    await client.from('question_banks').upsert({
+      subject_name: subject,
+      unit_number: unit,
+      questions: questions
+    }, { onConflict: 'subject_name,unit_number' });
+  }
+
+  // ... (recordVisit, getSiteStats, auth methods remain same)
   static async recordVisit(): Promise<void> {
     const client = getSupabase();
     if (!client) return;
@@ -142,7 +183,6 @@ class NexusServer {
   static async fetchFiles(q?: string, sub?: string): Promise<LibraryFile[]> {
     const client = getSupabase();
     if (!client) return [];
-    // Using a more standard relationship select. Removed explicit aliasing to minimize syntax errors.
     let query = client.from('documents').select('*, uploader:profiles(username)').eq('status', 'approved');
     if (q) query = query.ilike('name', `%${q}%`);
     const { data, error } = await query.order('created_at', { ascending: false });
