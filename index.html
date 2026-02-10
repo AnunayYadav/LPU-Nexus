@@ -19,20 +19,6 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
     <link rel="manifest" href="/site.webmanifest">
 
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://lpunexus.vercel.app/" />
-    <meta property="og:title" content="LPU-Nexus | AI-Powered Student Utility Hub" />
-    <meta property="og:description" content="Crush your academics and placements with LPU-Nexus. AI resume matching, precise attendance tracking, and verified study notes for LPU students." />
-    <meta property="og:image" content="https://lpunexus.vercel.app/og-image.png" />
-
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content="https://lpunexus.vercel.app/" />
-    <meta property="twitter:title" content="LPU-Nexus | AI-Powered Student Utility Hub" />
-    <meta property="twitter:description" content="The comprehensive student utility platform for LPU. AI Resume analysis, CGPA calculator, and campus survival guides." />
-    <meta property="twitter:image" content="https://lpunexus.vercel.app/og-image.png" />
-
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -42,10 +28,11 @@
             colors: {
               // Custom deep grey scale for high-end UI
               dark: {
-                950: '#09090b', // Base Background
-                900: '#121214', // Secondary / Sidebar
-                800: '#1c1c1f', // Card / Surface
-                700: '#27272a', // Hover states
+                950: '#09090b', // Deepest background
+                900: '#121214', // Primary surfaces
+                800: '#18181b', // Secondary surfaces
+                700: '#27272a', // Interactive states
+                600: '#3f3f46', // Disabled states
               }
             }
           }
@@ -114,8 +101,8 @@
       }
       
       .dark .glass-panel {
-        background: rgba(18, 18, 20, 0.8);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(18, 18, 20, 0.85);
+        border: 1px solid rgba(255, 255, 255, 0.06);
       }
 
       @keyframes fadeIn {
@@ -151,25 +138,16 @@
         to { background-position: 200% 0; }
       }
       
-      .perspective-1000 {
-        perspective: 1000px;
-      }
-      .transform-style-3d {
-        transform-style: preserve-3d;
-      }
-      .backface-hidden {
-        backface-visibility: hidden;
-      }
-      .rotate-y-180 {
-        transform: rotateY(180deg);
-      }
+      .perspective-1000 { perspective: 1000px; }
+      .transform-style-3d { transform-style: preserve-3d; }
+      .backface-hidden { backface-visibility: hidden; }
+      .rotate-y-180 { transform: rotateY(180deg); }
 
-      .no-scrollbar::-webkit-scrollbar {
-        display: none;
-      }
-      .no-scrollbar {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+      .bg-insta-gradient {
+        background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
       }
     </style>
   <script type="importmap">

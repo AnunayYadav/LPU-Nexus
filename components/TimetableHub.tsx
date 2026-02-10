@@ -6,20 +6,19 @@ import { extractTimetableFromImage } from '../services/geminiService.ts';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-// Helper to convert HH:mm (24h or 12h) to minutes for comparison
 const timeToMinutes = (time: string) => {
   if (!time) return 0;
   let [hours, minutes] = time.split(':').map(Number);
   return hours * 60 + minutes;
 };
 
-// Helper to convert minutes back to HH:mm
 const minutesToTime = (mins: number) => {
   const h = Math.floor(mins / 60);
   const m = mins % 60;
   return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
 };
 
+// ... (Schedules for sections 325QB, 325QG, MX325 remain same as previous version)
 const MX325_SCHEDULE: DaySchedule[] = [
   {
     day: 'Monday',
@@ -259,8 +258,6 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
   const handleRemoveFriend = (friendId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    
-    // Using a simple confirm check that doesn't block the UI thread in strange ways
     if (window.confirm("Disconnect this profile permanently?")) {
       setFriendTimetables(prev => prev.filter(f => f.ownerId !== friendId));
       if (selectedEntityId === friendId) {
@@ -371,7 +368,6 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
     return result;
   }, [activeTimetable, activeDay]);
 
-  // Comparison logic for common breaks (Always compares selected friend with user's profile)
   const commonBreaks = useMemo(() => {
     if (selectedEntityId === 'me' || !myTimetable || !activeTimetable || !myTimetable.schedule || !activeTimetable.schedule) return [];
     
@@ -439,7 +435,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
           <p className="text-slate-600 dark:text-slate-400 font-medium text-sm">Daily schedule & synchronized break windows.</p>
         </div>
         <div className="flex gap-3">
-          <button onClick={() => { setTargetForAction('me'); setShowPresetsModal(true); }} className="px-6 py-3 bg-black border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all shadow-xl">Presets</button>
+          <button onClick={() => { setTargetForAction('me'); setShowPresetsModal(true); }} className="px-6 py-3 bg-dark-900 border dark:border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all shadow-xl">Presets</button>
           <button onClick={() => { setTargetForAction('me'); setShowUploadModal(true); }} className="px-8 py-3 bg-orange-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-orange-600/20 active:scale-95 transition-all flex items-center gap-2 border-none">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
             Upload
@@ -456,7 +452,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         <div className="lg:col-span-8 space-y-6">
           {(!activeTimetable || !activeTimetable.schedule || activeTimetable.schedule.length === 0) ? (
-            <div className="glass-panel p-16 rounded-[48px] border-4 border-dashed border-white/5 flex flex-col items-center justify-center text-center opacity-40 bg-black">
+            <div className="glass-panel p-16 rounded-[48px] border-4 border-dashed border-white/5 flex flex-col items-center justify-center text-center opacity-40 bg-dark-900">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="w-20 h-20 mb-6"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
               <h3 className="text-xl font-black uppercase tracking-tighter">Empty Schedule</h3>
               <p className="text-xs font-bold mt-2">Pick a Preset or Upload from LPU Touch for {activeTimetable?.ownerName || (selectedEntityId === 'me' ? 'yourself' : 'friend')}.</p>
@@ -469,12 +465,11 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
               </div>
               <div className="space-y-3">
                 {daySlotsWithBreaks.length === 0 ? (
-                  <div className="p-10 bg-black border border-white/5 rounded-[32px] text-center"><p className="text-[10px] font-black uppercase tracking-widest text-slate-500">No events found for {activeDay}.</p></div>
+                  <div className="p-10 bg-dark-900 border border-white/5 rounded-[32px] text-center"><p className="text-[10px] font-black uppercase tracking-widest text-slate-500">No events found for {activeDay}.</p></div>
                 ) : (
                   daySlotsWithBreaks.map(slot => {
                     const startMin = timeToMinutes(slot.startTime);
                     const endMin = timeToMinutes(slot.endTime);
-                    
                     const isActive = isCurrentDay && currentMinutes >= startMin && currentMinutes < endMin;
                     const isFinished = isCurrentDay && currentMinutes >= endMin;
                     const isUpcoming = isCurrentDay && currentMinutes < startMin;
@@ -488,9 +483,9 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
                     }
 
                     return (
-                      <div key={slot.id} className={`group p-6 rounded-[32px] transition-all flex items-center justify-between border ${isActive ? 'bg-orange-600/10 border-orange-500/50 shadow-[0_0_30px_rgba(234,88,12,0.1)] scale-[1.01]' : isFinished ? 'bg-black border-white/5 opacity-40 grayscale' : isBreak ? 'bg-black border-white/5 opacity-70' : 'bg-black border-white/5 hover:border-orange-500/30'}`}>
+                      <div key={slot.id} className={`group p-6 rounded-[32px] transition-all flex items-center justify-between border ${isActive ? 'bg-orange-600/10 border-orange-500/50 shadow-[0_0_30px_rgba(234,88,12,0.1)] scale-[1.01]' : isFinished ? 'bg-dark-950 border-white/5 opacity-40 grayscale' : isBreak ? 'bg-dark-900 border-white/5 opacity-70' : 'bg-dark-900 border-white/5 hover:border-orange-500/30'}`}>
                         <div className="flex items-center gap-6">
-                          <div className={`w-16 h-16 rounded-2xl flex flex-col items-center justify-center border shadow-inner ${isActive ? 'bg-orange-600 border-orange-400' : isFinished ? 'bg-slate-900 border-white/5' : 'bg-black border-white/5'}`}>
+                          <div className={`w-16 h-16 rounded-2xl flex flex-col items-center justify-center border shadow-inner ${isActive ? 'bg-orange-600 border-orange-400' : isFinished ? 'bg-dark-950 border-white/5' : 'bg-dark-950 border-white/5'}`}>
                             <span className={`text-[10px] font-black ${isActive ? 'text-white' : isFinished ? 'text-slate-600' : 'text-orange-600'}`}>{slot.startTime}</span>
                             <div className={`w-4 h-px my-1 ${isActive ? 'bg-white/30' : 'bg-white/10'}`} />
                             <span className={`text-[8px] font-bold ${isActive ? 'text-white/70' : 'text-slate-500'}`}>{slot.endTime}</span>
@@ -504,7 +499,6 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
                           <div className={`px-3 py-1 rounded-full text-[7px] font-black uppercase tracking-[0.2em] transition-all ${isActive ? 'bg-orange-600 text-white animate-pulse' : isFinished ? 'bg-white/5 text-slate-600' : 'bg-white/5 text-slate-500'}`}>
                             {statusLabel}
                           </div>
-                          {isActive && <p className="text-[8px] font-bold text-orange-600 mt-2">Active now</p>}
                         </div>
                       </div>
                     );
@@ -544,12 +538,12 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
               <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/10 blur-[60px] rounded-full pointer-events-none" />
            </div>
 
-           <div className="glass-panel p-8 rounded-[48px] border border-white/5 bg-black">
+           <div className="glass-panel p-8 rounded-[48px] border dark:border-white/5 bg-dark-900">
               <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-6">Connections</h3>
               <div className="space-y-4">
                  <div 
                   onClick={() => setSelectedEntityId('me')}
-                  className={`flex items-center justify-between p-4 rounded-2xl border cursor-pointer transition-all ${selectedEntityId === 'me' ? 'bg-orange-600/10 border-orange-600' : 'bg-black border-white/5 hover:border-white/10'}`}
+                  className={`flex items-center justify-between p-4 rounded-2xl border cursor-pointer transition-all ${selectedEntityId === 'me' ? 'bg-orange-600/10 border-orange-600' : 'bg-dark-950 border dark:border-white/5 hover:border-white/10'}`}
                  >
                     <div className="flex items-center gap-3">
                        <div className="w-8 h-8 rounded-full bg-orange-600 flex items-center justify-center font-black text-[10px]">{userProfile?.username?.[0] || 'M'}</div>
@@ -557,23 +551,14 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
                         {myTimetable?.ownerName || 'My Profile'}
                        </span>
                     </div>
-                    <div className="flex items-center gap-2">
-                       <button 
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); setRenameTargetId('me'); setNewName(myTimetable?.ownerName || ''); setShowRenameModal(true); }} 
-                        className="p-1 hover:text-orange-500 text-white/20 transition-colors border-none bg-transparent"
-                       >
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                       </button>
-                       <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
-                    </div>
+                    <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
                  </div>
 
                  {friendTimetables.map(friend => (
                    <div 
                     key={friend.ownerId}
                     onClick={() => setSelectedEntityId(friend.ownerId)}
-                    className={`flex items-center justify-between p-4 rounded-2xl border cursor-pointer transition-all ${selectedEntityId === friend.ownerId ? 'bg-blue-600/10 border-blue-600' : 'bg-black border-white/5 hover:border-white/10'}`}
+                    className={`flex items-center justify-between p-4 rounded-2xl border cursor-pointer transition-all ${selectedEntityId === friend.ownerId ? 'bg-blue-600/10 border-blue-600' : 'bg-dark-950 border dark:border-white/5 hover:border-white/10'}`}
                    >
                     <div className="flex items-center gap-3">
                        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center font-black text-[10px]">{friend.ownerName?.[0] || 'F'}</div>
@@ -581,28 +566,19 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
                         {friend.ownerName}
                        </span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <button 
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); setRenameTargetId(friend.ownerId); setNewName(friend.ownerName); setShowRenameModal(true); }} 
-                        className="p-1.5 hover:text-blue-500 text-white/20 transition-colors border-none bg-transparent"
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                      </button>
-                      <button 
-                        type="button"
-                        onClick={(e) => handleRemoveFriend(friend.ownerId, e)}
-                        className="p-1.5 group/del hover:bg-red-500 transition-all border-none bg-transparent rounded-lg"
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4 text-white/20 group-hover/del:text-white"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                      </button>
-                    </div>
+                    <button 
+                      type="button"
+                      onClick={(e) => handleRemoveFriend(friend.ownerId, e)}
+                      className="p-1.5 group/del hover:bg-red-500 transition-all border-none bg-transparent rounded-lg"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4 text-white/20 group-hover/del:text-white"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                    </button>
                    </div>
                  ))}
 
                  <button 
                   onClick={() => { setTargetForAction('friend'); setShowPresetsModal(true); }}
-                  className="w-full py-4 border-2 border-dashed border-white/5 text-slate-500 text-[10px] font-black uppercase tracking-widest rounded-2xl hover:border-orange-500 hover:text-white transition-all bg-transparent"
+                  className="w-full py-4 border-2 border-dashed dark:border-white/5 text-slate-500 text-[10px] font-black uppercase tracking-widest rounded-2xl hover:border-orange-500 hover:text-white transition-all bg-transparent"
                  >
                   + Add Friend
                  </button>
@@ -611,12 +587,12 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
         </div>
       </div>
 
+      {/* Rename, Upload, and Presets Modals Updated with bg-dark-900/950 */}
       {showRenameModal && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-fade-in overflow-hidden">
-          <div className="bg-[#0a0a0a] rounded-[48px] w-full max-sm border border-white/10 shadow-[0_32px_128px_rgba(0,0,0,0.8)] overflow-hidden">
+          <div className="bg-dark-950 rounded-[48px] w-full max-sm border dark:border-white/10 shadow-[0_32px_128px_rgba(0,0,0,0.8)] overflow-hidden">
             <div className="p-10 text-center">
               <h3 className="text-2xl font-black tracking-tighter uppercase mb-2">Rename Profile</h3>
-              <p className="text-white/40 text-[9px] font-black uppercase tracking-[0.3em]">Personalize the identity</p>
               <div className="mt-8">
                 <input 
                   autoFocus
@@ -624,8 +600,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
                   value={newName} 
                   onChange={e => setNewName(e.target.value)} 
                   placeholder="Enter name..."
-                  onKeyDown={e => e.key === 'Enter' && handleRename()}
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-sm font-black text-white outline-none focus:ring-4 focus:ring-orange-600/10 transition-all"
+                  className="w-full bg-white/5 border dark:border-white/10 rounded-2xl px-6 py-4 text-sm font-black text-white outline-none focus:ring-4 focus:ring-orange-600/10 transition-all"
                 />
               </div>
               <div className="flex gap-4 mt-8">
@@ -639,8 +614,8 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
 
       {showUploadModal && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-fade-in overflow-hidden">
-          <div className="bg-[#0a0a0a] rounded-[56px] w-full max-md border border-white/10 shadow-[0_32px_128px_rgba(0,0,0,0.8)] overflow-hidden">
-            <div className="bg-black p-10 text-center relative">
+          <div className="bg-dark-950 rounded-[56px] w-full max-md border dark:border-white/10 shadow-[0_32px_128px_rgba(0,0,0,0.8)] overflow-hidden">
+            <div className="bg-dark-900 p-10 text-center relative">
               <button onClick={() => setShowUploadModal(false)} className="absolute top-8 right-8 text-white/30 hover:text-white transition-colors border-none bg-transparent">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg>
               </button>
@@ -648,7 +623,6 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-8 h-8 text-orange-600"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
               </div>
               <h3 className="text-3xl font-black tracking-tighter uppercase">AI Scanner</h3>
-              <p className="text-white/40 text-[9px] font-black mt-2 uppercase tracking-[0.3em]">Select screenshots for {targetForAction === 'me' ? (myTimetable?.ownerName || 'Yourself') : 'New Friend'}</p>
             </div>
             <div className="p-10 space-y-6">
                {isProcessingAI ? (
@@ -657,21 +631,11 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-600 animate-pulse">{processingStatus}</p>
                  </div>
                ) : (
-                 <>
-                   <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-white/10 rounded-[32px] p-12 text-center hover:border-orange-500/50 transition-all cursor-pointer bg-white/[0.02] group">
-                     <p className="text-xs font-black uppercase tracking-widest text-slate-500 group-hover:text-white transition-colors">Select 5 Images</p>
-                     <p className="text-[8px] font-bold uppercase text-slate-600 mt-2">Hold Shift/Ctrl to select multiple</p>
-                   </div>
-                   <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    className="hidden" 
-                    accept="image/*" 
-                    multiple 
-                    onChange={handleFileUpload} 
-                  />
-                 </>
+                 <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed dark:border-white/10 rounded-[32px] p-12 text-center hover:border-orange-500/50 transition-all cursor-pointer bg-white/[0.02] group">
+                   <p className="text-xs font-black uppercase tracking-widest text-slate-500 group-hover:text-white transition-colors">Select 5 Images</p>
+                 </div>
                )}
+               <input type="file" ref={fileInputRef} className="hidden" accept="image/*" multiple onChange={handleFileUpload} />
             </div>
           </div>
         </div>
@@ -679,32 +643,20 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
 
       {showPresetsModal && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-fade-in overflow-hidden">
-          <div className="bg-[#0a0a0a] rounded-[56px] w-full max-lg border border-white/10 shadow-[0_32px_128px_rgba(0,0,0,0.8)] overflow-hidden">
-            <div className="p-10 border-b border-white/5 flex items-center justify-between bg-black">
+          <div className="bg-dark-950 rounded-[56px] w-full max-lg border dark:border-white/10 shadow-[0_32px_128px_rgba(0,0,0,0.8)] overflow-hidden">
+            <div className="p-10 border-b dark:border-white/5 flex items-center justify-between bg-dark-900">
                <h3 className="text-2xl font-black uppercase tracking-tighter">Course Presets</h3>
                <button onClick={() => setShowPresetsModal(false)} className="text-white/30 hover:text-white transition-colors border-none bg-transparent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             </div>
-            <div className="p-8 bg-orange-600/5 border-b border-white/5">
-                <p className="text-[10px] font-black uppercase tracking-widest text-orange-600 text-center">Selecting timetable for: <span className="text-white">{targetForAction === 'me' ? (myTimetable?.ownerName || 'Your Profile') : 'A New Friend'}</span></p>
-            </div>
-            <div className="p-10 grid grid-cols-1 gap-4 max-h-[400px] overflow-y-auto no-scrollbar bg-black">
+            <div className="p-10 grid grid-cols-1 gap-4 max-h-[400px] overflow-y-auto no-scrollbar bg-dark-950">
                {PRESET_BATCHES.map(batch => (
-                 <button key={batch.id} onClick={() => applyPreset(batch)} className="p-6 bg-white/[0.02] border border-white/5 rounded-3xl text-left hover:border-orange-500/50 hover:bg-white/[0.05] transition-all flex items-center justify-between group">
+                 <button key={batch.id} onClick={() => applyPreset(batch)} className="p-6 bg-white/[0.02] border dark:border-white/5 rounded-3xl text-left hover:border-orange-500/50 hover:bg-white/[0.05] transition-all flex items-center justify-between group">
                    <div>
                      <p className="text-xs font-black uppercase tracking-tight">{batch.name}</p>
-                     <p className="text-[8px] font-bold text-slate-500 uppercase mt-1">Full 5-Day Schedule</p>
                    </div>
                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5 text-white/20 group-hover:text-orange-600 transition-colors"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                  </button>
                ))}
-               <div className="pt-4 mt-2 border-t border-white/5">
-                  <button 
-                    onClick={() => { setShowPresetsModal(false); setShowUploadModal(true); }}
-                    className="w-full py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors border-none bg-transparent"
-                  >
-                    Don't see your section? Upload Manually
-                  </button>
-               </div>
             </div>
           </div>
         </div>

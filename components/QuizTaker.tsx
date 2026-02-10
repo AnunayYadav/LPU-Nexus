@@ -287,7 +287,7 @@ const QuizTaker: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                <div className="absolute -bottom-10 -right-10 w-48 h-48 bg-white/10 blur-3xl rounded-full" />
             </div>
 
-            <div className="lg:col-span-8 glass-panel p-10 rounded-[56px] border border-white/5 bg-dark-900 shadow-xl flex flex-col justify-center">
+            <div className="lg:col-span-8 glass-panel p-10 rounded-[56px] border dark:border-white/5 bg-dark-900 shadow-xl flex flex-col justify-center">
                <h3 className="text-[10px] font-black text-orange-600 uppercase tracking-[0.3em] mb-8">Protocol Performance Map</h3>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                   <div className="space-y-6">
@@ -365,7 +365,7 @@ const QuizTaker: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
          </div>
 
          <div className="flex justify-center gap-4">
-            <button onClick={() => { setQuizQuestions([]); setQuizCompleted(false); setSelectedUnits([]); setSelectedSubject(null); }} className="px-10 py-5 bg-dark-900 border border-white/10 text-white rounded-3xl font-black text-[10px] uppercase tracking-widest hover:border-orange-500 transition-all border-none">Main Registry</button>
+            <button onClick={() => { setQuizQuestions([]); setQuizCompleted(false); setSelectedUnits([]); setSelectedSubject(null); }} className="px-10 py-5 bg-dark-900 border dark:border-white/10 text-white rounded-3xl font-black text-[10px] uppercase tracking-widest hover:border-orange-500 transition-all border-none">Main Registry</button>
          </div>
       </div>
     );
@@ -386,7 +386,7 @@ const QuizTaker: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                </div>
                <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto no-scrollbar pr-2">
                   {subjectsWithSyllabi.map(s => (
-                    <button key={s.id} onClick={() => setSelectedSubject(s)} className={`p-4 rounded-2xl border text-left transition-all ${selectedSubject?.id === s.id ? 'bg-orange-600 border-orange-500 text-white shadow-lg' : 'bg-dark-950 border-white/5 text-slate-500 hover:border-orange-500/30'}`}>
+                    <button key={s.id} onClick={() => setSelectedSubject(s)} className={`p-4 rounded-2xl border text-left transition-all ${selectedSubject?.id === s.id ? 'bg-orange-600 border-orange-500 text-white shadow-lg' : 'bg-dark-950 border dark:border-white/5 text-slate-500 hover:border-orange-500/30'}`}>
                       <p className="text-xs font-black uppercase tracking-tight">{s.name}</p>
                     </button>
                   ))}
@@ -406,7 +406,7 @@ const QuizTaker: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                </div>
                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {[1, 2, 3, 4, 5, 6].map(u => (
-                    <button key={u} onClick={() => toggleUnit(u)} className={`p-6 rounded-[32px] border transition-all flex flex-col items-center justify-center group ${selectedUnits.includes(u) ? 'bg-orange-600/10 border-orange-600 shadow-xl scale-105' : 'bg-dark-950 border-white/5 hover:border-orange-500/30'}`}>
+                    <button key={u} onClick={() => toggleUnit(u)} className={`p-6 rounded-[32px] border transition-all flex flex-col items-center justify-center group ${selectedUnits.includes(u) ? 'bg-orange-600/10 border-orange-600 shadow-xl scale-105' : 'bg-dark-950 border dark:border-white/5 hover:border-orange-500/30'}`}>
                        <span className={`text-2xl font-black tracking-tighter ${selectedUnits.includes(u) ? 'text-orange-600' : 'text-slate-700'}`}>0{u}</span>
                        <span className={`text-[8px] font-black uppercase tracking-widest mt-1 ${selectedUnits.includes(u) ? 'text-orange-500' : 'text-slate-500 opacity-40'}`}>Unit protocol</span>
                     </button>
