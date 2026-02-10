@@ -112,7 +112,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       {showFeedbackModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-          <div ref={feedbackModalRef} className="bg-white dark:bg-dark-900 rounded-3xl p-8 w-full max-w-md shadow-2xl animate-fade-in border dark:border-white/5 relative overflow-hidden">
+          <div ref={feedbackModalRef} className="bg-white dark:bg-slate-950 rounded-3xl p-8 w-full max-md shadow-2xl animate-fade-in border border-white/5 relative overflow-hidden">
             {submitSuccess ? (
               <div className="text-center py-10 space-y-4 animate-fade-in">
                 <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto text-green-500">
@@ -129,7 +129,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                   value={feedbackText}
                   onChange={(e) => setFeedbackText(e.target.value)}
                   disabled={isSubmitting}
-                  className="w-full h-32 p-4 rounded-2xl bg-slate-100 dark:bg-dark-950 border border-transparent dark:border-white/10 focus:ring-2 focus:ring-orange-500 text-slate-800 dark:text-slate-200 resize-none transition-all outline-none"
+                  className="w-full h-32 p-4 rounded-2xl bg-slate-100 dark:bg-black border border-transparent dark:border-white/5 focus:ring-2 focus:ring-orange-500 text-slate-800 dark:text-slate-200 resize-none transition-all outline-none"
                   placeholder="Tell us what's on your mind..."
                 />
                 <div className="flex justify-end space-x-3 mt-6">
@@ -147,7 +147,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       <aside className={`
         fixed inset-y-0 left-0 z-30 w-64 transform transition-transform duration-300 ease-in-out
-        bg-white dark:bg-dark-900 border-r border-slate-200 dark:border-white/5
+        bg-white dark:bg-black border-r border-slate-200 dark:border-white/5
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
         md:translate-x-0 md:static flex flex-col shadow-2xl md:shadow-none
       `}>

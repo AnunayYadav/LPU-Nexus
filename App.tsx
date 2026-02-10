@@ -115,7 +115,7 @@ const Dashboard: React.FC<{ setModule: (m: ModuleType) => void }> = ({ setModule
           <div 
             key={card.id} 
             onClick={() => setModule(card.id)} 
-            className="group relative p-8 rounded-[40px] bg-white dark:bg-dark-900 border border-slate-100 dark:border-white/5 transition-all cursor-pointer hover:shadow-[0_20px_50px_rgba(0,0,0,0.2)] dark:hover:shadow-[0_20px_50px_rgba(234,88,12,0.1)] hover:border-orange-500/30 overflow-hidden flex flex-col"
+            className="group relative p-8 rounded-[40px] bg-white dark:bg-black border border-slate-100 dark:border-white/5 transition-all cursor-pointer hover:shadow-[0_20px_50px_rgba(0,0,0,0.2)] dark:hover:shadow-[0_20px_50px_rgba(234,88,12,0.1)] hover:border-orange-500/30 overflow-hidden flex flex-col"
           >
             <div className={`absolute -right-10 -bottom-10 w-40 h-40 bg-gradient-to-br ${card.color} blur-[60px] opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
             <div className="absolute -right-4 -bottom-4 w-32 h-32 text-slate-100 dark:text-white/[0.03] transform rotate-12 group-hover:rotate-6 group-hover:scale-110 transition-all duration-700 pointer-events-none">
@@ -123,7 +123,7 @@ const Dashboard: React.FC<{ setModule: (m: ModuleType) => void }> = ({ setModule
             </div>
             <div className="relative z-10">
               <div className="flex items-center gap-4 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-dark-950 flex items-center justify-center text-slate-400 dark:text-slate-500 group-hover:text-orange-500 group-hover:bg-orange-500/10 transition-all duration-300">
+                <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-950 flex items-center justify-center text-slate-400 dark:text-slate-500 group-hover:text-orange-500 group-hover:bg-orange-500/10 transition-all duration-300">
                   <div className="w-5 h-5">{card.icon}</div>
                 </div>
                 <h3 className="text-xl font-bold text-slate-900 dark:text-white tracking-tighter leading-none group-hover:text-orange-600 transition-colors">
@@ -203,10 +203,10 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-dark-950 text-slate-900 dark:text-slate-200 transition-colors duration-300">
+    <div className="flex min-h-screen bg-slate-50 dark:bg-black text-slate-900 dark:text-slate-200 transition-colors duration-300">
       <Sidebar currentModule={currentModule} setModule={navigateToModule} isMobileMenuOpen={isMobileMenuOpen} toggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)} userProfile={userProfile} />
-      <main className="flex-1 flex flex-col h-screen overflow-hidden relative bg-white dark:bg-dark-950">
-        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-white/5 bg-white dark:bg-dark-950 z-10">
+      <main className="flex-1 flex flex-col h-screen overflow-hidden relative bg-white dark:bg-black">
+        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-white/5 bg-white dark:bg-black z-10">
           <div className="flex items-center">
             <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden p-2 text-slate-600 dark:text-slate-400 mr-4 border-none bg-transparent">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
@@ -214,7 +214,7 @@ const App: React.FC = () => {
             <span className="md:hidden font-bold text-orange-500 cursor-pointer" onClick={() => navigateToModule(ModuleType.DASHBOARD)}>LPU-Nexus</span>
           </div>
           <div className="flex items-center space-x-3 ml-auto">
-             <button onClick={toggleTheme} className="p-2 rounded-full bg-slate-100 dark:bg-dark-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-all border-none">
+             <button onClick={toggleTheme} className="p-2 rounded-full bg-slate-100 dark:bg-slate-950 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-all border-none">
                {theme === 'dark' ? (
                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
                ) : (
@@ -225,7 +225,7 @@ const App: React.FC = () => {
                {userProfile ? (
                  <>
                    <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="w-10 h-10 rounded-full bg-insta-gradient p-[1.5px] border-none shadow-lg hover:scale-110 transition-all overflow-hidden cursor-pointer group">
-                     <div className="w-full h-full bg-dark-950 rounded-full overflow-hidden flex items-center justify-center text-white font-black">
+                     <div className="w-full h-full bg-black rounded-full overflow-hidden flex items-center justify-center text-white font-black">
                        {userProfile.avatar_url ? (
                          <img src={userProfile.avatar_url} className="w-full h-full object-cover" alt="" />
                        ) : (
@@ -236,7 +236,7 @@ const App: React.FC = () => {
                    {isProfileMenuOpen && (
                      <>
                        <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setIsProfileMenuOpen(false)} />
-                       <div className="absolute right-0 mt-3 w-48 bg-dark-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden py-2 z-50 animate-fade-in">
+                       <div className="absolute right-0 mt-3 w-48 bg-black border border-white/10 rounded-2xl shadow-2xl overflow-hidden py-2 z-50 animate-fade-in">
                           <button 
                             onClick={() => { navigateToModule(ModuleType.PROFILE); setIsProfileMenuOpen(false); }}
                             className="w-full text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white hover:bg-white/5 border-none bg-transparent flex items-center gap-3 transition-all"
@@ -256,14 +256,14 @@ const App: React.FC = () => {
                    )}
                  </>
                ) : (
-                 <button onClick={() => setShowAuthModal(true)} className="w-10 h-10 rounded-full border-none bg-slate-100 dark:bg-dark-800 flex items-center justify-center text-slate-400 hover:text-orange-500 transition-all shadow-sm active:scale-95">
+                 <button onClick={() => setShowAuthModal(true)} className="w-10 h-10 rounded-full border-none bg-slate-100 dark:bg-slate-950 flex items-center justify-center text-slate-400 hover:text-orange-500 transition-all shadow-sm active:scale-95">
                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                  </button>
                )}
              </div>
           </div>
         </div>
-        <div id="main-content-area" className="flex-1 overflow-y-auto relative scroll-smooth p-4 md:p-8 bg-white dark:bg-dark-950">
+        <div id="main-content-area" className="flex-1 overflow-y-auto relative scroll-smooth p-4 md:p-8 bg-white dark:bg-black">
            <div className="relative z-0 max-w-7xl mx-auto">{renderModule()}</div>
            {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
         </div>
