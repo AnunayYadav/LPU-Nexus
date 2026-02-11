@@ -38,7 +38,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
     if (loading) return;
 
     if (!NexusServer.isConfigured()) {
-      setError("Registry Offline: Database credentials missing.");
+      setError("Database error: Could not connect.");
       return;
     }
 
@@ -47,19 +47,19 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
 
     try {
       if (isLogin) {
-        if (!identifier.trim() || !password.trim()) throw new Error("Credentials required.");
+        if (!identifier.trim() || !password.trim()) throw new Error("Please enter your details.");
         const result = await NexusServer.signIn(identifier, password);
         if (result.error) throw result.error;
         onClose();
       } else {
-        if (!email.trim() || username.length < 3) throw new Error("Invalid parameters.");
-        if (usernameStatus === 'taken') throw new Error("Username unavailable.");
+        if (!email.trim() || username.length < 3) throw new Error("Invalid details.");
+        if (usernameStatus === 'taken') throw new Error("Username already taken.");
         const result = await NexusServer.signUp(email, password, username);
         if (result.error) throw result.error;
         onClose();
       }
     } catch (err: any) {
-      setError(err.message || "Authentication failed.");
+      setError(err.message || "Something went wrong.");
     } finally {
       setLoading(false);
     }
@@ -80,29 +80,29 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
                 </div>
              </div>
              <h1 className="text-6xl font-black text-white tracking-tighter uppercase leading-[0.9]">
-               Access <br/>The <span className="text-orange-600">Nexus</span>
+               Unlock Your <br/><span className="text-orange-600">Assistant</span>
              </h1>
           </div>
           
           <div className="space-y-6 max-w-md">
              <p className="text-slate-400 text-lg font-medium leading-relaxed">
-               Sync with the ultimate student ecosystem. Track attendance, optimize resumes, and master your academic journey.
+               Sync with your campus life. Track attendance, fix your resume, and prepare for exams all in one place.
              </p>
              <div className="flex gap-4">
                 <div className="px-4 py-2 bg-white/5 border border-white/10 rounded-full flex items-center gap-2">
                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">Live Pulse</span>
+                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">Active Community</span>
                 </div>
                 <div className="px-4 py-2 bg-white/5 border border-white/10 rounded-full flex items-center gap-2">
                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
-                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">Verto Built</span>
+                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">Built for LPU</span>
                 </div>
              </div>
           </div>
         </div>
 
         <div className="absolute bottom-10 left-20">
-           <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-700">LPU-NEXUS SYSTEM V2.5.0</p>
+           <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-700">LPU NEXUS v2.5.0</p>
         </div>
       </div>
 
@@ -114,18 +114,18 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
              <div className="w-12 h-12 bg-orange-600/10 rounded-2xl flex items-center justify-center mx-auto border border-orange-600/20">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6 text-orange-600"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
              </div>
-             <h2 className="text-3xl font-black text-white uppercase tracking-tighter">LPU-Nexus</h2>
+             <h2 className="text-3xl font-black text-white uppercase tracking-tighter">LPU Nexus</h2>
           </div>
 
           <div className="space-y-2 text-center md:text-left">
-            <h3 className="text-3xl font-black text-white tracking-tighter uppercase leading-none">{isLogin ? 'Welcome Back' : 'Join the Registry'}</h3>
-            <p className="text-slate-500 text-sm font-medium">{isLogin ? 'Provide your credentials to re-authenticate.' : 'Create a new Verto identity in the hub.'}</p>
+            <h3 className="text-3xl font-black text-white tracking-tighter uppercase leading-none">{isLogin ? 'Sign In' : 'Create Account'}</h3>
+            <p className="text-slate-500 text-sm font-medium">{isLogin ? 'Enter your login details to continue.' : 'Join the student community today.'}</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-black uppercase rounded-2xl text-center flex flex-col gap-1">
-                <span>Protocol Breach Detected</span>
+                <span>Error Found</span>
                 <p className="normal-case opacity-70">{error}</p>
               </div>
             )}
@@ -139,7 +139,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
                     <input 
                       type="text" required value={username} onChange={e => setUsername(e.target.value.toLowerCase())}
                       className="w-full bg-dark-900 border border-white/5 rounded-2xl pl-10 pr-4 py-4 text-sm font-bold text-white outline-none focus:ring-4 focus:ring-orange-600/10 transition-all shadow-inner"
-                      placeholder="verto_id"
+                      placeholder="choose_username"
                     />
                     <div className="absolute right-4 top-1/2 -translate-y-1/2">
                        {usernameStatus === 'checking' && <div className="w-3 h-3 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />}
@@ -151,12 +151,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
               )}
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{isLogin ? 'Email or User' : 'Official Email'}</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{isLogin ? 'Email or Username' : 'Your Email'}</label>
                 <input 
                   type={isLogin ? "text" : "email"} required value={isLogin ? identifier : email} 
                   onChange={e => isLogin ? setIdentifier(e.target.value) : setEmail(e.target.value)}
                   className="w-full bg-dark-900 border border-white/5 rounded-2xl px-5 py-4 text-sm font-bold text-white outline-none focus:ring-4 focus:ring-orange-600/10 transition-all shadow-inner"
-                  placeholder={isLogin ? "user@lpu.in or username" : "official.name@lpu.in"}
+                  placeholder={isLogin ? "user@lpu.in or username" : "yourname@lpu.in"}
                 />
               </div>
 
@@ -176,12 +176,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" />
-              ) : (isLogin ? 'Authenticate Instance' : 'Create Identity')}
+              ) : (isLogin ? 'Log In' : 'Sign Up')}
             </button>
 
             <div className="pt-8 text-center space-y-4">
                <button type="button" onClick={() => setIsLogin(!isLogin)} className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-orange-500 transition-colors border-none bg-transparent">
-                 {isLogin ? "Don't have an instance? Create Protocol" : "Existing Verto Identity? Re-auth"}
+                 {isLogin ? "New here? Create an account" : "Already have an account? Sign in"}
                </button>
             </div>
           </form>
@@ -190,7 +190,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
         {/* Floating Close Button */}
         <button 
           onClick={onClose} 
-          className="absolute top-10 right-10 p-3 bg-white/5 border border-white/10 rounded-2xl text-slate-500 hover:text-white hover:bg-white/10 transition-all border-none shadow-xl"
+          className="absolute top-10 right-10 p-3 bg-white/5 border border-white/10 rounded-2xl text-slate-400 hover:text-white hover:bg-white/10 transition-all border-none shadow-xl"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
