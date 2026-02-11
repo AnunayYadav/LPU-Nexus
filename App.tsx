@@ -60,54 +60,60 @@ const Dashboard: React.FC<{ setModule: (m: ModuleType) => void }> = ({ setModule
     { 
       id: ModuleType.TIMETABLE, 
       title: "Timetable Hub", 
-      desc: "Sync schedules with friends and find common break windows.", 
-      color: "from-orange-500/20 to-red-500/20",
+      desc: "Sync schedules with friends and find common gaps.", 
+      color: "from-orange-500/10 to-red-500/10",
+      accent: "text-orange-500",
       icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
     },
     { 
       id: ModuleType.QUIZ, 
       title: "Quiz Taker", 
-      desc: "Generate targeted MCQs from subject syllabus using Gemini AI.", 
-      color: "from-orange-500/20 to-red-500/20",
+      desc: "Targeted MCQs from subject syllabus using Gemini AI.", 
+      color: "from-orange-500/10 to-red-500/10",
+      accent: "text-orange-500",
       icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
     },
     { 
       id: ModuleType.CGPA, 
       title: "CGPA Calculator", 
       desc: "Precision SGPA & CGPA forecasting based on LPU standards.", 
-      color: "from-emerald-500/20 to-teal-500/20",
+      color: "from-emerald-500/10 to-teal-500/10",
+      accent: "text-emerald-500",
       icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="16" y1="14" x2="16" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>
     },
     { 
       id: ModuleType.PLACEMENT, 
       title: "Placement Prefect", 
       desc: "AI Resume optimization tailored for LPU campus drives.", 
-      color: "from-blue-500/20 to-indigo-500/20",
+      color: "from-blue-500/10 to-indigo-500/10",
+      accent: "text-blue-500",
       icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
     },
     { 
       id: ModuleType.LIBRARY, 
       title: "Content Library", 
       desc: "Centralized registry for notes, pyqs and study materials.", 
-      color: "from-amber-500/20 to-orange-500/20",
+      color: "from-amber-500/10 to-orange-500/10",
+      accent: "text-amber-500",
       icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M8 8h10M8 12h10"/></svg>
     },
     { 
       id: ModuleType.CAMPUS, 
       title: "Campus Navigator", 
       desc: "Interactive 3D maps and latest mess menu cycles.", 
-      color: "from-purple-500/20 to-pink-500/20",
+      color: "from-purple-500/10 to-pink-500/10",
+      accent: "text-purple-500",
       icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
     },
   ];
 
   return (
     <div className="max-w-6xl mx-auto animate-fade-in pb-20 px-4">
-      <div className="mb-10 text-center py-10">
-        <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-4 tracking-tighter">
-          Welcome to <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600">LPU-Nexus</span>
+      <div className="mb-14 text-center py-10 space-y-4">
+        <h2 className="text-5xl md:text-6xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none">
+          Nexus <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600">Terminal</span>
         </h2>
-        <p className="text-slate-600 dark:text-slate-400 text-lg md:text-xl font-medium">Your AI-Powered Campus Assistant</p>
+        <p className="text-slate-500 dark:text-slate-500 text-sm md:text-base font-black uppercase tracking-[0.4em]">System Operational • AI Core Loaded</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -115,25 +121,57 @@ const Dashboard: React.FC<{ setModule: (m: ModuleType) => void }> = ({ setModule
           <div 
             key={card.id} 
             onClick={() => setModule(card.id)} 
-            className="group relative p-8 rounded-[40px] bg-white dark:bg-black border border-slate-100 dark:border-white/5 transition-all cursor-pointer hover:shadow-[0_20px_50px_rgba(0,0,0,0.2)] dark:hover:shadow-[0_20px_50px_rgba(234,88,12,0.1)] hover:border-orange-500/30 overflow-hidden flex flex-col"
+            className="group relative p-10 rounded-[48px] bg-slate-50 dark:bg-dark-900/40 border border-slate-200/50 dark:border-white/[0.03] backdrop-blur-sm transition-all duration-500 cursor-pointer hover:bg-white dark:hover:bg-dark-800/60 hover:shadow-[0_40px_100px_-20px_rgba(0,0,0,0.4)] dark:hover:shadow-[0_40px_100px_-20px_rgba(234,88,12,0.15)] hover:border-orange-500/20 overflow-hidden flex flex-col items-center text-center"
           >
-            <div className={`absolute -right-10 -bottom-10 w-40 h-40 bg-gradient-to-br ${card.color} blur-[60px] opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-            <div className="absolute -right-4 -bottom-4 w-32 h-32 text-slate-100 dark:text-white/[0.03] transform rotate-12 group-hover:rotate-6 group-hover:scale-110 transition-all duration-700 pointer-events-none">
+            {/* Background Decal */}
+            <div className={`absolute -right-20 -bottom-20 w-64 h-64 bg-gradient-to-br ${card.color} blur-[100px] opacity-0 group-hover:opacity-100 transition-opacity duration-1000`} />
+            
+            {/* Ghost Icon */}
+            <div className="absolute -right-6 -top-6 w-40 h-40 text-slate-200/20 dark:text-white/[0.02] transform rotate-12 group-hover:rotate-6 group-hover:scale-125 transition-all duration-1000 pointer-events-none">
               {card.icon}
             </div>
-            <div className="relative z-10">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-950 flex items-center justify-center text-slate-400 dark:text-slate-500 group-hover:text-orange-500 group-hover:bg-orange-500/10 transition-all duration-300">
-                  <div className="w-5 h-5">{card.icon}</div>
-                </div>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white tracking-tighter leading-none group-hover:text-orange-600 transition-colors">
+
+            <div className="relative z-10 space-y-6">
+              <div className="w-20 h-20 rounded-[28px] bg-white dark:bg-dark-950 flex items-center justify-center text-slate-400 dark:text-slate-600 group-hover:text-orange-500 group-hover:bg-orange-500/10 transition-all duration-500 shadow-sm mx-auto">
+                <div className="w-10 h-10">{card.icon}</div>
+              </div>
+              
+              <div className="space-y-2">
+                <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter leading-none group-hover:text-orange-600 transition-colors uppercase">
                   {card.title}
                 </h3>
+                <div className="h-0.5 w-8 bg-slate-200 dark:bg-white/10 mx-auto rounded-full group-hover:w-16 group-hover:bg-orange-600 transition-all duration-500" />
               </div>
-              <p className="text-slate-500 dark:text-slate-400 text-sm font-bold leading-relaxed max-w-[90%]">{card.desc}</p>
+
+              <p className="text-slate-500 dark:text-slate-500 text-xs font-bold leading-relaxed max-w-[240px] mx-auto uppercase tracking-widest opacity-80 group-hover:opacity-100">
+                {card.desc}
+              </p>
+              
+              <div className={`pt-4 flex justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500`}>
+                 <span className={`text-[9px] font-black uppercase tracking-widest ${card.accent} flex items-center gap-2`}>
+                   Access Module 
+                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="w-3 h-3"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                 </span>
+              </div>
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Quick Stats Decal */}
+      <div className="mt-20 border-t border-slate-100 dark:border-white/5 pt-10 flex flex-wrap justify-center gap-12 opacity-40">
+         <div className="text-center">
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] dark:text-white">Neural Load</p>
+            <p className="text-lg font-black dark:text-slate-400">Optimal</p>
+         </div>
+         <div className="text-center">
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] dark:text-white">Registry</p>
+            <p className="text-lg font-black dark:text-slate-400">Synced</p>
+         </div>
+         <div className="text-center">
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] dark:text-white">Identity</p>
+            <p className="text-lg font-black dark:text-slate-400">Verified</p>
+         </div>
       </div>
     </div>
   );
@@ -160,6 +198,9 @@ const App: React.FC = () => {
         setUserProfile(profile || { id: user.id, email: user.email!, is_admin: false });
       } else { 
         setUserProfile(null); 
+        if (!window.location.pathname.includes('/share-cgpa')) {
+          setShowAuthModal(true);
+        }
       }
     });
     return () => unsubscribeAuth();
@@ -203,18 +244,18 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-black text-slate-900 dark:text-slate-200 transition-colors duration-300">
+    <div className="flex min-h-screen bg-slate-50 dark:bg-dark-950 text-slate-900 dark:text-slate-200 transition-colors duration-300">
       <Sidebar currentModule={currentModule} setModule={navigateToModule} isMobileMenuOpen={isMobileMenuOpen} toggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)} userProfile={userProfile} />
-      <main className="flex-1 flex flex-col h-screen overflow-hidden relative bg-white dark:bg-black">
-        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-white/5 bg-white dark:bg-black z-10">
+      <main className="flex-1 flex flex-col h-screen overflow-hidden relative bg-white dark:bg-dark-950">
+        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-white/5 bg-white dark:bg-dark-950 z-10">
           <div className="flex items-center">
             <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden p-2 text-slate-600 dark:text-slate-400 mr-4 border-none bg-transparent">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
             </button>
-            <span className="md:hidden font-bold text-orange-500 cursor-pointer" onClick={() => navigateToModule(ModuleType.DASHBOARD)}>LPU-Nexus</span>
+            <span className="md:hidden font-black text-orange-500 cursor-pointer uppercase tracking-tighter" onClick={() => navigateToModule(ModuleType.DASHBOARD)}>LPU-Nexus</span>
           </div>
           <div className="flex items-center space-x-3 ml-auto">
-             <button onClick={toggleTheme} className="p-2 rounded-full bg-slate-100 dark:bg-slate-950 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-all border-none">
+             <button onClick={toggleTheme} className="p-2 rounded-full bg-slate-100 dark:bg-dark-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-all border-none">
                {theme === 'dark' ? (
                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
                ) : (
@@ -225,7 +266,7 @@ const App: React.FC = () => {
                {userProfile ? (
                  <>
                    <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="w-10 h-10 rounded-full bg-insta-gradient p-[1.5px] border-none shadow-lg hover:scale-110 transition-all overflow-hidden cursor-pointer group">
-                     <div className="w-full h-full bg-black rounded-full overflow-hidden flex items-center justify-center text-white font-black">
+                     <div className="w-full h-full bg-dark-950 rounded-full overflow-hidden flex items-center justify-center text-white font-black">
                        {userProfile.avatar_url ? (
                          <img src={userProfile.avatar_url} className="w-full h-full object-cover" alt="" />
                        ) : (
@@ -236,7 +277,7 @@ const App: React.FC = () => {
                    {isProfileMenuOpen && (
                      <>
                        <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setIsProfileMenuOpen(false)} />
-                       <div className="absolute right-0 mt-3 w-48 bg-black border border-white/10 rounded-2xl shadow-2xl overflow-hidden py-2 z-50 animate-fade-in">
+                       <div className="absolute right-0 mt-3 w-48 bg-dark-800 border border-white/10 rounded-2xl shadow-2xl overflow-hidden py-2 z-50 animate-fade-in">
                           <button 
                             onClick={() => { navigateToModule(ModuleType.PROFILE); setIsProfileMenuOpen(false); }}
                             className="w-full text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white hover:bg-white/5 border-none bg-transparent flex items-center gap-3 transition-all"
@@ -256,14 +297,14 @@ const App: React.FC = () => {
                    )}
                  </>
                ) : (
-                 <button onClick={() => setShowAuthModal(true)} className="w-10 h-10 rounded-full border-none bg-slate-100 dark:bg-slate-950 flex items-center justify-center text-slate-400 hover:text-orange-500 transition-all shadow-sm active:scale-95">
+                 <button onClick={() => setShowAuthModal(true)} className="w-10 h-10 rounded-full border-none bg-slate-100 dark:bg-dark-800 flex items-center justify-center text-slate-400 hover:text-orange-500 transition-all shadow-sm active:scale-95">
                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                  </button>
                )}
              </div>
           </div>
         </div>
-        <div id="main-content-area" className="flex-1 overflow-y-auto relative scroll-smooth p-4 md:p-8 bg-white dark:bg-black">
+        <div id="main-content-area" className="flex-1 overflow-y-auto relative scroll-smooth p-4 md:p-8 bg-white dark:bg-dark-950">
            <div className="relative z-0 max-w-7xl mx-auto">{renderModule()}</div>
            {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
         </div>
