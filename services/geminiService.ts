@@ -6,18 +6,34 @@ import { ResumeAnalysisResult, DaySchedule, QuizQuestion } from "../types.ts";
  * Internal helper to communicate with the backend Gemini proxy
  */
 const callGeminiProxy = async (action: string, payload: any) => {
-  const res = await fetch("/api/gemini", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action, payload }),
-  });
+  try {
+    const res = await fetch("/api/gemini", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, payload }),
+    });
 
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error || "Failed to communicate with Nexus Intelligence.");
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      
+      if (res.status === 429) {
+        throw new Error(errData.error || "The AI is currently busy. Please wait a minute before trying again.");
+      }
+      
+      if (res.status === 503 || res.status === 504) {
+        throw new Error("Nexus Intelligence is temporarily overloaded. Please try again shortly.");
+      }
+
+      throw new Error(errData.error || `Request failed with status ${res.status}. Please check your connection.`);
+    }
+
+    return await res.json();
+  } catch (e: any) {
+    if (e.message.includes('Failed to fetch')) {
+      throw new Error("Network Error: Could not reach the AI gateway. Please check your internet connection.");
+    }
+    throw e;
   }
-
-  return await res.json();
 };
 
 /**
@@ -36,12 +52,10 @@ export const generateQuizFromSyllabus = async (subjectName: string, syllabusText
 
     STRICT GUIDELINES:
     1. SUBJECT LOCK: You are restricted to "${subjectName}". Do not include generic questions or topics from unrelated engineering/management subjects.
-    2. TOPIC EXTRACTION: Scan the syllabus text for sections labeled "Unit ${units.join('", "Unit ')}" or similar numbering. Identify the technical keywords and concepts within these specific sections.
-    3. QUESTION QUALITY: Generate exactly 10 high-level MCQs. Questions should test understanding, application, and theory of the topics found.
-    4. DISTRACTORS: All 4 options must be plausible. No "none of the above" or "all of the above" unless absolutely necessary.
-    5. EXPLANATION: Each explanation MUST reference why the answer is correct according to the principles of "${subjectName}".
-    6. FALLBACK: If the provided text is too short or missing specific units, use your internal LPU curriculum knowledge for "${subjectName}" but anchor it heavily to any provided keywords.
-    7. UNIT ATTRIBUTION: Each question object MUST include a "unit" field indicating which unit from the requested list (${units.join(", ")}) it primarily belongs to.
+    2. QUESTION QUALITY: Generate exactly 10 high-level MCQs.
+    3. DISTRACTORS: All 4 options must be plausible.
+    4. EXPLANATION: Each explanation MUST reference why the answer is correct.
+    5. UNIT ATTRIBUTION: Each question object MUST include a "unit" field.
 
     Output format: JSON array of objects.
   `;
@@ -70,52 +84,20 @@ export const generateQuizFromSyllabus = async (subjectName: string, syllabusText
  */
 export const analyzeResume = async (resumeText: string, jdText: string, deepAnalysis: boolean = false): Promise<ResumeAnalysisResult> => {
   const depthInstruction = deepAnalysis 
-    ? "Act as a ruthless, hyper-critical technical recruiter. Point out exactly where the candidate is failing. Be scathing and exhaustive."
-    : "Perform a professional resume audit against modern tech standards. Be detailed in every section.";
+    ? "Act as a ruthless, hyper-critical technical recruiter. Point out exactly where the candidate is failing."
+    : "Perform a professional resume audit against modern tech standards.";
 
   const prompt = `
     TASK: GENERATE A SEMANTIC ATS DIAGNOSTIC REPORT AND FULL TEXT X-RAY.
-    
     TARGET CONTEXT (JD/TRENDS): ${jdText}
     RESUME CONTENT: ${resumeText}
 
-    CRITICAL REQUIREMENTS:
+    REQUIREMENTS:
     ${depthInstruction}
-    
-    1. EXHAUSTIVE ANALYSIS: You MUST provide detailed feedback for ALL 6 categories: keywordAnalysis, jobFit, achievements, formatting, language, and branding.
-    2. NO EMPTY SECTIONS: Every category's 'found' and 'missing' arrays MUST contain at least 2-4 specific, high-quality bullet points. Do not leave them empty.
-    3. DETECT: "Keyword Stuffing", "No-Meaning List Dumping", and "Generic Buzzwords".
-    4. VALIDATE: "Action Verb + Skill + Metric" integrity.
-    
-    CRITICAL X-RAY REQUIREMENT:
-    The "annotatedContent" field MUST contain the FULL AND COMPLETE original resume text provided. 
-    Do not skip, summarize, or omit any parts of the input text. 
-    Break the entire input text into a sequence of fragments that, when joined, exactly match the original resume.
-    
-    Label each fragment:
-    - 'good': Strong impact, relevant keywords, metrics, or professional verbs.
-    - 'bad': Weak buzzwords, keyword stuffing, lack of context, or formatting issues.
-    - 'neutral': Standard information (names, contact info, dates) or connective text.
-    
-    For every 'good' and 'bad' fragment, you MUST provide a 'reason' and a 'suggestion'.
-    
-    Output a JSON object matching this schema:
-    {
-      "totalScore": number,
-      "meaningScore": number,
-      "keywordQuality": { "contextual": number, "weak": number, "stuffed": number },
-      "annotatedContent": [ { "text": string, "type": "good" | "bad" | "neutral", "reason": string, "suggestion": string } ],
-      "flags": [ { "type": "warning" | "critical" | "success", "message": string } ],
-      "categories": {
-        "keywordAnalysis": { "score": number, "description": string, "found": string[], "missing": string[], "missingKeywordsExtended": [ { "name": string, "example": string, "importance": "High" | "Medium" | "Low" } ] },
-        "jobFit": { "score": number, "description": string, "found": string[], "missing": string[] },
-        "achievements": { "score": number, "description": string, "found": string[], "missing": string[] },
-        "formatting": { "score": number, "description": string, "found": string[], "missing": string[] },
-        "language": { "score": number, "description": string, "found": string[], "missing": string[] },
-        "branding": { "score": number, "description": string, "found": string[], "missing": string[] }
-      },
-      "summary": string
-    }
+    1. PROVIDE FEEDBACK FOR: keywordAnalysis, jobFit, achievements, formatting, language, and branding.
+    2. ANNOTATE FULL CONTENT: Fragments for 'good', 'bad', 'neutral' with reason and suggestion.
+
+    Output a JSON object.
   `;
 
   const categorySchema = {
@@ -196,12 +178,11 @@ export const analyzeResume = async (resumeText: string, jdText: string, deepAnal
   const data = await callGeminiProxy("ANALYZE_RESUME", { prompt, schema, deep: deepAnalysis });
   const parsed = JSON.parse(data.text);
   
-  // Robust normalization to prevent empty boxes in UI
   const normalizeCategory = (cat: any) => ({
     score: cat?.score ?? 0,
     description: cat?.description || 'Analytical module completed.',
-    found: Array.isArray(cat?.found) && cat.found.length > 0 ? cat.found : ['Signal detected but requires more context.'],
-    missing: Array.isArray(cat?.missing) && cat.missing.length > 0 ? cat.missing : ['No critical gaps detected in this segment.'],
+    found: Array.isArray(cat?.found) && cat.found.length > 0 ? cat.found : ['Sufficient skills detected.'],
+    missing: Array.isArray(cat?.missing) && cat.missing.length > 0 ? cat.missing : ['No critical gaps detected.'],
     missingKeywordsExtended: cat?.missingKeywordsExtended || []
   });
 
@@ -271,7 +252,7 @@ export const extractTimetableFromImage = async (base64Image: string): Promise<Da
 export const fetchCampusNews = async (query: string) => {
   return await callGeminiProxy("CAMPUS_NEWS", {
     prompt: query,
-    systemInstruction: `You are "LPU Pulse", a campus news scout for LPU Phagwara. Use Google Search to find 2025 events, placements, and notices.`
+    systemInstruction: `You are "LPU Pulse", a campus news scout for LPU. Find 2025 events and notices.`
   });
 };
 
@@ -281,6 +262,6 @@ export const fetchCampusNews = async (query: string) => {
 export const searchGlobalOpportunities = async (query: string) => {
   return await callGeminiProxy("GLOBAL_SEARCH", {
     prompt: query,
-    systemInstruction: `You are "Global Gateway", a study-abroad expert for LPU Phagwara. Use Google Search to find 2025 details on masters programs, visa rules, and scholarships for Indian students.`
+    systemInstruction: `You are "Global Gateway", a study-abroad expert. Find 2025 masters details and scholarships.`
   });
 };

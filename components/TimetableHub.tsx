@@ -107,6 +107,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
   const [pendingTimetable, setPendingTimetable] = useState<DaySchedule[] | null>(null);
   const [metadata, setMetadata] = useState({ section: '', year: '', branch: '', semester: '' });
   const [communityPresets, setCommunityPresets] = useState<any[]>([]);
+  const [editingPresetId, setEditingPresetId] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -218,6 +219,8 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
       }
 
       setPendingTimetable(combinedSchedules);
+      setEditingPresetId(null);
+      setMetadata({ section: '', year: '', branch: '', semester: '' });
       setShowUploadModal(false);
       setShowMetadataModal(true);
     } catch (err) {
@@ -230,12 +233,23 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
   };
 
   const submitMetadata = async () => {
-    if (!pendingTimetable) return;
     const { section, branch, year, semester } = metadata;
     if (!section || !branch || !year || !semester) {
       alert("Please fill all details to continue.");
       return;
     }
+
+    if (editingPresetId) {
+      try {
+        await NexusServer.updateCommunityTimetable(editingPresetId, metadata);
+        loadCommunityPresets();
+        setShowMetadataModal(false);
+        setEditingPresetId(null);
+      } catch (e) { alert("Failed to update preset."); }
+      return;
+    }
+
+    if (!pendingTimetable) return;
 
     const generatedName = `${section} - ${branch} ${year} Year Sem ${semester}`;
     const newId = `friend-${Math.random().toString(36).substr(2, 9)}`;
@@ -351,7 +365,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
     const newId = `friend-${Math.random().toString(36).substr(2, 9)}`;
     const data: TimetableData = { 
       ownerId: targetForAction === 'me' ? (userProfile?.id || 'local-me') : newId, 
-      ownerName: batch.name, 
+      ownerName: targetForAction === 'me' ? (batch.name) : (batch.name || `${batch.section} ${batch.branch}`), 
       schedule: batch.schedule 
     };
 
@@ -364,6 +378,29 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
       setSelectedEntityId(newId);
     }
     setShowPresetsModal(false);
+  };
+
+  const handleAdminEdit = (preset: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingPresetId(preset.id);
+    setMetadata({
+      section: preset.section || '',
+      branch: preset.branch || '',
+      year: preset.year || '',
+      semester: preset.semester || ''
+    });
+    setShowPresetsModal(false);
+    setShowMetadataModal(true);
+  };
+
+  const handleAdminDelete = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (window.confirm("Admin Action: Permanently delete this community preset?")) {
+      try {
+        await NexusServer.deleteCommunityTimetable(id);
+        loadCommunityPresets();
+      } catch (e) { alert("Delete failed."); }
+    }
   };
 
   return (
@@ -455,7 +492,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
         <div className="lg:col-span-4 space-y-8">
            <div className="glass-panel p-8 rounded-[48px] bg-gradient-to-br from-orange-600 to-red-700 text-white border-none shadow-2xl relative overflow-hidden group">
               <div className="relative z-10">
-                <h3 className="text-[10px] font-black uppercase tracking-0.3em opacity-80 mb-6">Shared Gaps</h3>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-80 mb-6">Shared Gaps</h3>
                 {selectedEntityId === 'me' ? (
                    <div className="py-4 text-center">
                     <p className="text-xs font-black uppercase opacity-60 tracking-widest">Select a connection below to compare free time.</p>
@@ -482,7 +519,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
            </div>
 
            <div className="glass-panel p-8 rounded-[48px] border border-white/5 bg-black">
-              <h3 className="text-[10px] font-black uppercase tracking-0.3em text-slate-500 mb-6">Your Connections</h3>
+              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-6">Your Connections</h3>
               <div className="space-y-4">
                  <div 
                   onClick={() => setSelectedEntityId('me')}
@@ -580,8 +617,8 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
                <div className="w-16 h-16 bg-orange-600/10 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-orange-600/20">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-8 h-8 text-orange-600"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                </div>
-               <h3 className="text-3xl font-black tracking-tighter uppercase text-white">Extraction Successful</h3>
-               <p className="text-white/40 text-[9px] font-black uppercase tracking-[0.4em]">Finalize timetable details for the Hub</p>
+               <h3 className="text-3xl font-black tracking-tighter uppercase text-white">{editingPresetId ? 'Edit Preset' : 'Extraction Successful'}</h3>
+               <p className="text-white/40 text-[9px] font-black uppercase tracking-[0.4em]">{editingPresetId ? 'Admin Authority: Metadata Override' : 'Finalize timetable details for the Hub'}</p>
             </div>
             <div className="p-10 pt-0 grid grid-cols-2 gap-4">
                <div className="space-y-2">
@@ -607,7 +644,10 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
                   <input type="number" min="1" max="8" placeholder="1-8" value={metadata.semester} onChange={e => setMetadata({...metadata, semester: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-xs font-bold text-white outline-none focus:ring-2 focus:ring-orange-600 transition-all" />
                </div>
                <div className="col-span-2 pt-6">
-                  <button onClick={submitMetadata} className="w-full py-5 bg-orange-600 text-white rounded-3xl font-black text-xs uppercase tracking-[0.3em] shadow-2xl shadow-orange-600/30 hover:scale-[1.02] active:scale-95 transition-all border-none">Save to Community Presets</button>
+                  <button onClick={submitMetadata} className="w-full py-5 bg-orange-600 text-white rounded-3xl font-black text-xs uppercase tracking-[0.3em] shadow-2xl shadow-orange-600/30 hover:scale-[1.02] active:scale-95 transition-all border-none">{editingPresetId ? 'Save Admin Changes' : 'Save to Community Presets'}</button>
+                  {editingPresetId && (
+                    <button onClick={() => { setShowMetadataModal(false); setEditingPresetId(null); }} className="w-full mt-2 py-3 text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors border-none bg-transparent">Cancel Edit</button>
+                  )}
                </div>
             </div>
           </div>
@@ -668,7 +708,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
 
             <div className="flex-1 overflow-y-auto p-10 space-y-10 no-scrollbar bg-black">
                <section className="space-y-4">
-                  <h4 className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-500 ml-1">Standard Bbatches</h4>
+                  <h4 className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-500 ml-1">Standard Batches</h4>
                   <div className="grid grid-cols-1 gap-3">
                     {PRESET_BATCHES.map(batch => (
                       <button key={batch.id} onClick={() => applyPreset(batch)} className="p-6 bg-white/[0.02] border border-white/5 rounded-3xl text-left hover:border-orange-500/50 hover:bg-white/[0.05] transition-all flex items-center justify-between group">
@@ -687,17 +727,25 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
                     <h4 className="text-[9px] font-black uppercase tracking-[0.4em] text-orange-500 ml-1">Community Uploads</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {communityPresets.map(preset => (
-                        <button key={preset.id} onClick={() => applyPreset(preset)} className="p-5 bg-orange-600/[0.03] border border-orange-600/10 rounded-[32px] text-left hover:border-orange-500/50 hover:bg-orange-600/[0.05] transition-all flex items-center justify-between group">
-                          <div className="min-w-0">
-                            <p className="text-[11px] font-black uppercase tracking-tight text-white truncate">{preset.name}</p>
-                            <div className="flex items-center gap-2 mt-1">
-                               <span className="text-[7px] font-bold text-slate-500 uppercase tracking-widest">{preset.branch}</span>
-                               <span className="w-1 h-1 bg-white/10 rounded-full" />
-                               <span className="text-[7px] font-bold text-orange-500 uppercase tracking-widest">{preset.section}</span>
+                        <div key={preset.id} className="relative group/card">
+                          <button onClick={() => applyPreset(preset)} className="w-full p-5 bg-orange-600/[0.03] border border-orange-600/10 rounded-[32px] text-left hover:border-orange-500/50 hover:bg-orange-600/[0.05] transition-all flex items-center justify-between group">
+                            <div className="min-w-0">
+                              <p className="text-[11px] font-black uppercase tracking-tight text-white truncate pr-16">{preset.name}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-[7px] font-bold text-slate-500 uppercase tracking-widest">{preset.branch}</span>
+                                <span className="w-1 h-1 bg-white/10 rounded-full" />
+                                <span className="text-[7px] font-bold text-orange-500 uppercase tracking-widest">{preset.section}</span>
+                              </div>
                             </div>
-                          </div>
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4 text-white/10 group-hover:text-orange-600 transition-colors flex-shrink-0"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                        </button>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4 text-white/10 group-hover:text-orange-600 transition-colors flex-shrink-0"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                          </button>
+                          {userProfile?.is_admin && (
+                            <div className="absolute top-4 right-12 flex gap-2 opacity-0 group-hover/card:opacity-100 transition-opacity">
+                              <button onClick={(e) => handleAdminEdit(preset, e)} className="p-2 bg-black border border-white/10 rounded-xl text-orange-500 hover:text-white hover:bg-orange-600 transition-all border-none shadow-xl" title="Admin Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                              <button onClick={(e) => handleAdminDelete(preset.id, e)} className="p-2 bg-black border border-white/10 rounded-xl text-red-500 hover:text-white hover:bg-red-600 transition-all border-none shadow-xl" title="Admin Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>
+                            </div>
+                          )}
+                        </div>
                       ))}
                     </div>
                  </section>

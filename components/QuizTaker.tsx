@@ -57,6 +57,7 @@ const QuizTaker: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
   const [status, setStatus] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const [isCached, setIsCached] = useState(false);
   
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
@@ -87,7 +88,7 @@ const QuizTaker: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
       });
       setSubjectsWithSyllabi(Array.from(subjectsMap.values()).sort((a, b) => a.name.localeCompare(b.name)));
     } catch (err) {
-      console.error("Registry Scan Failure:", err);
+      console.error("Library load error:", err);
     } finally {
       setInitializing(false);
     }
@@ -100,18 +101,19 @@ const QuizTaker: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
   const handleGenerate = async () => {
     if (!selectedSubject || selectedUnits.length === 0) return;
     setLoading(true);
+    setError(null);
     setIsCached(false);
-    setStatus('Synchronizing Nexus Question Vault...');
+    setStatus('Looking in local library...');
     try {
       const subjectKey = selectedSubject.name.toUpperCase().replace(/\s/g, '');
       if (subjectKey === 'PEL130') {
-        setStatus('Retrieving PEL130 Protocols...');
+        setStatus('Loading PEL130 questions...');
         const filtered = PEL130_STATIC_BANK.filter(q => selectedUnits.includes(q.unit)).map(q => ({
           unit: q.unit,
           question: q.question,
           options: q.options,
           correctAnswer: q.options.indexOf(q.answer),
-          explanation: `Verified answer for Unit ${q.unit} based on 2022 ETE protocol.`
+          explanation: `Correct answer for Unit ${q.unit} based on LPU standards.`
         }));
         if (filtered.length > 0) {
           setQuizQuestions([...filtered].sort(() => 0.5 - Math.random()).slice(0, 10));
@@ -126,22 +128,22 @@ const QuizTaker: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
       }
       const existingQuestions = await NexusServer.fetchQuestionsFromBank(selectedSubject.name, selectedUnits);
       if (existingQuestions && existingQuestions.length > 0) {
-        setStatus('Retrieving from Academic Vault...');
+        setStatus('Found questions in library...');
         const shuffled = [...existingQuestions].sort(() => 0.5 - Math.random()).slice(0, 10);
         setQuizQuestions(shuffled);
         setIsCached(true);
       } else {
-        setStatus('Acquiring Target Syllabus Document...');
+        setStatus('Reading syllabus document...');
         const syllabusFile = selectedSubject.syllabusFile;
         const url = await NexusServer.getFileUrl(syllabusFile.storage_path);
         const response = await fetch(url);
         const blob = await response.blob();
         const file = new File([blob], "syllabus.pdf", { type: "application/pdf" });
         const syllabusText = await extractTextFromPdf(file);
-        setStatus(`Gemini is strictly vetting Units: ${selectedUnits.join(', ')}...`);
+        setStatus(`AI is generating questions for Units: ${selectedUnits.join(', ')}...`);
         const questions = await generateQuizFromSyllabus(selectedSubject.name, syllabusText, selectedUnits);
-        if (!questions || questions.length === 0) throw new Error("Intelligence failure: Gemini returned an empty question set.");
-        setStatus('Archiving results to Vault...');
+        if (!questions || questions.length === 0) throw new Error("Could not generate questions.");
+        setStatus('Saving to library for others...');
         for (const unit of selectedUnits) {
             await NexusServer.saveQuestionsToBank(selectedSubject.name, unit, questions);
         }
@@ -152,7 +154,7 @@ const QuizTaker: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
       setQuizCompleted(false);
       setIsShowingExplanation(false);
     } catch (err: any) {
-      alert(err.message || "Protocol Interruption: Connection to Nexus Intelligence timed out.");
+      setError(err.message || "Failed to start quiz.");
     } finally {
       setLoading(false);
       setStatus('');
@@ -190,7 +192,7 @@ const QuizTaker: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
     return (
       <div className="h-[60vh] flex flex-col items-center justify-center space-y-6 animate-fade-in">
         <div className="w-12 h-12 border-4 border-orange-500/10 border-t-orange-600 rounded-full animate-spin" />
-        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Scanning Registry for Valid Subject Schemas...</p>
+        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Setting up your subjects...</p>
       </div>
     );
   }
@@ -208,7 +210,7 @@ const QuizTaker: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
           </div>
         </div>
         <div className="text-center space-y-2">
-          <h3 className="text-2xl font-black uppercase tracking-[0.3em] text-slate-800 dark:text-white">Synthesizing Protocol</h3>
+          <h3 className="text-2xl font-black uppercase tracking-[0.3em] text-slate-800 dark:text-white">Starting Quiz</h3>
           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest animate-pulse">{status}</p>
         </div>
       </div>
@@ -221,48 +223,48 @@ const QuizTaker: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
     const currentAnswer = userAnswers[currentQuestionIdx];
     return (
       <div className="max-w-3xl mx-auto space-y-8 animate-fade-in pb-20">
-        <header className="flex items-center justify-between">
+        <header className="flex items-center justify-between px-2">
            <div>
               <div className="flex items-center gap-2 mb-1">
-                <p className="text-[9px] font-black uppercase tracking-[0.4em] text-orange-600">Nexus Exam Terminal</p>
-                {isCached && <span className="bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded text-[7px] font-black uppercase border border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)]">Vault Direct Access</span>}
+                <p className="text-[9px] font-black uppercase tracking-[0.4em] text-orange-600 leading-none">Quiz Portal</p>
+                {isCached && <span className="bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded text-[7px] font-black uppercase border border-emerald-500/20">Saved Data</span>}
               </div>
-              <h2 className="text-2xl font-black tracking-tighter uppercase text-white">Question {currentQuestionIdx + 1} of {quizQuestions.length}</h2>
+              <h2 className="text-2xl font-black tracking-tighter uppercase text-slate-900 dark:text-white">Question {currentQuestionIdx + 1} of {quizQuestions.length}</h2>
            </div>
            <div className="text-right">
-              <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Active Subject</p>
-              <p className="text-sm font-bold text-white uppercase">{selectedSubject?.name}</p>
+              <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 leading-none">Subject</p>
+              <p className="text-sm font-bold text-slate-800 dark:text-white uppercase">{selectedSubject?.name}</p>
            </div>
         </header>
-        <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+        <div className="h-1.5 w-full bg-slate-100 dark:bg-dark-900 rounded-full overflow-hidden">
            <div className="h-full bg-orange-600 transition-all duration-500" style={{ width: `${progress}%` }} />
         </div>
-        <div className="glass-panel p-8 md:p-12 rounded-[48px] border border-white/5 bg-black/40 shadow-2xl space-y-10">
+        <div className="glass-panel p-8 md:p-12 rounded-[48px] border dark:border-white/5 bg-white dark:bg-dark-900 shadow-2xl space-y-10">
            <div className="flex items-center gap-2 mb-2">
-             <span className="bg-white/5 text-slate-400 px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border border-white/5">Unit {q.unit} Content</span>
+             <span className="bg-slate-100 dark:bg-dark-800 text-slate-500 dark:text-slate-400 px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border border-slate-200 dark:border-white/5">Unit {q.unit} Content</span>
            </div>
-           <h3 className="text-xl md:text-2xl font-bold leading-relaxed text-white">{q.question}</h3>
+           <h3 className="text-xl md:text-2xl font-bold leading-relaxed text-slate-900 dark:text-white">{q.question}</h3>
            <div className="grid grid-cols-1 gap-4">
               {q.options.map((opt, i) => {
-                let stateClass = "border-white/5 bg-white/5 hover:border-orange-500/50 hover:bg-orange-600/5";
+                let stateClass = "border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-dark-800 hover:border-orange-500/50 hover:bg-orange-600/5";
                 if (isShowingExplanation) {
                   if (i === q.correctAnswer) stateClass = "border-emerald-500 bg-emerald-500/10 text-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.2)]";
                   else if (i === currentAnswer) stateClass = "border-red-500 bg-red-500/10 text-red-500";
-                  else stateClass = "border-white/5 bg-white/5 opacity-40";
+                  else stateClass = "border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-dark-800 opacity-40";
                 }
                 return (
                   <button key={i} onClick={() => handleAnswer(i)} className={`p-6 rounded-[28px] border text-left transition-all duration-300 flex items-center gap-4 group ${stateClass}`}>
-                    <span className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-[10px] transition-colors ${isShowingExplanation && i === q.correctAnswer ? 'bg-emerald-500 text-white' : 'bg-black text-slate-500 group-hover:text-orange-500'}`}>{String.fromCharCode(65 + i)}</span>
-                    <span className="font-bold text-sm md:text-base">{opt}</span>
+                    <span className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-[10px] transition-colors ${isShowingExplanation && i === q.correctAnswer ? 'bg-emerald-500 text-white' : 'bg-white dark:bg-dark-950 text-slate-500 group-hover:text-orange-500'}`}>{String.fromCharCode(65 + i)}</span>
+                    <span className="font-bold text-sm md:text-base text-slate-800 dark:text-slate-200">{opt}</span>
                   </button>
                 );
               })}
            </div>
            {isShowingExplanation && (
              <div className="p-8 bg-orange-600/5 border border-orange-600/20 rounded-[32px] animate-fade-in space-y-4">
-                <div className="flex items-center gap-3"><div className="w-1.5 h-1.5 rounded-full bg-orange-600" /><h4 className="text-[10px] font-black uppercase tracking-widest text-orange-600">Nexus Insight</h4></div>
-                <p className="text-sm font-medium text-slate-300 leading-relaxed italic">"{q.explanation}"</p>
-                <button onClick={nextQuestion} className="w-full py-4 mt-4 bg-orange-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition-all border-none">{currentQuestionIdx === quizQuestions.length - 1 ? 'End Protocol' : 'Next Transmission'}</button>
+                <div className="flex items-center gap-3"><div className="w-1.5 h-1.5 rounded-full bg-orange-600" /><h4 className="text-[10px] font-black uppercase tracking-widest text-orange-600">Explanation</h4></div>
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-300 leading-relaxed italic">"{q.explanation}"</p>
+                <button onClick={nextQuestion} className="w-full py-4 mt-4 bg-orange-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition-all border-none">{currentQuestionIdx === quizQuestions.length - 1 ? 'Finish Quiz' : 'Next Question'}</button>
              </div>
            )}
         </div>
@@ -274,55 +276,49 @@ const QuizTaker: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
     const percentage = (score / quizQuestions.length) * 100;
     return (
       <div className="max-w-4xl mx-auto py-12 space-y-12 animate-fade-in pb-32">
-         {/* Hero Score Dashboard */}
          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
             <div className="lg:col-span-4 glass-panel p-10 rounded-[56px] bg-gradient-to-br from-orange-600 to-red-700 text-white border-none shadow-2xl flex flex-col items-center justify-center text-center relative overflow-hidden">
                <div className="relative z-10">
-                  <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-80 mb-6">Synthesis Score</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-80 mb-6">Final Score</p>
                   <div className="text-8xl font-black tracking-tighter mb-4">{score}<span className="text-3xl opacity-50">/{quizQuestions.length}</span></div>
-                  <div className="px-6 py-2 bg-black/20 rounded-full font-black text-[10px] uppercase tracking-widest border border-white/10">
-                    {percentage >= 80 ? 'Master Verto' : percentage >= 50 ? 'Adaptive Signal' : 'Registry Reboot'}
+                  <div className="px-6 py-2 bg-dark-950/40 rounded-full font-black text-[10px] uppercase tracking-widest border border-white/10">
+                    {percentage >= 80 ? 'Mastery' : percentage >= 50 ? 'Average' : 'Keep Practicing'}
                   </div>
                </div>
                <div className="absolute -bottom-10 -right-10 w-48 h-48 bg-white/10 blur-3xl rounded-full" />
             </div>
 
-            <div className="lg:col-span-8 glass-panel p-10 rounded-[56px] border border-white/5 bg-black/40 shadow-xl flex flex-col justify-center">
-               <h3 className="text-[10px] font-black text-orange-600 uppercase tracking-[0.3em] mb-8">Protocol Performance Map</h3>
+            <div className="lg:col-span-8 glass-panel p-10 rounded-[56px] border border-slate-100 dark:border-white/5 bg-white dark:bg-dark-900 shadow-xl flex flex-col justify-center">
+               <h3 className="text-[10px] font-black text-orange-600 uppercase tracking-[0.3em] mb-8">Subject Breakdown</h3>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                   <div className="space-y-6">
                      {unitAnalysis.map((u, i) => (
                        <div key={i} className="space-y-2">
                           <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
-                             <span className="text-white">Unit {u.unit}</span>
+                             <span className="dark:text-white">Unit {u.unit}</span>
                              <span className="text-slate-500">{u.correct}/{u.total} Correct</span>
                           </div>
-                          <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden relative">
+                          <div className="h-3 w-full bg-slate-100 dark:bg-dark-800 rounded-full overflow-hidden relative">
                              <div className={`h-full transition-all duration-1000 ${u.accuracy >= 70 ? 'bg-emerald-500 shadow-[0_0_10px_#10b981]' : u.accuracy >= 40 ? 'bg-orange-500' : 'bg-red-500'}`} style={{ width: `${u.accuracy}%` }} />
                           </div>
                        </div>
                      ))}
                   </div>
-                  <div className="flex flex-col justify-center space-y-4 border-l border-white/5 pl-10">
+                  <div className="flex flex-col justify-center space-y-4 border-l border-slate-100 dark:border-white/5 pl-10">
                      <div>
-                        <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Subject Proficiency</p>
-                        <p className="text-2xl font-black text-white uppercase tracking-tighter">{selectedSubject?.name}</p>
-                     </div>
-                     <div>
-                        <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Time Analysis</p>
-                        <p className="text-2xl font-black text-white uppercase tracking-tighter">Fast Protocol</p>
+                        <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Topic Area</p>
+                        <p className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">{selectedSubject?.name}</p>
                      </div>
                      <div className="pt-4">
-                        <button onClick={handleGenerate} className="px-6 py-3 bg-orange-600 text-white rounded-2xl font-black text-[9px] uppercase tracking-widest shadow-xl active:scale-95 transition-all border-none">Retake Protocol</button>
+                        <button onClick={handleGenerate} className="px-6 py-3 bg-orange-600 text-white rounded-2xl font-black text-[9px] uppercase tracking-widest shadow-xl active:scale-95 transition-all border-none">Try Again</button>
                      </div>
                   </div>
                </div>
             </div>
          </div>
 
-         {/* Detailed Question Review */}
          <div className="space-y-6">
-            <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] text-center">Protocol Review Ledger</h3>
+            <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] text-center">Question Review</h3>
             <div className="space-y-4">
                {quizQuestions.map((q, i) => {
                  const isCorrect = userAnswers[i] === q.correctAnswer;
@@ -332,19 +328,19 @@ const QuizTaker: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
                          <div className="flex-1 space-y-3">
                             <div className="flex items-center gap-2">
                                <span className={`px-2 py-0.5 rounded-lg text-[7px] font-black uppercase tracking-widest ${isCorrect ? 'bg-emerald-500/20 text-emerald-500' : 'bg-red-500/20 text-red-500'}`}>
-                                  {isCorrect ? 'Correct' : 'Erroneous Signal'}
+                                  {isCorrect ? 'CORRECT' : 'WRONG'}
                                </span>
                                <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest">Unit {q.unit}</span>
                             </div>
-                            <h4 className="text-sm font-bold text-white leading-relaxed">{q.question}</h4>
+                            <h4 className="text-sm font-bold text-slate-800 dark:text-white leading-relaxed">{q.question}</h4>
                             <div className="pt-2 flex flex-wrap gap-4">
                                <div className="space-y-1">
-                                  <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Your Entry</p>
+                                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Your Answer</p>
                                   <p className={`text-xs font-bold ${isCorrect ? 'text-emerald-500' : 'text-red-500'}`}>{q.options[userAnswers[i]]}</p>
                                </div>
                                {!isCorrect && (
                                  <div className="space-y-1">
-                                    <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Correct Protocol</p>
+                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Right Answer</p>
                                     <p className="text-xs font-bold text-emerald-500">{q.options[q.correctAnswer]}</p>
                                  </div>
                                )}
@@ -365,7 +361,7 @@ const QuizTaker: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
          </div>
 
          <div className="flex justify-center gap-4">
-            <button onClick={() => { setQuizQuestions([]); setQuizCompleted(false); setSelectedUnits([]); setSelectedSubject(null); }} className="px-10 py-5 bg-black border border-white/10 text-white rounded-3xl font-black text-[10px] uppercase tracking-widest hover:border-orange-500 transition-all border-none">Main Registry</button>
+            <button onClick={() => { setQuizQuestions([]); setQuizCompleted(false); setSelectedUnits([]); setSelectedSubject(null); }} className="px-10 py-5 bg-slate-900 dark:bg-dark-900 border border-white/10 text-white rounded-3xl font-black text-[10px] uppercase tracking-widest hover:border-orange-500 transition-all border-none shadow-xl">Return to Hub</button>
          </div>
       </div>
     );
@@ -375,54 +371,57 @@ const QuizTaker: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
     <div className="max-w-4xl mx-auto space-y-12 animate-fade-in pb-20 px-4 md:px-0">
       <header className="text-center space-y-4">
         <h2 className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none">Quiz Taker</h2>
-        <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-[10px]">Strict AI-Targeted Exams from Verified Registry</p>
+        <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-[10px]">AI-Generated Practice Questions from Your Syllabus</p>
       </header>
-      <div className="glass-panel p-8 md:p-12 rounded-[56px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/40 shadow-2xl space-y-10">
+
+      {error && (
+        <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-[32px] text-center space-y-3 animate-fade-in">
+           <div className="w-10 h-10 bg-red-500/20 rounded-full flex items-center justify-center mx-auto text-red-500">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+           </div>
+           <h4 className="text-xs font-black uppercase text-red-500 tracking-widest">Protocol Interrupted</h4>
+           <p className="text-sm font-medium text-slate-600 dark:text-slate-400">{error}</p>
+           <button onClick={() => setError(null)} className="text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-orange-500 transition-colors">Dismiss</button>
+        </div>
+      )}
+
+      <div className="glass-panel p-8 md:p-12 rounded-[56px] border border-slate-100 dark:border-white/5 bg-white dark:bg-dark-900 shadow-2xl space-y-10">
          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
             <div className="space-y-6">
                <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-xl bg-orange-600/10 flex items-center justify-center text-orange-600 font-black text-[10px]">1</div>
-                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Select Verified Subject</label>
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Select Subject</label>
                </div>
                <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto no-scrollbar pr-2">
                   {subjectsWithSyllabi.map(s => (
-                    <button key={s.id} onClick={() => setSelectedSubject(s)} className={`p-4 rounded-2xl border text-left transition-all ${selectedSubject?.id === s.id ? 'bg-orange-600 border-orange-500 text-white shadow-lg' : 'bg-black border-white/5 text-slate-500 hover:border-orange-500/30'}`}>
+                    <button key={s.id} onClick={() => setSelectedSubject(s)} className={`p-4 rounded-2xl border text-left transition-all ${selectedSubject?.id === s.id ? 'bg-orange-600 border-orange-500 text-white shadow-lg' : 'bg-slate-50 dark:bg-dark-950 border-slate-200 dark:border-white/5 text-slate-500 hover:border-orange-500/30'}`}>
                       <p className="text-xs font-black uppercase tracking-tight">{s.name}</p>
                     </button>
                   ))}
                   {subjectsWithSyllabi.length === 0 && (
                     <div className="py-10 text-center space-y-4">
-                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest opacity-40">No Subject Syllabi found in Registry.</p>
-                      <button onClick={() => window.location.href='/library'} className="text-[9px] font-black text-orange-600 uppercase underline tracking-widest">Contribute Protocol ↗</button>
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest opacity-40">No subjects found in the library.</p>
                     </div>
                   )}
                </div>
-               <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest italic opacity-60">Note: Only subjects with a "Syllabus" document in Content Library are visible.</p>
             </div>
             <div className="space-y-6">
                <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-xl bg-orange-600/10 flex items-center justify-center text-orange-600 font-black text-[10px]">2</div>
-                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Select Scope (Units)</label>
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Select Units</label>
                </div>
                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {[1, 2, 3, 4, 5, 6].map(u => (
-                    <button key={u} onClick={() => toggleUnit(u)} className={`p-6 rounded-[32px] border transition-all flex flex-col items-center justify-center group ${selectedUnits.includes(u) ? 'bg-orange-600/10 border-orange-600 shadow-xl scale-105' : 'bg-black border-white/5 hover:border-orange-500/30'}`}>
-                       <span className={`text-2xl font-black tracking-tighter ${selectedUnits.includes(u) ? 'text-orange-600' : 'text-slate-700'}`}>0{u}</span>
-                       <span className={`text-[8px] font-black uppercase tracking-widest mt-1 ${selectedUnits.includes(u) ? 'text-orange-500' : 'text-slate-500 opacity-40'}`}>Unit protocol</span>
+                    <button key={u} onClick={() => toggleUnit(u)} className={`p-6 rounded-[32px] border transition-all flex flex-col items-center justify-center group ${selectedUnits.includes(u) ? 'bg-orange-600/10 border-orange-600 shadow-xl scale-105' : 'bg-slate-50 dark:bg-dark-950 border-slate-200 dark:border-white/5 hover:border-orange-500/30'}`}>
+                       <span className={`text-2xl font-black tracking-tighter ${selectedUnits.includes(u) ? 'text-orange-600' : 'text-slate-300 dark:text-slate-700'}`}>0{u}</span>
+                       <span className={`text-[8px] font-black uppercase tracking-widest mt-1 ${selectedUnits.includes(u) ? 'text-orange-500' : 'text-slate-500 opacity-40'}`}>Unit {u}</span>
                     </button>
                   ))}
                </div>
-               <div className="pt-6 border-t border-white/5">
-                  <button onClick={handleGenerate} disabled={!selectedSubject || selectedUnits.length === 0} className="w-full py-5 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.3em] shadow-2xl shadow-orange-600/30 hover:scale-[1.02] active:scale-95 disabled:opacity-30 transition-all border-none">Generate Targeted Quiz</button>
+               <div className="pt-6 border-t border-slate-100 dark:border-white/5">
+                  <button onClick={handleGenerate} disabled={!selectedSubject || selectedUnits.length === 0} className="w-full py-5 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.3em] shadow-2xl shadow-orange-600/30 hover:scale-[1.02] active:scale-95 disabled:opacity-30 transition-all border-none">Generate My Quiz</button>
                </div>
             </div>
-         </div>
-      </div>
-      <div className="p-8 bg-orange-600/5 border border-orange-600/10 rounded-[40px] flex items-start gap-6">
-         <div className="w-12 h-12 rounded-2xl bg-orange-600/20 flex items-center justify-center text-orange-600 flex-shrink-0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-6 h-6"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="12" r="3"/></svg></div>
-         <div className="space-y-1">
-            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-600">Optimization Engine Active</h4>
-            <p className="text-sm font-medium text-slate-400 leading-relaxed">This module uses a <strong>Cache-First</strong> strategy. PEL130 questions are served instantly from the pre-generated static bank. Other subjects utilize Gemini AI to synthesize targeted MCQs which are then archived for the community.</p>
          </div>
       </div>
     </div>

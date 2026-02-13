@@ -60,6 +60,27 @@ class NexusServer {
     if (error) throw error;
   }
 
+  static async updateCommunityTimetable(id: string, metadata: any) {
+    const client = getSupabase();
+    if (!client) return;
+    const generatedName = `${metadata.section} - ${metadata.branch} ${metadata.year} Year Sem ${metadata.semester}`;
+    const { error } = await client.from('community_timetables').update({
+      section: metadata.section,
+      branch: metadata.branch,
+      year: metadata.year,
+      semester: metadata.semester,
+      name: generatedName
+    }).eq('id', id);
+    if (error) throw error;
+  }
+
+  static async deleteCommunityTimetable(id: string) {
+    const client = getSupabase();
+    if (!client) return;
+    const { error } = await client.from('community_timetables').delete().eq('id', id);
+    if (error) throw error;
+  }
+
   /**
    * Quiz Taker: Persistent Storage Methods
    */

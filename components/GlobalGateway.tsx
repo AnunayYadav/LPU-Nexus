@@ -34,12 +34,14 @@ const GlobalGateway: React.FC = () => {
   const [chunks, setChunks] = useState<GroundingChunk[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingPhase, setLoadingPhase] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   const handleSearch = async (overrideQuery?: string) => {
     const finalQuery = overrideQuery || query;
     if (!finalQuery.trim()) return;
     
     setLoading(true);
+    setError(null);
     setResponse('');
     setChunks([]);
     setLoadingPhase('Connecting to Global Servers...');
@@ -55,7 +57,7 @@ const GlobalGateway: React.FC = () => {
       }
     } catch (e: any) {
       console.error("Global Gateway Component Error:", e);
-      setResponse(`The Gateway is temporarily congested. Error: ${e.message || "Unknown error"}. Please try again in a few seconds.`);
+      setError(e.message || "The Gateway is temporarily congested. Please try again in a few moments.");
     } finally {
       setLoading(false);
       setLoadingPhase('');
@@ -110,7 +112,20 @@ const GlobalGateway: React.FC = () => {
         </div>
       </div>
 
-      {(response || loading) && (
+      {error && (
+        <div className="p-8 bg-amber-500/5 border border-amber-500/20 rounded-[40px] text-center space-y-4 animate-fade-in max-w-2xl mx-auto shadow-xl shadow-amber-500/5">
+           <div className="w-14 h-14 bg-amber-500/10 rounded-3xl flex items-center justify-center mx-auto text-amber-500">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-7 h-7"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+           </div>
+           <div className="space-y-1">
+              <h4 className="text-xs font-black uppercase text-amber-600 tracking-[0.2em]">Transmission Delayed</h4>
+              <p className="text-sm font-medium text-slate-600 dark:text-slate-400 leading-relaxed italic">"{error}"</p>
+           </div>
+           <button onClick={() => handleSearch()} className="px-8 py-2.5 bg-amber-600 text-white rounded-xl font-black text-[9px] uppercase tracking-widest shadow-lg active:scale-95 transition-all border-none">Retry Scouting</button>
+        </div>
+      )}
+
+      {(response || loading) && !error && (
         <div className="glass-panel p-6 md:p-10 rounded-[40px] min-h-[400px] border dark:border-white/5 shadow-2xl bg-white dark:bg-black/60 relative overflow-hidden">
           {loading ? (
             <div className="flex flex-col h-full space-y-8">
@@ -160,31 +175,6 @@ const GlobalGateway: React.FC = () => {
           <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-emerald-500/5 blur-[60px] rounded-full pointer-events-none"></div>
         </div>
       )}
-
-      {/* Ecosystem Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
-         <div className="glass-panel p-6 rounded-[32px] border border-slate-200 dark:border-white/5 bg-white dark:bg-black/20 shadow-xl group hover:border-emerald-500/30 transition-all">
-            <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-500 mb-4 group-hover:scale-110 transition-transform">
-               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-            </div>
-            <h4 className="text-slate-800 dark:text-white font-black text-xs uppercase tracking-widest mb-2">Visa Architect</h4>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">Personalized document checklists for Tier 4 and F1 visas.</p>
-         </div>
-         <div className="glass-panel p-6 rounded-[32px] border border-slate-200 dark:border-white/5 bg-white dark:bg-black/20 shadow-xl group hover:border-emerald-500/30 transition-all">
-            <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-500 mb-4 group-hover:scale-110 transition-transform">
-               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-            </div>
-            <h4 className="text-slate-800 dark:text-white font-black text-xs uppercase tracking-widest mb-2">SOP Auditor</h4>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">Review your Statement of Purpose for emotional resonance.</p>
-         </div>
-         <div className="glass-panel p-6 rounded-[32px] border border-slate-200 dark:border-white/5 bg-white dark:bg-black/20 shadow-xl group hover:border-emerald-500/30 transition-all">
-            <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-500 mb-4 group-hover:scale-110 transition-transform">
-               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            </div>
-            <h4 className="text-slate-800 dark:text-white font-black text-xs uppercase tracking-widest mb-2">Alumni Echo</h4>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">Aggregated experiences from Vertos studying abroad.</p>
-         </div>
-      </div>
     </div>
   );
 };

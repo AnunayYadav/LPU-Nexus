@@ -16,10 +16,12 @@ const NewsSection: React.FC = () => {
   const [sources, setSources] = useState<GroundingChunk[]>([]);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   const handleSearch = async (overrideQuery?: string) => {
     const finalQuery = overrideQuery || query || "Latest general LPU announcements and campus news";
     setLoading(true);
+    setError(null);
     setNewsText('');
     setSources([]);
     setStatus('Scouting Campus Pulse...');
@@ -29,7 +31,7 @@ const NewsSection: React.FC = () => {
       setNewsText(data.text || "No recent updates detected for this query.");
       setSources(data.groundingChunks || []);
     } catch (e: any) {
-      setNewsText(`Failed to connect to Pulse servers. Error: ${e.message}`);
+      setError(e.message || "Failed to connect to Pulse servers. Please check your network.");
     } finally {
       setLoading(false);
       setStatus('');
@@ -37,7 +39,6 @@ const NewsSection: React.FC = () => {
   };
 
   useEffect(() => {
-    // Load initial general news
     handleSearch("Latest LPU Phagwara campus news and official announcements 2025");
   }, []);
 
@@ -52,7 +53,6 @@ const NewsSection: React.FC = () => {
         </p>
       </header>
 
-      {/* Search Bar */}
       <div className="space-y-4">
         <div className="glass-panel p-2 rounded-3xl flex flex-col md:flex-row shadow-2xl border dark:border-white/5 bg-white dark:bg-slate-950/50 overflow-hidden">
           <div className="flex-1 flex items-center px-4">
@@ -90,7 +90,18 @@ const NewsSection: React.FC = () => {
         </div>
       </div>
 
-      {/* Results Hub */}
+      {error && (
+        <div className="p-8 bg-red-500/10 border border-red-500/20 rounded-[40px] flex items-center gap-6 animate-fade-in shadow-lg shadow-red-500/5">
+           <div className="w-14 h-14 bg-red-500/20 rounded-3xl flex items-center justify-center text-red-500 flex-shrink-0">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-7 h-7"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+           </div>
+           <div>
+              <h4 className="text-xs font-black uppercase text-red-500 tracking-widest mb-1">Scouting Error</h4>
+              <p className="text-sm font-medium text-slate-600 dark:text-slate-400 leading-relaxed">{error}</p>
+           </div>
+        </div>
+      )}
+
       <div className="glass-panel p-6 md:p-10 rounded-[40px] border dark:border-white/5 bg-white dark:bg-black/40 min-h-[400px] relative overflow-hidden shadow-2xl">
         {loading ? (
           <div className="flex flex-col items-center justify-center h-full py-20 space-y-6">
@@ -108,7 +119,7 @@ const NewsSection: React.FC = () => {
                   {newsText}
                 </div>
               </div>
-            ) : (
+            ) : !error && (
               <div className="py-20 text-center opacity-30">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="w-16 h-16 mx-auto mb-4">
                   <path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/>
@@ -142,17 +153,6 @@ const NewsSection: React.FC = () => {
             )}
           </div>
         )}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="glass-panel p-6 rounded-3xl border dark:border-white/5 bg-slate-50 dark:bg-slate-900/40">
-          <h4 className="text-xs font-black text-orange-600 uppercase tracking-widest mb-2">Fest Watch</h4>
-          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Automatic tracking for One India, One World, and Youth Vibe 2025.</p>
-        </div>
-        <div className="glass-panel p-6 rounded-3xl border dark:border-white/5 bg-slate-50 dark:bg-slate-900/40">
-          <h4 className="text-xs font-black text-orange-600 uppercase tracking-widest mb-2">Official Sync</h4>
-          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Grounding with official LPU social channels and university websites.</p>
-        </div>
       </div>
     </div>
   );

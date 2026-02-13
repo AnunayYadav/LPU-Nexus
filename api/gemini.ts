@@ -12,18 +12,22 @@ export default async function handler(req: Request) {
 
   const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return new Response(JSON.stringify({ error: "API Key not configured on server." }), { status: 500 });
+    return new Response(JSON.stringify({ 
+      error: "Gateway configuration missing. The server is unable to process intelligence requests at this time." 
+    }), { status: 500 });
   }
 
   try {
     const { action, payload } = await req.json();
     const ai = new GoogleGenAI({ apiKey });
     
-    // Determine model based on complexity
     let modelId = "gemini-3-flash-preview";
     if (action === "ANALYZE_RESUME" && payload.deep) {
-        modelId = "gemini-3-pro-preview"; // Use Pro for deep scrutiny
+        modelId = "gemini-3-pro-preview";
     }
+
+    let responseText = "";
+    let groundingData = null;
 
     switch (action) {
       case "ANALYZE_RESUME": {
@@ -36,7 +40,8 @@ export default async function handler(req: Request) {
             temperature: payload.deep ? 0.2 : 0.4,
           },
         });
-        return new Response(JSON.stringify({ text: response.text }), { status: 200 });
+        responseText = response.text || "";
+        break;
       }
 
       case "GENERATE_QUIZ": {
@@ -46,14 +51,14 @@ export default async function handler(req: Request) {
           config: {
             responseMimeType: "application/json",
             responseSchema: payload.schema,
-            temperature: 0.7, // Higher temperature for diverse questions
+            temperature: 0.7,
           },
         });
-        return new Response(JSON.stringify({ text: response.text }), { status: 200 });
+        responseText = response.text || "";
+        break;
       }
 
       case "EXTRACT_TIMETABLE": {
-        // Fix: Changed contents structure to use { parts: [...] } format as per coding guidelines
         const response = await ai.models.generateContent({
           model: "gemini-3-flash-preview",
           contents: {
@@ -68,11 +73,11 @@ export default async function handler(req: Request) {
             temperature: 0.1,
           },
         });
-        return new Response(JSON.stringify({ text: response.text }), { status: 200 });
+        responseText = response.text || "";
+        break;
       }
 
       case "CAMPUS_NEWS":
-      // Fix: Added GLOBAL_SEARCH action handling for study-abroad grounding queries
       case "GLOBAL_SEARCH": {
         const response = await ai.models.generateContent({
           model: "gemini-3-flash-preview",
@@ -83,17 +88,44 @@ export default async function handler(req: Request) {
             temperature: 0.2,
           },
         });
-        return new Response(JSON.stringify({
-          text: response.text,
-          groundingChunks: response.candidates?.[0]?.groundingMetadata?.groundingChunks
-        }), { status: 200 });
+        responseText = response.text || "";
+        groundingData = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+        break;
       }
 
       default:
-        return new Response(JSON.stringify({ error: "Invalid action" }), { status: 400 });
+        return new Response(JSON.stringify({ error: "Invalid protocol action requested." }), { status: 400 });
     }
+
+    return new Response(JSON.stringify({ 
+      text: responseText,
+      groundingChunks: groundingData 
+    }), { status: 200 });
+
   } catch (error: any) {
     console.error("Backend Gemini Error:", error);
-    return new Response(JSON.stringify({ error: error.message || "Internal Server Error" }), { status: 500 });
+    
+    const errorMsg = error.message || "";
+    
+    // Detect Rate Limits (Quota)
+    if (errorMsg.includes("429") || errorMsg.toLowerCase().includes("quota") || errorMsg.toLowerCase().includes("rate limit")) {
+      return new Response(JSON.stringify({ 
+        error: "System Cool-down Required: The AI is currently processing a high volume of requests. Please wait about 60 seconds and try again.",
+        type: "RATE_LIMIT"
+      }), { status: 429 });
+    }
+
+    // Detect Overload/Server Issues
+    if (errorMsg.includes("500") || errorMsg.includes("503") || errorMsg.toLowerCase().includes("overloaded")) {
+      return new Response(JSON.stringify({ 
+        error: "Server Congestion: Nexus Intelligence servers are temporarily overloaded. Please try again in a few minutes.",
+        type: "SERVER_OVERLOAD"
+      }), { status: 503 });
+    }
+
+    return new Response(JSON.stringify({ 
+      error: "Interface Error: A communication failure occurred between the client and the AI core. Ensure your connection is stable.",
+      details: errorMsg
+    }), { status: 500 });
   }
 }
