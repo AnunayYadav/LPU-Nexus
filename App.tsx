@@ -57,60 +57,68 @@ const getPathFromModule = (module: ModuleType): string => {
 
 const DashboardHero: React.FC<{ navigate: (p: string) => void }> = ({ navigate }) => {
   return (
-    <div className="relative overflow-hidden bg-slate-50 dark:bg-black p-8 md:p-16 mb-0 shadow-[0_40px_100px_rgba(0,0,0,0.1)] dark:shadow-[0_40px_100px_rgba(0,0,0,0.4)] group/hero transition-colors duration-500">
+    <div className="relative overflow-hidden bg-slate-50 dark:bg-black p-8 md:p-16 mb-0 shadow-[0_40px_100px_rgba(0,0,0,0.1)] dark:shadow-[0_40px_100px_rgba(0,0,0,0.4)] group/hero transition-colors duration-500 min-h-[calc(100vh-80px)] flex flex-col justify-center">
       {/* Background Blobs */}
       <div className="absolute w-[500px] h-[500px] bg-orange-600/20 blur-[100px] -top-40 -right-40 group-hover/hero:scale-110 transition-transform duration-1000 animate-blob-bounce rounded-full pointer-events-none" />
       <div className="absolute w-[400px] h-[400px] bg-yellow-600/10 blur-[100px] bottom-0 left-0 group-hover/hero:scale-110 transition-transform duration-1000 animate-blob-bounce rounded-full pointer-events-none" />
 
-      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-12 items-center">
-        <div className="space-y-8 max-w-xl animate-fade-in">
-          <div className="space-y-6">
-            <h2 className="text-4xl sm:text-5xl lg:text-4xl xl:text-7xl font-black text-slate-900 dark:text-white tracking-tighter leading-[0.95]">
+      <div className="relative z-10 lg:grid lg:grid-cols-[1.2fr_0.8fr] lg:gap-12 lg:items-center">
+        <div className="animate-fade-in flex flex-col space-y-4 md:space-y-12">
+          {/* Header row: Title + Image on Mobile */}
+          <div className="grid grid-cols-[1fr_210px] sm:grid-cols-[1fr_250px] lg:block gap-1 items-center">
+            <h2 className="text-5xl sm:text-7xl lg:text-6xl xl:text-7xl font-black text-slate-900 dark:text-white tracking-tighter leading-[0.85] lg:leading-[0.9] drop-shadow-sm">
               Your LPU <br />
               Journey, <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600">Simplified.</span>
             </h2>
-            <p className="text-slate-600 dark:text-slate-400 text-sm md:text-lg font-medium leading-relaxed">
-              Master your academics with AI-powered quiz generation, precision CGPA tracking, and seamless
-              schedule synchronization. LPU-Nexus is your central command for study resources,
-              placement prep, and campus intelligence—engineered for excellence.
-            </p>
+
+            {/* Mobile Only visual Suite */}
+            <div className="lg:hidden relative h-64 flex items-center justify-center overflow-visible">
+              <div className="relative w-full scale-125 origin-center translate-y-14">
+                <img src="/lap.png" alt="Laptop" className="w-full h-auto drop-shadow-[0_0_50px_rgba(234,88,12,0.5)] animate-float" />
+                <div className="absolute -top-20 -left-8 w-28 animate-float-delayed z-10">
+                  <img src="/note.png" alt="Notes" className="w-full h-auto drop-shadow-[0_0_40px_rgba(234,88,12,0.6)]" />
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="flex flex-wrap gap-4 pt-6">
-            <button
-              onClick={() => navigate('/library')}
-              className="relative overflow-hidden px-10 py-5 bg-gradient-to-r from-orange-500 to-red-600 hover:scale-[1.05] active:scale-95 transition-all rounded-[28px] text-white font-black text-[11px] uppercase tracking-[0.2em] flex items-center gap-3 shadow-[0_20px_50px_rgba(234,88,12,0.4)] border-none group/btn cursor-pointer"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-shimmer" />
-              <span>Explore Library</span>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4 group-hover:translate-x-1 transition-transform"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
-            </button>
+          <div className="space-y-4 md:space-y-8">
+            <p className="text-slate-600 dark:text-slate-400 text-[13px] md:text-lg font-medium leading-relaxed max-w-lg">
+              Master your academics with AI-powered quiz generation, precision CGPA tracking, and seamless
+              schedule synchronization.
+            </p>
+
+            <div className="flex flex-wrap gap-6 pt-4">
+              <button
+                onClick={() => navigate('/library')}
+                className="relative overflow-hidden px-10 py-5 lg:px-12 lg:py-6 bg-gradient-to-r from-orange-500 to-red-600 hover:scale-[1.05] active:scale-95 transition-all rounded-[32px] lg:rounded-[100px] text-white font-black text-xs lg:text-[13px] uppercase tracking-[0.25em] flex items-center gap-4 shadow-[0_20px_60px_rgba(234,88,12,0.5)] border border-white/20 hover:border-white/40 group/btn cursor-pointer"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-shimmer" />
+                <span>Explore Library</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5 group-hover:translate-x-1 transition-transform"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Right side Visuals */}
-        <div className="hidden lg:flex relative justify-center items-center h-[400px] xl:h-[500px]">
-          {/* Laptop Image (Center) */}
-          <div className="relative z-20 w-64 xl:w-96 animate-float drop-shadow-[0_0_50px_rgba(249,115,22,0.3)]">
-            <img src="/lap.png" alt="LPU Nexus" className="w-full h-auto drop-shadow-[0_0_30px_rgba(249,115,22,0.5)]" />
+        {/* Desktop Only Visual Suite */}
+        <div className="hidden lg:flex relative items-center justify-center h-[400px] xl:h-[500px] w-full">
+          <div className="relative z-20 w-64 xl:w-96 animate-float drop-shadow-[0_0_80px_rgba(249,115,22,0.4)]">
+            <img src="/lap.png" alt="LPU Nexus" className="w-full h-auto drop-shadow-[0_0_40px_rgba(249,115,22,0.6)]" />
+          </div>
+          {/* Desktop Note */}
+          <div className="absolute top-8 -left-8 xl:top-12 xl:-left-12 w-24 xl:w-40 animate-float-delayed z-30">
+            <img src="/note.png" alt="Notes" className="w-full h-auto drop-shadow-[0_0_50px_rgba(249,115,22,0.5)]" />
+          </div>
+          {/* Desktop Certificate */}
+          <div className="absolute bottom-16 right-8 xl:right-12 w-32 xl:w-56 animate-float-delayed z-10">
+            <img src="/certificate.png" alt="Certificate" className="w-full h-auto drop-shadow-[0_0_60px_rgba(249,115,22,0.7)]" />
           </div>
 
-          {/* Note Image (Top Left of Laptop) */}
-          <div className="absolute top-4 -left-8 xl:top-8 xl:-left-12 w-24 xl:w-40 animate-float-delayed z-30">
-            <img src="/note.png" alt="Notes" className="w-full h-auto drop-shadow-[0_0_40px_rgba(249,115,22,0.4)]" />
-          </div>
-
-          {/* Certificate Image (Bottom Right of Laptop) */}
-          <div className="absolute bottom-12 right-4 xl:bottom-16 xl:right-8 w-28 xl:w-48 animate-float-delayed z-10">
-            <img src="/certificate.png" alt="Certificate" className="w-full h-auto drop-shadow-[0_0_50px_rgba(249,115,22,0.6)]" />
-          </div>
-
-          {/* Particles/Stars */}
-          <div className="absolute w-2 h-2 bg-yellow-400 rounded-full top-10 left-32 animate-pulse [animation-duration:3s]" />
-          <div className="absolute w-3 h-3 bg-orange-600/30 rounded-full bottom-32 left-10 animate-float" />
-          <div className="absolute w-1.5 h-1.5 bg-white rounded-full top-48 right-12 animate-pulse [animation-duration:2s]" />
-          <div className="absolute w-1 h-1 bg-white rounded-full bottom-10 left-1/2 animate-pulse [animation-duration:4s]" />
+          {/* Desktop Particles */}
+          <div className="absolute w-3 h-3 bg-yellow-400 rounded-full -top-10 left-1/2 animate-pulse" />
+          <div className="absolute w-2 h-2 bg-orange-500 rounded-full bottom-20 -left-10 animate-float" />
         </div>
       </div>
     </div>
@@ -119,80 +127,6 @@ const DashboardHero: React.FC<{ navigate: (p: string) => void }> = ({ navigate }
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const cards = [
-    {
-      id: ModuleType.TIMETABLE,
-      path: '/timetable',
-      title: "Timetable Hub",
-      desc: "Sync schedules with friends and find common break windows.",
-      color: "from-orange-500/20 to-red-500/20",
-      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
-    },
-    {
-      id: ModuleType.QUIZ,
-      path: '/quiz',
-      title: "Quiz Taker",
-      desc: "Generate targeted MCQs from subject syllabus using Gemini AI.",
-      color: "from-orange-500/20 to-red-500/20",
-      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" /></svg>
-    },
-    {
-      id: ModuleType.CGPA,
-      path: '/cgpa',
-      title: "CGPA Calculator",
-      desc: "Precision SGPA & CGPA forecasting based on LPU standards.",
-      color: "from-emerald-500/20 to-teal-500/20",
-      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full"><rect x="4" y="2" width="16" height="20" rx="2" /><line x1="8" y1="6" x2="16" y2="6" /><line x1="16" y1="14" x2="16" y2="18" /><path d="M16 10h.01" /><path d="M12 10h.01" /><path d="M8 10h.01" /><path d="M12 14h.01" /><path d="M8 14h.01" /><path d="M12 18h.01" /><path d="M8 18h.01" /></svg>
-    },
-    {
-      id: ModuleType.PLACEMENT,
-      path: '/placement',
-      title: "Placement Prefect",
-      desc: "AI Resume optimization tailored for LPU campus drives.",
-      color: "from-blue-500/20 to-indigo-500/20",
-      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full"><rect x="2" y="7" width="20" height="14" rx="2" ry="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>
-    },
-    {
-      id: ModuleType.LIBRARY,
-      path: '/library',
-      title: "Content Library",
-      desc: "Centralized registry for notes, pyqs and study materials.",
-      color: "from-amber-500/20 to-orange-500/20",
-      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /><path d="M8 8h10M8 12h10" /></svg>
-    },
-    {
-      id: ModuleType.CAMPUS,
-      path: '/campus',
-      title: "Campus Navigator",
-      desc: "Interactive 3D maps and latest mess menu cycles.",
-      color: "from-purple-500/20 to-pink-500/20",
-      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" /><line x1="8" y1="2" x2="8" y2="18" /><line x1="16" y1="6" x2="16" y2="22" /></svg>
-    },
-    {
-      id: ModuleType.FRESHERS,
-      path: '/freshers',
-      title: "Freshmen Kit",
-      desc: "Essential guides and resources for new students.",
-      color: "from-cyan-500/20 to-blue-500/20",
-      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full"><path d="M4 20V10a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" /><path d="M9 6V4a3 3 0 0 1 6 0v2" /><path d="M8 21v-5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v5" /></svg>
-    },
-    {
-      id: ModuleType.HELP,
-      path: '/help',
-      title: "Help & FAQ",
-      desc: "Find answers and support for your queries.",
-      color: "from-rose-500/20 to-pink-500/20",
-      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
-    },
-    {
-      id: ModuleType.ABOUT,
-      path: '/about',
-      title: "About Us",
-      desc: "Learn more about the LPU-Nexus team and mission.",
-      color: "from-slate-500/20 to-gray-500/20",
-      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>
-    }
-  ];
 
   return (
     <div className="w-full h-full">
@@ -376,7 +310,7 @@ const AppContent: React.FC = () => {
                   )}
                 </>
               ) : (
-                <button onClick={() => setShowAuthModal(true)} className="w-10 h-10 rounded-full border-none bg-slate-100 dark:bg-slate-950 flex items-center justify-center text-slate-400 hover:text-orange-500 transition-all shadow-sm active:scale-95">
+                <button onClick={() => setShowAuthModal(true)} className="w-10 h-10 rounded-full border-none bg-slate-100 dark:bg-[#0a0a0a] flex items-center justify-center text-slate-600 dark:text-slate-400 hover:text-orange-600 dark:hover:text-white transition-all border border-transparent dark:border-white/5 shadow-sm active:scale-95">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
                 </button>
               )}

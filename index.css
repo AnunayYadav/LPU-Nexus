@@ -13,6 +13,14 @@
   --color-dark-900: #121212;
   --color-dark-950: #0a0a0a;
 
+  --float-move: -20px;
+  --float-delay-move: -15px;
+
+  @media (max-width: 768px) {
+    --float-move: -8px;
+    --float-delay-move: -6px;
+  }
+
   @keyframes shimmer {
     from {
       background-position: -200% 0;
@@ -43,7 +51,7 @@
     }
 
     50% {
-      transform: translateY(-20px) rotate(2deg);
+      transform: translateY(var(--float-move)) rotate(2deg);
     }
   }
 
@@ -55,7 +63,7 @@
     }
 
     50% {
-      transform: translateY(-15px) rotate(-2deg);
+      transform: translateY(var(--float-delay-move)) rotate(-2deg);
     }
   }
 
