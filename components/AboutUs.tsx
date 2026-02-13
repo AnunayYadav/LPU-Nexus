@@ -158,7 +158,7 @@ const AboutUs: React.FC = () => {
                   href={link.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center space-x-3 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 transition-all group"
+                  className="flex items-center space-x-3 bg-slate-100 dark:bg-white/5 transition-all group px-4 py-2 rounded-xl"
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4 text-orange-500 group-hover:text-white transition-colors">{link.icon}</svg>
                   <span className="text-[10px] font-black uppercase tracking-widest">{link.label}</span>
