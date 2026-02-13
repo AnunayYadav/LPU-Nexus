@@ -281,8 +281,8 @@ const AttendanceTracker: React.FC = () => {
                 if (showValidation) setShowValidation(false);
               }}
               className={`w-full bg-slate-100 dark:bg-black border rounded-2xl px-5 py-3.5 md:py-4 text-slate-800 dark:text-white outline-none transition-all font-bold text-sm shadow-inner ${showValidation && !newSub.name.trim()
-                  ? 'border-red-500 ring-2 ring-red-500/20'
-                  : 'border-transparent focus:ring-2 focus:ring-orange-600'
+                ? 'border-red-500 ring-2 ring-red-500/20'
+                : 'border-transparent focus:ring-2 focus:ring-orange-600'
                 }`}
             />
           </div>
@@ -390,7 +390,7 @@ const AttendanceTracker: React.FC = () => {
                 )}
 
                 <div className="mt-auto flex items-center justify-between pt-4 md:pt-6 border-t border-slate-100 dark:border-white/5">
-                  <div className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full text-[8px] md:text-[9px] font-black uppercase tracking-widest ${isBelowGoal ? 'bg-red-500/10 text-red-500' : 'bg-emerald-500/10 text-emerald-500'}`}>
+                  <div className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full text-[8px] md:text-[9px] font-black uppercase tracking-widest ${isBelowGoal ? 'text-red-500' : 'text-emerald-500'}`}>
                     {isBelowGoal ? (
                       <span>Needs {needed >= 999 ? '∞' : needed} sessions</span>
                     ) : (

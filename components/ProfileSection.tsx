@@ -158,10 +158,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ userProfile, setUserPro
         </div>
 
         <div className="mt-8">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange-600/10 border border-orange-600/20 mb-4">
-            <span className="w-2 h-2 bg-orange-600 rounded-full animate-pulse shadow-[0_0_10px_rgba(234,88,12,0.8)]" />
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-600">Sync Active</span>
-          </div>
+
           <h2 className="text-5xl font-black text-slate-800 dark:text-white tracking-tighter uppercase leading-none mb-3 italic">
             {userProfile.username || 'Citizen Verto'}
           </h2>

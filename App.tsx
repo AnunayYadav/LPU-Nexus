@@ -319,7 +319,7 @@ const AppContent: React.FC = () => {
                       <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setIsProfileMenuOpen(false)} />
                       <div className="absolute right-0 mt-3 w-56 bg-[#0a0a0a] border border-white/10 rounded-[32px] shadow-[0_32px_64px_rgba(0,0,0,0.8)] overflow-hidden py-3 z-50 animate-fade-in backdrop-blur-xl">
                         <div className="px-5 py-3 border-b border-white/5 mb-2">
-                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-600">Identity Active</p>
+
                           <p className="text-[11px] font-bold text-white/40 truncate">{userProfile.email}</p>
                         </div>
                         <button

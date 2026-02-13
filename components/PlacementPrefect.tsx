@@ -259,7 +259,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
           <div>
             <h2 className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter uppercase mb-1">Resume Feedback</h2>
             <p className="text-slate-500 font-bold uppercase tracking-widest text-[9px] flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+
               File: {fileName}
             </p>
           </div>
@@ -275,7 +275,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
           <ScoreAura score={result.totalScore} label="Resume Score" />
 
           <div className="flex-1 space-y-6">
-            <div className="inline-block px-4 py-1.5 bg-orange-600 text-white text-[9px] font-black uppercase tracking-[0.2em] rounded-full">Overall Verdict</div>
+
             <p className="text-lg md:text-xl font-bold text-slate-800 dark:text-white leading-relaxed italic opacity-90">"{result.summary}"</p>
             <div className="h-px bg-slate-100 dark:bg-white/5 w-full" />
             <div className="space-y-3">

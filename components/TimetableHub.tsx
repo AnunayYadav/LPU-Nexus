@@ -475,7 +475,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
                           </div>
                         </div>
                         <div className="flex flex-col items-end">
-                          <div className={`px-3 py-1 rounded-full text-[7px] font-black uppercase tracking-[0.2em] transition-all ${isActive ? 'bg-orange-600 text-white animate-pulse' : isFinished ? 'bg-white/5 text-slate-600' : 'bg-white/5 text-slate-500'}`}>
+                          <div className={`px-2 py-1 text-[7px] font-black uppercase tracking-[0.2em] transition-all ${isActive ? 'text-orange-600 animate-pulse' : isFinished ? 'text-slate-600' : 'text-slate-500'}`}>
                             {statusLabel}
                           </div>
                           {isActive && <p className="text-[8px] font-bold text-orange-600 mt-2">Active</p>}
