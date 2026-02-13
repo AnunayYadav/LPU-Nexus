@@ -1,6 +1,6 @@
 
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
-import { LibraryFile, UserProfile, Folder, ChatMessage, FriendRequest, QuizQuestion } from '../types.ts';
+import { LibraryFile, UserProfile, Folder, ChatMessage, FriendRequest, QuizQuestion, TimetableData } from '../types.ts';
 
 const getEnvVar = (name: string): string => {
   try {
@@ -32,7 +32,33 @@ const getSupabase = () => {
 class NexusServer {
   static isConfigured(): boolean { return !!getSupabase(); }
 
-  // ... (recordVisit, getSiteStats, auth methods remain same)
+  /**
+   * Timetable: Community Presets
+   */
+  static async fetchCommunityTimetables(): Promise<any[]> {
+    const client = getSupabase();
+    if (!client) return [];
+    const { data, error } = await client
+      .from('community_timetables')
+      .select('*')
+      .order('created_at', { ascending: false });
+    return error ? [] : data || [];
+  }
+
+  static async shareTimetable(data: TimetableData, metadata: any) {
+    const client = getSupabase();
+    if (!client) return;
+    const { error } = await client.from('community_timetables').insert([{
+      owner_id: data.ownerId,
+      name: data.ownerName,
+      schedule: data.schedule,
+      section: metadata.section,
+      branch: metadata.branch,
+      year: metadata.year,
+      semester: metadata.semester
+    }]);
+    if (error) throw error;
+  }
 
   /**
    * Quiz Taker: Persistent Storage Methods
@@ -41,7 +67,6 @@ class NexusServer {
     const client = getSupabase();
     if (!client) return [];
     
-    // Fetch questions for each unit from the bank
     const { data, error } = await client
       .from('question_banks')
       .select('*')
@@ -50,7 +75,6 @@ class NexusServer {
 
     if (error || !data) return [];
     
-    // Combine questions from all found units
     let combined: QuizQuestion[] = [];
     data.forEach(row => {
       if (Array.isArray(row.questions)) {
@@ -72,7 +96,6 @@ class NexusServer {
     }, { onConflict: 'subject_name,unit_number' });
   }
 
-  // ... (recordVisit, getSiteStats, auth methods remain same)
   static async recordVisit(): Promise<void> {
     const client = getSupabase();
     if (!client) return;

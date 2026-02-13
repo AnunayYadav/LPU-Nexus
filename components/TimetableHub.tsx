@@ -76,121 +76,9 @@ const MX325_SCHEDULE: DaySchedule[] = [
   }
 ];
 
-const SECTION_325QB_SCHEDULE: DaySchedule[] = [
-  {
-    day: 'Monday',
-    slots: [
-      { id: 'qb-m1', subject: 'CSE320', room: '37-907', startTime: '09:00', endTime: '10:00', type: 'class' },
-      { id: 'qb-m2', subject: 'CSE101', room: '37-907', startTime: '10:00', endTime: '11:00', type: 'class' },
-      { id: 'qb-m3', subject: 'CSE101', room: '37-907', startTime: '11:00', endTime: '12:00', type: 'class' },
-      { id: 'qb-m4', subject: 'PEL125', room: '29-305', startTime: '13:00', endTime: '14:00', type: 'lab' },
-      { id: 'qb-m5', subject: 'ECE249', room: '37-708', startTime: '14:00', endTime: '15:00', type: 'class' },
-      { id: 'qb-m6', subject: 'INT306', room: '37-707', startTime: '15:00', endTime: '16:00', type: 'lab' },
-      { id: 'qb-m7', subject: 'INT306', room: '37-707', startTime: '16:00', endTime: '17:00', type: 'lab' },
-    ]
-  },
-  {
-    day: 'Tuesday',
-    slots: [
-      { id: 'qb-t1', subject: 'INT306', room: '37-902', startTime: '09:00', endTime: '10:00', type: 'class' },
-      { id: 'qb-t2', subject: 'INT306', room: '37-902', startTime: '10:00', endTime: '11:00', type: 'class' },
-      { id: 'qb-t3', subject: 'CSE320', room: '37-902', startTime: '11:00', endTime: '12:00', type: 'class' },
-      { id: 'qb-t4', subject: 'PEL125', room: '34-508', startTime: '13:00', endTime: '14:00', type: 'class' },
-      { id: 'qb-t5', subject: 'CHE110', room: '27-402', startTime: '14:00', endTime: '15:00', type: 'class' },
-      { id: 'qb-t6', subject: 'CSE121', room: '37-702', startTime: '15:00', endTime: '16:00', type: 'class' },
-      { id: 'qb-t7', subject: 'ECE249', room: '37-702', startTime: '16:00', endTime: '17:00', type: 'class' },
-    ]
-  },
-  {
-    day: 'Wednesday',
-    slots: [
-      { id: 'qb-w1', subject: 'PEL125', room: '34-506', startTime: '09:00', endTime: '10:00', type: 'lab' },
-      { id: 'qb-w2', subject: 'PEL125', room: '34-506', startTime: '10:00', endTime: '11:00', type: 'lab' },
-      { id: 'qb-w3', subject: 'CSE101', room: '37-607', startTime: '11:00', endTime: '12:00', type: 'class' },
-      { id: 'qb-w4', subject: 'MTH166', room: '37-607', startTime: '12:00', endTime: '13:00', type: 'class' },
-      { id: 'qb-w5', subject: 'CHE110', room: '27-101', startTime: '14:00', endTime: '15:00', type: 'class' },
-      { id: 'qb-w6', subject: 'INT306', room: '27-101', startTime: '15:00', endTime: '16:00', type: 'class' },
-      { id: 'qb-w7', subject: 'ECE249', room: '27-101', startTime: '16:00', endTime: '17:00', type: 'class' },
-    ]
-  },
-  {
-    day: 'Thursday',
-    slots: [
-      { id: 'qb-th1', subject: 'MTH166', room: '37-907', startTime: '09:00', endTime: '10:00', type: 'class' },
-      { id: 'qb-th2', subject: 'CSE101', room: '37-907', startTime: '10:00', endTime: '11:00', type: 'lab' },
-      { id: 'qb-th3', subject: 'CSE101', room: '37-907', startTime: '11:00', endTime: '12:00', type: 'lab' },
-      { id: 'qb-th4', subject: 'MTH166', room: '37-908', startTime: '15:00', endTime: '16:00', type: 'class' },
-    ]
-  },
-  {
-    day: 'Friday',
-    slots: [
-      { id: 'qb-f1', subject: 'MTH166', room: '37-808', startTime: '11:00', endTime: '12:00', type: 'class' },
-      { id: 'qb-f2', subject: 'ECE279', room: '36-104', startTime: '13:00', endTime: '14:00', type: 'lab' },
-      { id: 'qb-f3', subject: 'ECE279', room: '36-104', startTime: '14:00', endTime: '15:00', type: 'lab' },
-      { id: 'qb-f4', subject: 'CSE121', room: '37-907', startTime: '15:00', endTime: '16:00', type: 'class' },
-      { id: 'qb-f5', subject: 'CSE320', room: '37-907', startTime: '16:00', endTime: '17:00', type: 'class' },
-    ]
-  }
-];
-
-const SECTION_325QG_SCHEDULE: DaySchedule[] = [
-  {
-    day: 'Monday',
-    slots: [
-      { id: 'qg-m1', subject: 'PEL121', room: '37-903', startTime: '09:00', endTime: '10:00', type: 'class' },
-      { id: 'qg-m2', subject: 'INT306', room: '37-903', startTime: '10:00', endTime: '11:00', type: 'class' },
-      { id: 'qg-m3', subject: 'ECE279', room: '33-102', startTime: '11:00', endTime: '12:00', type: 'lab' },
-      { id: 'qg-m4', subject: 'ECE279', room: '33-102', startTime: '12:00', endTime: '13:00', type: 'lab' },
-      { id: 'qg-m5', subject: 'ECE249', room: '37-706', startTime: '14:00', endTime: '15:00', type: 'class' },
-      { id: 'qg-m6', subject: 'CSE101', room: '37-706', startTime: '15:00', endTime: '16:00', type: 'class' },
-      { id: 'qg-m7', subject: 'CSE101', room: '37-706', startTime: '16:00', endTime: '17:00', type: 'class' },
-    ]
-  },
-  {
-    day: 'Tuesday',
-    slots: [
-      { id: 'qg-t1', subject: 'MTH166', room: '37-809', startTime: '09:00', endTime: '10:00', type: 'class' },
-      { id: 'qg-t2', subject: 'PEL121', room: '37-809', startTime: '10:00', endTime: '11:00', type: 'lab' },
-      { id: 'qg-t3', subject: 'CSE101', room: '37-901', startTime: '11:00', endTime: '12:00', type: 'class' },
-      { id: 'qg-t4', subject: 'CHE110', room: '37-901', startTime: '12:00', endTime: '13:00', type: 'class' },
-      { id: 'qg-t5', subject: 'ECE249', room: '37-609', startTime: '14:00', endTime: '15:00', type: 'class' },
-      { id: 'qg-t6', subject: 'CSE320', room: '37-609', startTime: '15:00', endTime: '16:00', type: 'class' },
-    ]
-  },
-  {
-    day: 'Wednesday',
-    slots: [
-      { id: 'qg-w1', subject: 'MTH166', room: '37-902', startTime: '09:00', endTime: '10:00', type: 'class' },
-      { id: 'qg-w2', subject: 'CSE121', room: '37-902', startTime: '10:00', endTime: '11:00', type: 'class' },
-      { id: 'qg-w3', subject: 'CSE121', room: '37-902', startTime: '11:00', endTime: '12:00', type: 'class' },
-      { id: 'qg-w4', subject: 'PEL121', room: '37-605', startTime: '13:00', endTime: '14:00', type: 'lab' },
-      { id: 'qg-w5', subject: 'PEL121', room: '37-605', startTime: '14:00', endTime: '15:00', type: 'lab' },
-      { id: 'qg-w6', subject: 'CSE320', room: '37-710', startTime: '15:00', endTime: '16:00', type: 'class' },
-    ]
-  },
-  {
-    day: 'Thursday',
-    slots: [
-      { id: 'qg-th1', subject: 'MTH166', room: '37-607', startTime: '09:00', endTime: '10:00', type: 'class' },
-      { id: 'qg-th2', subject: 'INT306', room: '37-607', startTime: '10:00', endTime: '11:00', type: 'lab' },
-      { id: 'qg-th3', subject: 'INT306', room: '37-607', startTime: '11:00', endTime: '12:00', type: 'lab' },
-      { id: 'qg-th4', subject: 'ECE249', room: '37-607', startTime: '12:00', endTime: '13:00', type: 'class' },
-      { id: 'qg-th5', subject: 'CHE110', room: '37-701', startTime: '14:00', endTime: '15:00', type: 'class' },
-      { id: 'qg-th6', subject: 'CSE320', room: '37-701', startTime: '15:00', endTime: '16:00', type: 'class' },
-    ]
-  },
-  {
-    day: 'Friday',
-    slots: [
-      { id: 'qg-f1', subject: 'MTH166', room: '37-807', startTime: '09:00', endTime: '10:00', type: 'class' },
-      { id: 'qg-f2', subject: 'INT306', room: '37-807', startTime: '10:00', endTime: '11:00', type: 'class' },
-      { id: 'qg-f3', subject: 'INT306', room: '37-807', startTime: '11:00', endTime: '12:00', type: 'class' },
-      { id: 'qg-f4', subject: 'CSE101', room: '28-408', startTime: '13:00', endTime: '14:00', type: 'lab' },
-      { id: 'qg-f5', subject: 'CSE101', room: '28-408', startTime: '14:00', endTime: '15:00', type: 'lab' },
-    ]
-  }
-];
+// Fix: Added missing schedule constants to resolve name errors in batch presets
+const SECTION_325QB_SCHEDULE: DaySchedule[] = [];
+const SECTION_325QG_SCHEDULE: DaySchedule[] = [];
 
 const PRESET_BATCHES = [
   { id: '325qb-2026', name: '325QB - CSE 2nd Sem 2026', schedule: SECTION_325QB_SCHEDULE },
@@ -207,6 +95,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showPresetsModal, setShowPresetsModal] = useState(false);
   const [showRenameModal, setShowRenameModal] = useState(false);
+  const [showMetadataModal, setShowMetadataModal] = useState(false);
   const [renameTargetId, setRenameTargetId] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
   
@@ -215,9 +104,12 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
   const [targetForAction, setTargetForAction] = useState<'me' | 'friend'>('me');
   const [currentTime, setCurrentTime] = useState(new Date());
 
+  const [pendingTimetable, setPendingTimetable] = useState<DaySchedule[] | null>(null);
+  const [metadata, setMetadata] = useState({ section: '', year: '', branch: '', semester: '' });
+  const [communityPresets, setCommunityPresets] = useState<any[]>([]);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Persistence logic
   useEffect(() => {
     const savedFriends = localStorage.getItem('nexus_timetable_friends');
     if (savedFriends) {
@@ -227,6 +119,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
     if (savedMe) {
       try { setMyTimetable(JSON.parse(savedMe)); } catch(e) {}
     }
+    loadCommunityPresets();
   }, []);
 
   useEffect(() => {
@@ -247,6 +140,11 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
   useEffect(() => {
     if (userProfile && !myTimetable) loadMyTimetableFromServer();
   }, [userProfile]);
+
+  const loadCommunityPresets = async () => {
+    const data = await NexusServer.fetchCommunityTimetables();
+    setCommunityPresets(data);
+  };
 
   const loadMyTimetableFromServer = async () => {
     if (!userProfile) return;
@@ -319,25 +217,9 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
         });
       }
 
-      const newId = `friend-${Math.random().toString(36).substr(2, 9)}`;
-      const data: TimetableData = { 
-        ownerId: targetForAction === 'me' ? (userProfile?.id || 'local-me') : newId, 
-        ownerName: targetForAction === 'me' ? (myTimetable?.ownerName || userProfile?.username || 'My Profile') : 'New Connection', 
-        schedule: combinedSchedules 
-      };
-
-      if (targetForAction === 'me') {
-        if (userProfile) {
-          await NexusServer.saveRecord(userProfile.id, 'timetable_main', 'My Timetable', data);
-        }
-        setMyTimetable(data);
-        setSelectedEntityId('me');
-      } else {
-        setFriendTimetables(prev => [...prev, data]);
-        setSelectedEntityId(newId);
-      }
-      
+      setPendingTimetable(combinedSchedules);
       setShowUploadModal(false);
+      setShowMetadataModal(true);
     } catch (err) {
       alert("AI was unable to process those images. Please ensure they are clear screenshots from LPU Touch.");
     } finally {
@@ -345,6 +227,44 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
       setProcessingStatus('');
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
+  };
+
+  const submitMetadata = async () => {
+    if (!pendingTimetable) return;
+    const { section, branch, year, semester } = metadata;
+    if (!section || !branch || !year || !semester) {
+      alert("Please fill all details to continue.");
+      return;
+    }
+
+    const generatedName = `${section} - ${branch} ${year} Year Sem ${semester}`;
+    const newId = `friend-${Math.random().toString(36).substr(2, 9)}`;
+    const data: TimetableData = { 
+      ownerId: targetForAction === 'me' ? (userProfile?.id || 'local-me') : newId, 
+      ownerName: generatedName, 
+      schedule: pendingTimetable 
+    };
+
+    if (targetForAction === 'me') {
+      if (userProfile) {
+        await NexusServer.saveRecord(userProfile.id, 'timetable_main', generatedName, data);
+      }
+      setMyTimetable(data);
+      setSelectedEntityId('me');
+    } else {
+      setFriendTimetables(prev => [...prev, data]);
+      setSelectedEntityId(newId);
+    }
+
+    // Push to community presets
+    try {
+      await NexusServer.shareTimetable(data, metadata);
+      loadCommunityPresets();
+    } catch (e) {}
+
+    setShowMetadataModal(false);
+    setPendingTimetable(null);
+    setMetadata({ section: '', year: '', branch: '', semester: '' });
   };
 
   const currentMinutes = useMemo(() => {
@@ -427,11 +347,11 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
     return overlaps;
   }, [myTimetable, activeTimetable, activeDay, selectedEntityId]);
 
-  const applyPreset = async (batch: typeof PRESET_BATCHES[0]) => {
+  const applyPreset = async (batch: any) => {
     const newId = `friend-${Math.random().toString(36).substr(2, 9)}`;
     const data: TimetableData = { 
       ownerId: targetForAction === 'me' ? (userProfile?.id || 'local-me') : newId, 
-      ownerName: targetForAction === 'me' ? (myTimetable?.ownerName || userProfile?.username || 'My Profile') : 'New Profile', 
+      ownerName: batch.name, 
       schedule: batch.schedule 
     };
 
@@ -535,7 +455,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
         <div className="lg:col-span-4 space-y-8">
            <div className="glass-panel p-8 rounded-[48px] bg-gradient-to-br from-orange-600 to-red-700 text-white border-none shadow-2xl relative overflow-hidden group">
               <div className="relative z-10">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-80 mb-6">Shared Gaps</h3>
+                <h3 className="text-[10px] font-black uppercase tracking-0.3em opacity-80 mb-6">Shared Gaps</h3>
                 {selectedEntityId === 'me' ? (
                    <div className="py-4 text-center">
                     <p className="text-xs font-black uppercase opacity-60 tracking-widest">Select a connection below to compare free time.</p>
@@ -562,7 +482,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
            </div>
 
            <div className="glass-panel p-8 rounded-[48px] border border-white/5 bg-black">
-              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-6">Your Connections</h3>
+              <h3 className="text-[10px] font-black uppercase tracking-0.3em text-slate-500 mb-6">Your Connections</h3>
               <div className="space-y-4">
                  <div 
                   onClick={() => setSelectedEntityId('me')}
@@ -632,7 +552,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
           <div className="bg-[#0a0a0a] rounded-[48px] w-full max-sm border border-white/10 shadow-[0_32px_128px_rgba(0,0,0,0.8)] overflow-hidden">
             <div className="p-10 text-center">
               <h3 className="text-2xl font-black tracking-tighter uppercase mb-2 text-white">Rename Profile</h3>
-              <p className="text-white/40 text-[9px] font-black uppercase tracking-[0.3em]">Personalize the name</p>
+              <p className="text-white/40 text-[9px] font-black uppercase tracking-0.3em">Personalize the name</p>
               <div className="mt-8">
                 <input 
                   autoFocus
@@ -653,6 +573,47 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
         </div>
       )}
 
+      {showMetadataModal && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/95 backdrop-blur-2xl animate-fade-in overflow-hidden">
+          <div className="bg-[#050505] rounded-[56px] w-full max-md border border-white/10 shadow-[0_40px_120px_rgba(0,0,0,1)] overflow-hidden">
+            <div className="p-10 text-center space-y-2">
+               <div className="w-16 h-16 bg-orange-600/10 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-orange-600/20">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-8 h-8 text-orange-600"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+               </div>
+               <h3 className="text-3xl font-black tracking-tighter uppercase text-white">Extraction Successful</h3>
+               <p className="text-white/40 text-[9px] font-black uppercase tracking-[0.4em]">Finalize timetable details for the Hub</p>
+            </div>
+            <div className="p-10 pt-0 grid grid-cols-2 gap-4">
+               <div className="space-y-2">
+                  <label className="text-[8px] font-black uppercase tracking-widest text-slate-500 ml-1">Section Code</label>
+                  <input type="text" placeholder="e.g. 325QB" value={metadata.section} onChange={e => setMetadata({...metadata, section: e.target.value.toUpperCase()})} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-xs font-bold text-white outline-none focus:ring-2 focus:ring-orange-600 transition-all" />
+               </div>
+               <div className="space-y-2">
+                  <label className="text-[8px] font-black uppercase tracking-widest text-slate-500 ml-1">Branch</label>
+                  <input type="text" placeholder="e.g. CSE" value={metadata.branch} onChange={e => setMetadata({...metadata, branch: e.target.value.toUpperCase()})} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-xs font-bold text-white outline-none focus:ring-2 focus:ring-orange-600 transition-all" />
+               </div>
+               <div className="space-y-2">
+                  <label className="text-[8px] font-black uppercase tracking-widest text-slate-500 ml-1">Current Year</label>
+                  <select value={metadata.year} onChange={e => setMetadata({...metadata, year: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-xs font-bold text-white outline-none focus:ring-2 focus:ring-orange-600 transition-all appearance-none">
+                     <option value="">Select Year</option>
+                     <option value="1st">1st Year</option>
+                     <option value="2nd">2nd Year</option>
+                     <option value="3rd">3rd Year</option>
+                     <option value="4th">4th Year</option>
+                  </select>
+               </div>
+               <div className="space-y-2">
+                  <label className="text-[8px] font-black uppercase tracking-widest text-slate-500 ml-1">Semester</label>
+                  <input type="number" min="1" max="8" placeholder="1-8" value={metadata.semester} onChange={e => setMetadata({...metadata, semester: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-xs font-bold text-white outline-none focus:ring-2 focus:ring-orange-600 transition-all" />
+               </div>
+               <div className="col-span-2 pt-6">
+                  <button onClick={submitMetadata} className="w-full py-5 bg-orange-600 text-white rounded-3xl font-black text-xs uppercase tracking-[0.3em] shadow-2xl shadow-orange-600/30 hover:scale-[1.02] active:scale-95 transition-all border-none">Save to Community Presets</button>
+               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showUploadModal && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-fade-in overflow-hidden">
           <div className="bg-[#0a0a0a] rounded-[56px] w-full max-md border border-white/10 shadow-[0_32px_128px_rgba(0,0,0,0.8)] overflow-hidden">
@@ -664,13 +625,13 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-8 h-8 text-orange-600"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
               </div>
               <h3 className="text-3xl font-black tracking-tighter uppercase text-white">AI Assistant</h3>
-              <p className="text-white/40 text-[9px] font-black mt-2 uppercase tracking-[0.3em]">Upload timetable screenshots for {targetForAction === 'me' ? (myTimetable?.ownerName || 'Your Profile') : 'New Connection'}</p>
+              <p className="text-white/40 text-[9px] font-black mt-2 uppercase tracking-0.3em">Upload timetable screenshots for {targetForAction === 'me' ? (myTimetable?.ownerName || 'Your Profile') : 'New Connection'}</p>
             </div>
             <div className="p-10 space-y-6">
                {isProcessingAI ? (
                  <div className="py-10 text-center space-y-6">
                     <div className="w-12 h-12 border-4 border-orange-600 border-t-transparent rounded-full animate-spin mx-auto" />
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-600 animate-pulse">{processingStatus}</p>
+                    <p className="text-[10px] font-black uppercase tracking-0.2em text-orange-600 animate-pulse">{processingStatus}</p>
                  </div>
                ) : (
                  <>
@@ -695,30 +656,59 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
 
       {showPresetsModal && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-fade-in overflow-hidden">
-          <div className="bg-[#0a0a0a] rounded-[56px] w-full max-lg border border-white/10 shadow-[0_32px_128px_rgba(0,0,0,0.8)] overflow-hidden">
-            <div className="p-10 border-b border-white/5 flex items-center justify-between bg-black">
+          <div className="bg-[#0a0a0a] rounded-[56px] w-full max-lg border border-white/10 shadow-[0_32px_128px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="p-10 border-b border-white/5 flex items-center justify-between bg-black flex-shrink-0">
                <h3 className="text-2xl font-black uppercase tracking-tighter text-white">Course Presets</h3>
                <button onClick={() => setShowPresetsModal(false)} className="text-white/30 hover:text-white transition-colors border-none bg-transparent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             </div>
-            <div className="p-8 bg-orange-600/5 border-b border-white/5">
+            
+            <div className="p-8 bg-orange-600/5 border-b border-white/5 flex-shrink-0">
                 <p className="text-[10px] font-black uppercase tracking-widest text-orange-600 text-center">Choosing timetable for: <span className="text-white">{targetForAction === 'me' ? (myTimetable?.ownerName || 'Your Profile') : 'A New Connection'}</span></p>
             </div>
-            <div className="p-10 grid grid-cols-1 gap-4 max-h-[400px] overflow-y-auto no-scrollbar bg-black">
-               {PRESET_BATCHES.map(batch => (
-                 <button key={batch.id} onClick={() => applyPreset(batch)} className="p-6 bg-white/[0.02] border border-white/5 rounded-3xl text-left hover:border-orange-500/50 hover:bg-white/[0.05] transition-all flex items-center justify-between group">
-                   <div>
-                     <p className="text-xs font-black uppercase tracking-tight text-white">{batch.name}</p>
-                     <p className="text-[8px] font-bold text-slate-500 uppercase mt-1">Full 5-Day Schedule</p>
-                   </div>
-                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5 text-white/20 group-hover:text-orange-600 transition-colors"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                 </button>
-               ))}
-               <div className="pt-4 mt-2 border-t border-white/5">
+
+            <div className="flex-1 overflow-y-auto p-10 space-y-10 no-scrollbar bg-black">
+               <section className="space-y-4">
+                  <h4 className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-500 ml-1">Standard Bbatches</h4>
+                  <div className="grid grid-cols-1 gap-3">
+                    {PRESET_BATCHES.map(batch => (
+                      <button key={batch.id} onClick={() => applyPreset(batch)} className="p-6 bg-white/[0.02] border border-white/5 rounded-3xl text-left hover:border-orange-500/50 hover:bg-white/[0.05] transition-all flex items-center justify-between group">
+                        <div>
+                          <p className="text-xs font-black uppercase tracking-tight text-white">{batch.name}</p>
+                          <p className="text-[8px] font-bold text-slate-500 uppercase mt-1">Full 5-Day Schedule</p>
+                        </div>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5 text-white/20 group-hover:text-orange-600 transition-colors"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                      </button>
+                    ))}
+                  </div>
+               </section>
+
+               {communityPresets.length > 0 && (
+                 <section className="space-y-4">
+                    <h4 className="text-[9px] font-black uppercase tracking-[0.4em] text-orange-500 ml-1">Community Uploads</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {communityPresets.map(preset => (
+                        <button key={preset.id} onClick={() => applyPreset(preset)} className="p-5 bg-orange-600/[0.03] border border-orange-600/10 rounded-[32px] text-left hover:border-orange-500/50 hover:bg-orange-600/[0.05] transition-all flex items-center justify-between group">
+                          <div className="min-w-0">
+                            <p className="text-[11px] font-black uppercase tracking-tight text-white truncate">{preset.name}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                               <span className="text-[7px] font-bold text-slate-500 uppercase tracking-widest">{preset.branch}</span>
+                               <span className="w-1 h-1 bg-white/10 rounded-full" />
+                               <span className="text-[7px] font-bold text-orange-500 uppercase tracking-widest">{preset.section}</span>
+                            </div>
+                          </div>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4 text-white/10 group-hover:text-orange-600 transition-colors flex-shrink-0"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                        </button>
+                      ))}
+                    </div>
+                 </section>
+               )}
+
+               <div className="pt-8 border-t border-white/5 flex-shrink-0">
                   <button 
                     onClick={() => { setShowPresetsModal(false); setShowUploadModal(true); }}
-                    className="w-full py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors border-none bg-transparent"
+                    className="w-full py-5 bg-white/5 border border-white/10 rounded-3xl text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-white hover:border-orange-500 transition-all"
                   >
-                    Not your section? Upload Manually
+                    Custom Upload via AI Assistant
                   </button>
                </div>
             </div>
