@@ -6,7 +6,7 @@ import { ResumeAnalysisResult, UserProfile, AnnotatedFragment } from '../types';
 
 const IconFile = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-12 h-12 mx-auto mb-2 opacity-40">
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" />
   </svg>
 );
 
@@ -41,7 +41,7 @@ const ScoreAura = ({ score, label }: { score: number; label: string }) => {
   return (
     <div className="relative flex flex-col items-center group">
       <div className={`absolute inset-0 bg-orange-600/10 blur-[60px] rounded-full transition-all duration-1000 ${score > 70 ? 'opacity-100 scale-110' : 'opacity-40 scale-100'}`} />
-      
+
       <svg height="300" width="300" className="transform -rotate-90 relative z-10">
         <circle
           cx="150" cy="150" r="90"
@@ -63,7 +63,7 @@ const ScoreAura = ({ score, label }: { score: number; label: string }) => {
           </linearGradient>
         </defs>
       </svg>
-      
+
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center z-20">
         <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] mb-1">{label}</p>
         <p className="text-7xl font-black tracking-tighter text-slate-900 dark:text-white">{score}%</p>
@@ -80,12 +80,12 @@ interface FragmentProps {
 const FragmentHighlight: React.FC<FragmentProps> = ({ fragment, onHover }) => {
   if (fragment.type === 'neutral') return <span className="text-slate-400 dark:text-slate-500 whitespace-pre-wrap">{fragment.text}</span>;
 
-  const colorClass = fragment.type === 'good' 
-    ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20' 
+  const colorClass = fragment.type === 'good'
+    ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
     : 'text-red-700 dark:text-red-400 bg-red-500/10 border-red-500/20';
 
   return (
-    <span 
+    <span
       className={`inline px-0.5 rounded-md border-b-2 cursor-pointer transition-colors duration-200 whitespace-pre-wrap ${colorClass}`}
       onMouseEnter={(e) => onHover(fragment, e.currentTarget)}
       onMouseLeave={() => onHover(null, null)}
@@ -218,7 +218,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
           <div className="absolute inset-0 w-24 h-24 border-8 border-orange-600 border-t-transparent rounded-full animate-spin" />
           <div className="absolute inset-0 flex items-center justify-center">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8 text-orange-600 animate-pulse">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
             </svg>
           </div>
         </div>
@@ -233,9 +233,9 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
   if (result) {
     return (
       <div ref={reportRef} className="max-w-6xl mx-auto space-y-10 animate-fade-in pb-20 px-4 md:px-0 relative">
-        
+
         {hoveredFragment && (
-          <div 
+          <div
             className={`absolute z-[1000] p-5 bg-black border border-white/20 rounded-2xl shadow-2xl pointer-events-none transform -translate-x-1/2 w-[300px] ${tooltipPos.flipped ? '' : '-translate-y-full'}`}
             style={{ left: tooltipPos.x, top: tooltipPos.y }}
           >
@@ -271,40 +271,40 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
           </div>
         </header>
 
-        <div className="glass-panel p-10 md:p-14 rounded-[56px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/40 shadow-2xl flex flex-col md:flex-row items-center gap-12 relative overflow-hidden">
+        <div className="glass-panel p-10 md:p-14 rounded-[56px] shadow-2xl flex flex-col md:flex-row items-center gap-12 relative overflow-hidden">
           <ScoreAura score={result.totalScore} label="Resume Score" />
-          
+
           <div className="flex-1 space-y-6">
-             <div className="inline-block px-4 py-1.5 bg-orange-600 text-white text-[9px] font-black uppercase tracking-[0.2em] rounded-full">Overall Verdict</div>
-             <p className="text-lg md:text-xl font-bold text-slate-800 dark:text-white leading-relaxed italic opacity-90">"{result.summary}"</p>
-             <div className="h-px bg-slate-100 dark:bg-white/5 w-full" />
-             <div className="space-y-3">
-                {result.flags.map((flag, idx) => (
-                  <div key={idx} className={`p-4 rounded-2xl border flex items-start gap-3 ${flag.type === 'critical' ? 'bg-red-500/10 border-red-500/20 text-red-500' : flag.type === 'warning' ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'}`}>
-                     <p className="text-[11px] font-black uppercase leading-tight">{flag.message}</p>
-                  </div>
-                ))}
-             </div>
+            <div className="inline-block px-4 py-1.5 bg-orange-600 text-white text-[9px] font-black uppercase tracking-[0.2em] rounded-full">Overall Verdict</div>
+            <p className="text-lg md:text-xl font-bold text-slate-800 dark:text-white leading-relaxed italic opacity-90">"{result.summary}"</p>
+            <div className="h-px bg-slate-100 dark:bg-white/5 w-full" />
+            <div className="space-y-3">
+              {result.flags.map((flag, idx) => (
+                <div key={idx} className={`p-4 rounded-2xl border flex items-start gap-3 ${flag.type === 'critical' ? 'bg-red-500/10 border-red-500/20 text-red-500' : flag.type === 'warning' ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'}`}>
+                  <p className="text-[11px] font-black uppercase leading-tight">{flag.message}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
-        <div className="glass-panel p-8 md:p-12 rounded-[56px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/60 shadow-2xl space-y-8 animate-fade-in relative overflow-visible">
-           <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-100 dark:border-white/5 pb-8">
-              <div>
-                 <h3 className="text-2xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">Content Check</h3>
-                 <p className="text-[9px] font-black text-orange-600 uppercase tracking-[0.4em] mt-1.5">Hover over sections for feedback</p>
-              </div>
-           </header>
+        <div className="glass-panel p-8 md:p-12 rounded-[56px] shadow-2xl space-y-8 animate-fade-in relative overflow-visible">
+          <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-100 dark:border-white/5 pb-8">
+            <div>
+              <h3 className="text-2xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">Content Check</h3>
+              <p className="text-[9px] font-black text-orange-600 uppercase tracking-[0.4em] mt-1.5">Hover over sections for feedback</p>
+            </div>
+          </header>
 
-           <div className="relative overflow-visible">
-              <div className="max-h-[600px] overflow-y-auto custom-scrollbar p-8 md:p-12 bg-black rounded-[40px] border border-white/5 shadow-inner">
-                 <div className="text-sm md:text-base text-slate-300 font-medium leading-relaxed whitespace-pre-wrap font-mono">
-                    {result.annotatedContent.map((fragment, i) => (
-                      <FragmentHighlight key={i} fragment={fragment} onHover={handleFragmentHover} />
-                    ))}
-                 </div>
+          <div className="relative overflow-visible">
+            <div className="max-h-[600px] overflow-y-auto custom-scrollbar p-8 md:p-12 bg-black rounded-[40px] border border-white/5 shadow-inner">
+              <div className="text-sm md:text-base text-slate-300 font-medium leading-relaxed whitespace-pre-wrap font-mono">
+                {result.annotatedContent.map((fragment, i) => (
+                  <FragmentHighlight key={i} fragment={fragment} onHover={handleFragmentHover} />
+                ))}
               </div>
-           </div>
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -336,80 +336,80 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
 
       {error && (
         <div className="p-8 bg-red-500/10 border border-red-500/20 rounded-[40px] text-center space-y-4 animate-fade-in">
-           <div className="w-12 h-12 bg-red-500/20 rounded-2xl flex items-center justify-center mx-auto text-red-500">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-           </div>
-           <div className="space-y-1">
-              <h4 className="text-sm font-black uppercase text-red-500 tracking-widest">Analysis Protocol Interrupted</h4>
-              <p className="text-sm font-medium text-slate-600 dark:text-slate-400 leading-relaxed max-w-md mx-auto">{error}</p>
-           </div>
-           <button onClick={() => setError(null)} className="px-6 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-600 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all border-none">Acknowledge</button>
+          <div className="w-12 h-12 bg-red-500/20 rounded-2xl flex items-center justify-center mx-auto text-red-500">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+          </div>
+          <div className="space-y-1">
+            <h4 className="text-sm font-black uppercase text-red-500 tracking-widest">Analysis Protocol Interrupted</h4>
+            <p className="text-sm font-medium text-slate-600 dark:text-slate-400 leading-relaxed max-w-md mx-auto">{error}</p>
+          </div>
+          <button onClick={() => setError(null)} className="px-6 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-600 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all border-none">Acknowledge</button>
         </div>
       )}
 
-      <div className="glass-panel p-8 md:p-12 rounded-[64px] border border-slate-100 dark:border-white/5 bg-white dark:bg-black/60 shadow-2xl space-y-10">
+      <div className="glass-panel p-8 md:p-12 rounded-[64px] shadow-2xl space-y-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-           <div className="space-y-5">
-              <div className="flex items-center gap-3">
-                 <div className="w-7 h-7 rounded-xl bg-orange-600/10 flex items-center justify-center text-orange-600 font-black text-[10px]">1</div>
-                 <label className="text-[9px] font-black uppercase text-slate-400 tracking-[0.2em] block">Your Resume</label>
-              </div>
-              <div className="relative border-4 border-dashed border-slate-100 dark:border-white/5 rounded-[40px] p-12 text-center hover:border-orange-500/40 transition-all bg-slate-50 dark:bg-white/[0.02] group cursor-pointer shadow-inner">
-                <input type="file" accept=".pdf" onChange={handleFileUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-                <IconFile />
-                <p className="text-sm font-black uppercase tracking-widest text-slate-400 group-hover:text-orange-600 transition-colors">
-                  {fileName ? fileName : "Upload PDF Resume"}
-                </p>
-              </div>
-           </div>
+          <div className="space-y-5">
+            <div className="flex items-center gap-3">
+              <div className="w-7 h-7 rounded-xl bg-orange-600/10 flex items-center justify-center text-orange-600 font-black text-[10px]">1</div>
+              <label className="text-[9px] font-black uppercase text-slate-400 tracking-[0.2em] block">Your Resume</label>
+            </div>
+            <div className="relative border-4 border-dashed border-slate-100 dark:border-white/5 rounded-[40px] p-12 text-center hover:border-orange-500/40 transition-all bg-slate-50 dark:bg-white/[0.02] group cursor-pointer shadow-inner">
+              <input type="file" accept=".pdf" onChange={handleFileUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+              <IconFile />
+              <p className="text-sm font-black uppercase tracking-widest text-slate-400 group-hover:text-orange-600 transition-colors">
+                {fileName ? fileName : "Upload PDF Resume"}
+              </p>
+            </div>
+          </div>
 
-           <div className="space-y-5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                   <div className="w-7 h-7 rounded-xl bg-orange-600/10 flex items-center justify-center text-orange-600 font-black text-[10px]">2</div>
-                   <label className="text-[9px] font-black uppercase text-slate-400 tracking-[0.2em] block">Target Role</label>
-                </div>
-                <div className="flex bg-slate-100 dark:bg-white/5 p-1 rounded-[16px]">
-                  <button onClick={() => setAnalysisMode('trend')} className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase transition-all ${analysisMode === 'trend' ? 'bg-orange-600 text-white shadow-lg' : 'text-slate-500'}`}>Presets</button>
-                  <button onClick={() => setAnalysisMode('custom')} className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase transition-all ${analysisMode === 'custom' ? 'bg-orange-600 text-white shadow-lg' : 'text-slate-500'}`}>Paste JD</button>
-                </div>
+          <div className="space-y-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-7 h-7 rounded-xl bg-orange-600/10 flex items-center justify-center text-orange-600 font-black text-[10px]">2</div>
+                <label className="text-[9px] font-black uppercase text-slate-400 tracking-[0.2em] block">Target Role</label>
               </div>
-              {analysisMode === 'trend' ? (
-                <div className="grid grid-cols-2 gap-2">
-                  {INDUSTRY_ROLES.map(role => (
-                    <button key={role.id} onClick={() => handleRoleSelect(role.id)} className={`p-4 rounded-2xl border text-left transition-all ${selectedRoleId === role.id ? 'bg-orange-600/10 border-orange-600 text-orange-500 scale-[1.02]' : 'bg-slate-50 dark:bg-black border-slate-100 dark:border-white/5 text-slate-500 hover:border-orange-500/30'}`}>
-                      <p className="text-[9px] font-black uppercase tracking-tight leading-tight">{role.name}</p>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <textarea 
-                  className="w-full h-[184px] bg-slate-50 dark:bg-black/60 border border-slate-100 dark:border-white/10 rounded-[32px] p-6 text-xs text-slate-800 dark:text-white focus:ring-4 focus:ring-orange-600/10 outline-none resize-none transition-all font-bold placeholder:opacity-30 shadow-inner" 
-                  placeholder="Paste job description here..." 
-                  value={jdText} 
-                  onChange={(e) => setJdText(e.target.value)} 
-                />
-              )}
-           </div>
+              <div className="flex bg-slate-100 dark:bg-white/5 p-1 rounded-[16px]">
+                <button onClick={() => setAnalysisMode('trend')} className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase transition-all ${analysisMode === 'trend' ? 'bg-orange-600 text-white shadow-lg' : 'text-slate-500'}`}>Presets</button>
+                <button onClick={() => setAnalysisMode('custom')} className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase transition-all ${analysisMode === 'custom' ? 'bg-orange-600 text-white shadow-lg' : 'text-slate-500'}`}>Paste JD</button>
+              </div>
+            </div>
+            {analysisMode === 'trend' ? (
+              <div className="grid grid-cols-2 gap-2">
+                {INDUSTRY_ROLES.map(role => (
+                  <button key={role.id} onClick={() => handleRoleSelect(role.id)} className={`p-4 rounded-2xl border text-left transition-all ${selectedRoleId === role.id ? 'bg-orange-600/10 border-orange-600 text-orange-500 scale-[1.02]' : 'bg-slate-50 dark:bg-black border-slate-100 dark:border-white/5 text-slate-500 hover:border-orange-500/30'}`}>
+                    <p className="text-[9px] font-black uppercase tracking-tight leading-tight">{role.name}</p>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <textarea
+                className="w-full h-[184px] bg-slate-50 dark:bg-black/60 border border-slate-100 dark:border-white/10 rounded-[32px] p-6 text-xs text-slate-800 dark:text-white focus:ring-4 focus:ring-orange-600/10 outline-none resize-none transition-all font-bold placeholder:opacity-30 shadow-inner"
+                placeholder="Paste job description here..."
+                value={jdText}
+                onChange={(e) => setJdText(e.target.value)}
+              />
+            )}
+          </div>
         </div>
 
         <div className="flex flex-col md:flex-row items-center justify-between gap-6 pt-8 border-t border-slate-100 dark:border-white/5">
-           <button 
-             onClick={() => setDeepAnalysis(!deepAnalysis)}
-             className={`flex items-center gap-4 px-6 py-3 rounded-[24px] border transition-all cursor-pointer group ${deepAnalysis ? 'bg-red-600 border-red-500 shadow-xl' : 'bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/5 hover:border-red-500/50'}`}
-           >
-              <div className={`w-3 h-3 rounded-full transition-all ${deepAnalysis ? 'bg-white' : 'bg-slate-400 group-hover:bg-red-500'}`} />
-              <div className="text-left">
-                <span className={`text-[9px] font-black uppercase tracking-widest block ${deepAnalysis ? 'text-white' : 'text-slate-400 group-hover:text-red-500'}`}>Strict Review</span>
-              </div>
-           </button>
-           <button 
-             onClick={handleAnalyze} 
-             disabled={!resumeText || !jdText || loading} 
-             className="w-full md:w-auto px-12 py-4 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] shadow-2xl shadow-orange-600/30 hover:scale-[1.03] active:scale-95 transition-all border-none disabled:opacity-30"
-           >
-             Analyze Resume
-           </button>
+          <button
+            onClick={() => setDeepAnalysis(!deepAnalysis)}
+            className={`flex items-center gap-4 px-6 py-3 rounded-[24px] border transition-all cursor-pointer group ${deepAnalysis ? 'bg-red-600 border-red-500 shadow-xl' : 'bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/5 hover:border-red-500/50'}`}
+          >
+            <div className={`w-3 h-3 rounded-full transition-all ${deepAnalysis ? 'bg-white' : 'bg-slate-400 group-hover:bg-red-500'}`} />
+            <div className="text-left">
+              <span className={`text-[9px] font-black uppercase tracking-widest block ${deepAnalysis ? 'text-white' : 'text-slate-400 group-hover:text-red-500'}`}>Strict Review</span>
+            </div>
+          </button>
+          <button
+            onClick={handleAnalyze}
+            disabled={!resumeText || !jdText || loading}
+            className="w-full md:w-auto px-12 py-4 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] shadow-2xl shadow-orange-600/30 hover:scale-[1.03] active:scale-95 transition-all border-none disabled:opacity-30"
+          >
+            Analyze Resume
+          </button>
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
 
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
-import { LibraryFile, UserProfile, Folder, ChatMessage, FriendRequest, QuizQuestion, TimetableData } from '../types.ts';
+import { LibraryFile, UserProfile, Folder, QuizQuestion, TimetableData } from '../types.ts';
 
 const getEnvVar = (name: string): string => {
   try {
@@ -12,7 +12,7 @@ const getEnvVar = (name: string): string => {
       if (metaEnv[`VITE_${name}`]) return metaEnv[`VITE_${name}`];
       if (metaEnv[name]) return metaEnv[name];
     }
-  } catch (e) {}
+  } catch (e) { }
   return '';
 };
 
@@ -87,7 +87,7 @@ class NexusServer {
   static async fetchQuestionsFromBank(subject: string, units: number[]): Promise<QuizQuestion[]> {
     const client = getSupabase();
     if (!client) return [];
-    
+
     const { data, error } = await client
       .from('question_banks')
       .select('*')
@@ -95,21 +95,21 @@ class NexusServer {
       .in('unit_number', units);
 
     if (error || !data) return [];
-    
+
     let combined: QuizQuestion[] = [];
     data.forEach(row => {
       if (Array.isArray(row.questions)) {
         combined = [...combined, ...row.questions];
       }
     });
-    
+
     return combined;
   }
 
   static async saveQuestionsToBank(subject: string, unit: number, questions: QuizQuestion[]) {
     const client = getSupabase();
     if (!client) return;
-    
+
     await client.from('question_banks').upsert({
       subject_name: subject,
       unit_number: unit,
@@ -125,7 +125,7 @@ class NexusServer {
       try {
         await client.from('site_visits').insert([{}]);
         sessionStorage.setItem(SESSION_KEY, 'true');
-      } catch (e) {}
+      } catch (e) { }
     }
   }
 
@@ -155,9 +155,9 @@ class NexusServer {
     const client = getSupabase();
     if (!client) throw new Error("Registry is offline.");
     const cleanUsername = username.toLowerCase().trim();
-    return await client.auth.signUp({ 
-      email: email.trim(), 
-      password: pass, 
+    return await client.auth.signUp({
+      email: email.trim(),
+      password: pass,
       options: { data: { username: cleanUsername }, emailRedirectTo: window.location.origin }
     });
   }
@@ -170,7 +170,7 @@ class NexusServer {
 
   static onAuthStateChange(callback: (user: User | null) => void) {
     const client = getSupabase();
-    if (!client) return () => {};
+    if (!client) return () => { };
     const { data: { subscription } } = client.auth.onAuthStateChange((_event, session) => {
       callback(session?.user ?? null);
     });
@@ -209,7 +209,7 @@ class NexusServer {
     return data || [];
   }
 
-  static async createFolder(name: string, type: 'semester'|'subject'|'category', parentId: string|null) {
+  static async createFolder(name: string, type: 'semester' | 'subject' | 'category', parentId: string | null) {
     const client = getSupabase();
     if (client) await client.from('folders').insert([{ name, type, parent_id: parentId }]);
   }
@@ -246,10 +246,10 @@ class NexusServer {
     const path = `community/${Math.random().toString(36).substring(7)}_${file.name}`;
     const { error: storageErr } = await client.storage.from('nexus-documents').upload(path, file);
     if (storageErr) throw storageErr;
-    const { error: dbErr } = await client.from('documents').insert([{ 
-      name, description: desc, subject: sub, semester: sem, type, 
-      size: `${(file.size/1024/1024).toFixed(2)} MB`, storage_path: path, 
-      uploader_id: uid, status: admin ? 'approved' : 'pending' 
+    const { error: dbErr } = await client.from('documents').insert([{
+      name, description: desc, subject: sub, semester: sem, type,
+      size: `${(file.size / 1024 / 1024).toFixed(2)} MB`, storage_path: path,
+      uploader_id: uid, status: admin ? 'approved' : 'pending'
     }]);
     if (dbErr) throw dbErr;
   }
@@ -349,201 +349,7 @@ class NexusServer {
     }));
   }
 
-  static async markConversationAsRead(userId: string, conversationId: string) {
-    const client = getSupabase();
-    if (!client) return;
-    await client.from('conversation_members').update({ last_read_at: new Date().toISOString() }).eq('conversation_id', conversationId).eq('user_id', userId);
-  }
 
-  static subscribeToSocialChat(callback: (payload: any) => void) {
-    const client = getSupabase();
-    if (!client) return () => {};
-    const channel = client.channel('social_chat')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'social_messages' }, callback)
-      .subscribe();
-    return () => { client.removeChannel(channel); };
-  }
-
-  static subscribeToConversation(conversationId: string, callback: (payload: any) => void) {
-    const client = getSupabase();
-    if (!client) return () => {};
-    const channel = client.channel(`convo_${conversationId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` }, callback)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'conversation_members', filter: `conversation_id=eq.${conversationId}` }, callback)
-      .subscribe();
-    return () => { client.removeChannel(channel); };
-  }
-
-  static subscribeToUserMessages(userId: string, callback: (payload: any) => void) {
-    const client = getSupabase();
-    if (!client) return () => {};
-    const channel = client.channel(`user_msgs_${userId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, callback)
-      .subscribe();
-    return () => { client.removeChannel(channel); };
-  }
-
-  static async fetchMemberReadStatuses(conversationId: string) {
-    const client = getSupabase();
-    if (!client) return [];
-    const { data } = await client.from('conversation_members').select('user_id, last_read_at').eq('conversation_id', conversationId);
-    return data || [];
-  }
-
-  static async fetchSocialMessages(): Promise<ChatMessage[]> {
-    const client = getSupabase();
-    if (!client) return [];
-    const { data } = await client.from('social_messages').select('*, profiles(username, avatar_url)').order('created_at', { ascending: true }).limit(100);
-    return (data || []).map(m => ({
-      id: m.id,
-      role: 'user',
-      text: m.text,
-      timestamp: new Date(m.created_at).getTime(),
-      sender_name: m.profiles?.username,
-      sender_id: m.sender_id,
-      sender_avatar_url: m.profiles?.avatar_url
-    }));
-  }
-
-  static async fetchMessages(conversationId: string): Promise<ChatMessage[]> {
-    const client = getSupabase();
-    if (!client) return [];
-    const { data } = await client.from('messages').select('*, profiles(username, avatar_url), reactions(*)').eq('conversation_id', conversationId).order('created_at', { ascending: true });
-    return (data || []).map(m => ({
-      id: m.id,
-      role: 'user',
-      text: m.text,
-      timestamp: new Date(m.created_at).getTime(),
-      sender_name: m.profiles?.username,
-      sender_id: m.sender_id,
-      sender_avatar_url: m.profiles?.avatar_url,
-      is_deleted_everyone: m.is_deleted_everyone,
-      reactions: m.reactions
-    }));
-  }
-
-  static async fetchConversations(userId: string) {
-    const client = getSupabase();
-    if (!client) return [];
-    const { data } = await client.from('conversations').select('*, conversation_members!inner(*)').eq('conversation_members.user_id', userId);
-    return data || [];
-  }
-
-  static async getFriendRequests(userId: string): Promise<FriendRequest[]> {
-    const client = getSupabase();
-    if (!client) return [];
-    const { data } = await client.from('friend_requests').select('*, sender:profiles!sender_id(*), receiver:profiles!receiver_id(*)').or(`sender_id.eq.${userId},receiver_id.eq.${userId}`);
-    return data || [];
-  }
-
-  static async getFriends(userId: string): Promise<UserProfile[]> {
-    const client = getSupabase();
-    if (!client) return [];
-    const { data } = await client.from('friends').select('friend_id, profiles!friend_id(*)').eq('user_id', userId);
-    return (data || []).map(d => d.profiles);
-  }
-
-  static async updateSocialMessage(id: string, userId: string, text: string) {
-    const client = getSupabase();
-    if (client) await client.from('social_messages').update({ text }).eq('id', id).eq('sender_id', userId);
-  }
-
-  static async updateMessage(id: string, userId: string, text: string) {
-    const client = getSupabase();
-    if (client) await client.from('messages').update({ text }).eq('id', id).eq('sender_id', userId);
-  }
-
-  static async sendSocialMessage(userId: string, username: string, text: string) {
-    const client = getSupabase();
-    if (client) await client.from('social_messages').insert([{ sender_id: userId, text }]);
-  }
-
-  static async sendMessage(userId: string, conversationId: string, text: string, replyToId?: string) {
-    const client = getSupabase();
-    if (client) await client.from('messages').insert([{ sender_id: userId, conversation_id: conversationId, text, reply_to_id: replyToId }]);
-  }
-
-  static async toggleReaction(messageId: string, userId: string, emoji: string) {
-    const client = getSupabase();
-    if (!client) return;
-    const { data } = await client.from('message_reactions').select('*').eq('message_id', messageId).eq('user_id', userId).eq('emoji', emoji).maybeSingle();
-    if (data) await client.from('message_reactions').delete().eq('id', data.id);
-    else await client.from('message_reactions').insert([{ message_id: messageId, user_id: userId, emoji }]);
-  }
-
-  static async reportContent(userId: string, type: string, targetId: string, details: string) {
-    const client = getSupabase();
-    if (client) await client.from('reports').insert([{ reporter_id: userId, type, target_id: targetId, details }]);
-  }
-
-  static async deleteSocialMessage(id: string, userId: string) {
-    const client = getSupabase();
-    if (client) await client.from('social_messages').delete().eq('id', id).eq('sender_id', userId);
-  }
-
-  static async deleteMessageEveryone(id: string, userId: string) {
-    const client = getSupabase();
-    if (client) await client.from('messages').update({ is_deleted_everyone: true, text: 'This message was deleted' }).eq('id', id).eq('sender_id', userId);
-  }
-
-  static async searchProfiles(query: string): Promise<UserProfile[]> {
-    const client = getSupabase();
-    if (!client) return [];
-    const { data } = await client.from('profiles').select('*').ilike('username', `%${query}%`).limit(20);
-    return data || [];
-  }
-
-  static async findExistingDM(user1Id: string, user2Id: string) {
-    const client = getSupabase();
-    if (!client) return null;
-    const { data } = await client.from('conversations').select('*, conversation_members!inner(*)').eq('is_group', false).eq('conversation_members.user_id', user1Id).maybeSingle();
-    return data;
-  }
-
-  static async createConversation(ownerId: string, name: string | null, isGroup: boolean, memberIds: string[]) {
-    const client = getSupabase();
-    if (!client) return null;
-    const { data: convo, error } = await client.from('conversations').insert([{ name, is_group: isGroup }]).select().single();
-    if (error) throw error;
-    const members = [ownerId, ...memberIds].map(uid => ({ conversation_id: convo.id, user_id: uid }));
-    await client.from('conversation_members').insert(members);
-    return convo;
-  }
-
-  static async sendFriendRequest(senderId: string, receiverId: string) {
-    const client = getSupabase();
-    if (client) await client.from('friend_requests').insert([{ sender_id: senderId, receiver_id: receiverId, status: 'pending' }]);
-  }
-
-  static async updateFriendRequest(id: string, status: 'accepted' | 'declined') {
-    const client = getSupabase();
-    if (!client) return;
-    await client.from('friend_requests').update({ status }).eq('id', id);
-    if (status === 'accepted') {
-      const { data: req } = await client.from('friend_requests').select('*').eq('id', id).single();
-      if (req) {
-        await client.from('friends').insert([
-          { user_id: req.sender_id, friend_id: req.receiver_id },
-          { user_id: req.receiver_id, friend_id: req.sender_id }
-        ]);
-      }
-    }
-  }
-
-  static async deleteConversation(id: string) {
-    const client = getSupabase();
-    if (client) await client.from('conversations').delete().eq('id', id);
-  }
-
-  static async leaveGroup(userId: string, conversationId: string) {
-    const client = getSupabase();
-    if (client) await client.from('conversation_members').delete().eq('conversation_id', conversationId).eq('user_id', userId);
-  }
-
-  static async blockUser(userId: string, targetId: string) {
-    const client = getSupabase();
-    if (client) await client.from('blocked_users').insert([{ user_id: userId, blocked_user_id: targetId }]);
-  }
 }
 
 export default NexusServer;

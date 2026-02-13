@@ -6,7 +6,7 @@
  */
 (function initializeNexusGlobalEnv() {
   const g = (typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : ({} as any));
-  
+
   // Ensure standard process.env structure exists
   if (!g.process) g.process = { env: {} };
   if (!g.process.env) g.process.env = {};
@@ -19,14 +19,14 @@
       // Check import.meta.env (Standard for Vite/Modern ESM)
       // @ts-ignore
       const meta = (typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env : {};
-      
-      const val = meta[vitePrefix] || 
-                  meta[varName] || 
-                  g.process.env[varName] || 
-                  g.process.env[vitePrefix] ||
-                  g[varName] ||
-                  g[vitePrefix];
-      
+
+      const val = meta[vitePrefix] ||
+        meta[varName] ||
+        g.process.env[varName] ||
+        g.process.env[vitePrefix] ||
+        g[varName] ||
+        g[vitePrefix];
+
       if (val) {
         g.process.env[varName] = val;
         // Also map to global if needed by some legacy libs
@@ -46,6 +46,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.tsx';
+import './index.css';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

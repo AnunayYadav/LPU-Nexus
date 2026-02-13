@@ -1,0 +1,160 @@
+@import "tailwindcss";
+
+@variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-insta-gradient: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  --animate-shimmer: shimmer 1.5s infinite linear;
+  --animate-fade-in: fadeIn 0.4s ease-out forwards;
+
+  --color-dark-800: #1e1e1e;
+  --color-dark-900: #121212;
+  --color-dark-950: #0a0a0a;
+
+  @keyframes shimmer {
+    from {
+      background-position: -200% 0;
+    }
+
+    to {
+      background-position: 200% 0;
+    }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+:root {
+  --netflix-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+  font-family: var(--netflix-sans);
+  letter-spacing: -0.01em;
+}
+
+h1,
+h2,
+h3,
+h4,
+.font-heading {
+  letter-spacing: -0.03em;
+  font-weight: 800;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 10px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #222;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #444;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(249, 115, 22, 0.2);
+  border-radius: 10px;
+  border: 2px solid #000;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(249, 115, 22, 0.4);
+}
+
+.glass-panel {
+  @apply backdrop-blur-xl border transition-all duration-300;
+  background: rgba(255, 255, 255, 0.85);
+  /* Increased opacity for light mode */
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.dark .glass-panel {
+  background: rgba(10, 10, 10, 0.6);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.modal-overlay {
+  @apply fixed inset-0 z-[999] flex items-center justify-center p-4 backdrop-blur-2xl animate-fade-in overflow-hidden;
+  background: rgba(241, 245, 249, 0.7);
+  /* Light blue-white effect */
+}
+
+.dark .modal-overlay {
+  background: rgba(0, 0, 0, 0.85);
+  /* Black blur effect */
+}
+
+.overlay {
+  @apply fixed inset-0 z-20 backdrop-blur-md transition-opacity duration-300;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.dark .overlay {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.shimmer {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.05) 50%, rgba(255, 255, 255, 0) 100%);
+  background-size: 200% 100%;
+  @apply animate-shimmer;
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.transform-style-3d {
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+}
+
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

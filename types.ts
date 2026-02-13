@@ -97,38 +97,7 @@ export interface QuizQuestion {
   explanation: string;
 }
 
-export interface FriendRequest {
-  id: string;
-  sender_id: string;
-  receiver_id: string;
-  status: 'pending' | 'accepted' | 'declined';
-  created_at: string;
-  sender?: UserProfile;
-  receiver?: UserProfile;
-}
 
-export interface MessageReaction {
-  id?: string;
-  message_id: string;
-  user_id: string;
-  emoji: string;
-  created_at?: string;
-}
-
-export interface ChatMessage {
-  id?: string;
-  role: 'user' | 'model' | 'system';
-  text: string;
-  isError?: boolean;
-  timestamp: number;
-  sender_name?: string;
-  sender_id?: string;
-  sender_avatar_url?: string;
-  reply_to?: ChatMessage;
-  reactions?: MessageReaction[];
-  is_deleted_everyone?: boolean;
-  forwarded?: boolean;
-}
 
 export interface LibraryFile {
   id: string;

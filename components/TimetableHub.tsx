@@ -91,14 +91,14 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
   const [myTimetable, setMyTimetable] = useState<TimetableData | null>(null);
   const [friendTimetables, setFriendTimetables] = useState<TimetableData[]>([]);
   const [selectedEntityId, setSelectedEntityId] = useState<string>('me');
-  
+
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showPresetsModal, setShowPresetsModal] = useState(false);
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [showMetadataModal, setShowMetadataModal] = useState(false);
   const [renameTargetId, setRenameTargetId] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
-  
+
   const [isProcessingAI, setIsProcessingAI] = useState(false);
   const [processingStatus, setProcessingStatus] = useState('');
   const [targetForAction, setTargetForAction] = useState<'me' | 'friend'>('me');
@@ -114,11 +114,11 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
   useEffect(() => {
     const savedFriends = localStorage.getItem('nexus_timetable_friends');
     if (savedFriends) {
-      try { setFriendTimetables(JSON.parse(savedFriends)); } catch(e) {}
+      try { setFriendTimetables(JSON.parse(savedFriends)); } catch (e) { }
     }
     const savedMe = localStorage.getItem('nexus_timetable_me');
     if (savedMe) {
-      try { setMyTimetable(JSON.parse(savedMe)); } catch(e) {}
+      try { setMyTimetable(JSON.parse(savedMe)); } catch (e) { }
     }
     loadCommunityPresets();
   }, []);
@@ -159,7 +159,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
 
   const handleRename = async () => {
     if (!renameTargetId || !newName.trim()) return;
-    
+
     if (renameTargetId === 'me' && myTimetable) {
       const updated = { ...myTimetable, ownerName: newName.trim() };
       setMyTimetable(updated);
@@ -169,7 +169,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
     } else {
       setFriendTimetables(prev => prev.map(f => f.ownerId === renameTargetId ? { ...f, ownerName: newName.trim() } : f));
     }
-    
+
     setShowRenameModal(false);
     setRenameTargetId(null);
     setNewName('');
@@ -201,13 +201,13 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
 
     setIsProcessingAI(true);
     const combinedSchedules: DaySchedule[] = [];
-    
+
     try {
       for (let i = 0; i < files.length; i++) {
         setProcessingStatus(`Scanning Day ${i + 1}/${files.length}...`);
         const base64 = await readFileAsDataURL(files[i]);
         const daySchedule = await extractTimetableFromImage(base64);
-        
+
         daySchedule.forEach(newDay => {
           const existing = combinedSchedules.find(s => s.day === newDay.day);
           if (existing) {
@@ -253,10 +253,10 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
 
     const generatedName = `${section} - ${branch} ${year} Year Sem ${semester}`;
     const newId = `friend-${Math.random().toString(36).substr(2, 9)}`;
-    const data: TimetableData = { 
-      ownerId: targetForAction === 'me' ? (userProfile?.id || 'local-me') : newId, 
-      ownerName: generatedName, 
-      schedule: pendingTimetable 
+    const data: TimetableData = {
+      ownerId: targetForAction === 'me' ? (userProfile?.id || 'local-me') : newId,
+      ownerName: generatedName,
+      schedule: pendingTimetable
     };
 
     if (targetForAction === 'me') {
@@ -274,7 +274,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
     try {
       await NexusServer.shareTimetable(data, metadata);
       loadCommunityPresets();
-    } catch (e) {}
+    } catch (e) { }
 
     setShowMetadataModal(false);
     setPendingTimetable(null);
@@ -325,7 +325,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
 
   const commonBreaks = useMemo(() => {
     if (selectedEntityId === 'me' || !myTimetable || !activeTimetable || !myTimetable.schedule || !activeTimetable.schedule) return [];
-    
+
     const myDay = myTimetable.schedule.find(s => s.day === activeDay);
     const frDay = activeTimetable.schedule.find(s => s.day === activeDay);
     if (!myDay || !frDay) return [];
@@ -363,10 +363,10 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
 
   const applyPreset = async (batch: any) => {
     const newId = `friend-${Math.random().toString(36).substr(2, 9)}`;
-    const data: TimetableData = { 
-      ownerId: targetForAction === 'me' ? (userProfile?.id || 'local-me') : newId, 
-      ownerName: targetForAction === 'me' ? (batch.name) : (batch.name || `${batch.section} ${batch.branch}`), 
-      schedule: batch.schedule 
+    const data: TimetableData = {
+      ownerId: targetForAction === 'me' ? (userProfile?.id || 'local-me') : newId,
+      ownerName: targetForAction === 'me' ? (batch.name) : (batch.name || `${batch.section} ${batch.branch}`),
+      schedule: batch.schedule
     };
 
     if (targetForAction === 'me') {
@@ -413,9 +413,9 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
           <p className="text-slate-600 dark:text-slate-400 font-medium text-sm">Organize your classes and find time to meet with friends.</p>
         </div>
         <div className="flex gap-3">
-          <button onClick={() => { setTargetForAction('me'); setShowPresetsModal(true); }} className="px-6 py-3 bg-black border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all shadow-xl">Batch Presets</button>
+          <button onClick={() => { setTargetForAction('me'); setShowPresetsModal(true); }} className="px-6 py-3 bg-slate-100 dark:bg-black border border-slate-200 dark:border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 hover:text-orange-600 dark:hover:text-white transition-all shadow-xl">Batch Presets</button>
           <button onClick={() => { setTargetForAction('me'); setShowUploadModal(true); }} className="px-8 py-3 bg-orange-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-orange-600/20 active:scale-95 transition-all flex items-center gap-2 border-none">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
             Upload Screenshots
           </button>
         </div>
@@ -430,8 +430,8 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         <div className="lg:col-span-8 space-y-6">
           {(!activeTimetable || !activeTimetable.schedule || activeTimetable.schedule.length === 0) ? (
-            <div className="glass-panel p-16 rounded-[48px] border-4 border-dashed border-white/5 flex flex-col items-center justify-center text-center opacity-40 bg-black">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="w-20 h-20 mb-6"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <div className="glass-panel p-16 rounded-[48px] border-4 border-dashed border-slate-200 dark:border-white/5 flex flex-col items-center justify-center text-center bg-slate-100 dark:bg-black">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="w-20 h-20 mb-6"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
               <h3 className="text-xl font-black uppercase tracking-tighter">No Schedule Data</h3>
               <p className="text-xs font-bold mt-2">Use a Batch Preset or Upload screenshots for {activeTimetable?.ownerName || (selectedEntityId === 'me' ? 'your profile' : 'this friend')}.</p>
             </div>
@@ -443,17 +443,17 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
               </div>
               <div className="space-y-3">
                 {daySlotsWithBreaks.length === 0 ? (
-                  <div className="p-10 bg-black border border-white/5 rounded-[32px] text-center"><p className="text-[10px] font-black uppercase tracking-widest text-slate-500">No events found for {activeDay}.</p></div>
+                  <div className="p-10 bg-slate-50 dark:bg-black border border-slate-100 dark:border-white/5 rounded-[32px] text-center"><p className="text-[10px] font-black uppercase tracking-widest text-slate-400">No events found for {activeDay}.</p></div>
                 ) : (
                   daySlotsWithBreaks.map(slot => {
                     const startMin = timeToMinutes(slot.startTime);
                     const endMin = timeToMinutes(slot.endTime);
-                    
+
                     const isActive = isCurrentDay && currentMinutes >= startMin && currentMinutes < endMin;
                     const isFinished = isCurrentDay && currentMinutes >= endMin;
                     const isUpcoming = isCurrentDay && currentMinutes < startMin;
                     const isBreak = slot.type === 'break';
-                    
+
                     let statusLabel = 'Plan';
                     if (isCurrentDay) {
                       if (isActive) statusLabel = 'Now';
@@ -462,15 +462,15 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
                     }
 
                     return (
-                      <div key={slot.id} className={`group p-6 rounded-[32px] transition-all flex items-center justify-between border ${isActive ? 'bg-orange-600/10 border-orange-500/50 shadow-[0_0_30px_rgba(234,88,12,0.1)] scale-[1.01]' : isFinished ? 'bg-black border-white/5 opacity-40 grayscale' : isBreak ? 'bg-black border-white/5 opacity-70' : 'bg-black border-white/5 hover:border-orange-500/30'}`}>
+                      <div key={slot.id} className={`group p-6 rounded-[32px] transition-all flex items-center justify-between border ${isActive ? 'bg-orange-600/10 border-orange-500/50 shadow-[0_0_30px_rgba(234,88,12,0.1)] scale-[1.01]' : isFinished ? 'bg-slate-50 dark:bg-black border-slate-100 dark:border-white/5 opacity-40 grayscale' : isBreak ? 'bg-slate-50 dark:bg-black border-slate-100 dark:border-white/5 opacity-70' : 'bg-white dark:bg-black border-slate-100 dark:border-white/5 hover:border-orange-500/30'}`}>
                         <div className="flex items-center gap-6">
-                          <div className={`w-16 h-16 rounded-2xl flex flex-col items-center justify-center border shadow-inner ${isActive ? 'bg-orange-600 border-orange-400' : isFinished ? 'bg-slate-900 border-white/5' : 'bg-black border-white/5'}`}>
+                          <div className={`w-16 h-16 rounded-2xl flex flex-col items-center justify-center border shadow-inner ${isActive ? 'bg-orange-600 border-orange-400' : isFinished ? 'bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-white/5' : 'bg-slate-50 dark:bg-black border-slate-200 dark:border-white/5'}`}>
                             <span className={`text-[10px] font-black ${isActive ? 'text-white' : isFinished ? 'text-slate-600' : 'text-orange-600'}`}>{slot.startTime}</span>
                             <div className={`w-4 h-px my-1 ${isActive ? 'bg-white/30' : 'bg-white/10'}`} />
                             <span className={`text-[8px] font-bold ${isActive ? 'text-white/70' : 'text-slate-500'}`}>{slot.endTime}</span>
                           </div>
                           <div>
-                            <h4 className={`text-lg font-black uppercase tracking-tight transition-colors ${isActive ? 'text-orange-500' : isFinished ? 'text-slate-600' : isBreak ? 'text-slate-400' : 'text-white group-hover:text-orange-500'}`}>{slot.subject}</h4>
+                            <h4 className={`text-lg font-black uppercase tracking-tight transition-colors ${isActive ? 'text-orange-500' : isFinished ? 'text-slate-400' : isBreak ? 'text-slate-400' : 'text-slate-800 dark:text-white group-hover:text-orange-500'}`}>{slot.subject}</h4>
                             <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">{isBreak ? 'Free Window' : `Room ${slot.room} • ${slot.type === 'lab' ? 'Practical' : 'Lecture'}`}</p>
                           </div>
                         </div>
@@ -490,115 +490,115 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
         </div>
 
         <div className="lg:col-span-4 space-y-8">
-           <div className="glass-panel p-8 rounded-[48px] bg-gradient-to-br from-orange-600 to-red-700 text-white border-none shadow-2xl relative overflow-hidden group">
-              <div className="relative z-10">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-80 mb-6">Shared Gaps</h3>
-                {selectedEntityId === 'me' ? (
-                   <div className="py-4 text-center">
-                    <p className="text-xs font-black uppercase opacity-60 tracking-widest">Select a connection below to compare free time.</p>
-                  </div>
-                ) : commonBreaks.length === 0 ? (
-                  <div className="py-4 text-center">
-                    <p className="text-xs font-black uppercase opacity-60 tracking-widest">No common gaps found for {activeDay}.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {commonBreaks.map((b, i) => (
-                      <div key={i} className="p-4 bg-white/10 rounded-2xl border border-white/10 backdrop-blur-sm">
-                        <div className="flex justify-between items-center mb-1">
-                          <p className="text-[10px] font-black uppercase tracking-widest">Nexus Sync</p>
-                          <span className="text-[8px] font-bold opacity-50">{b.duration} mins</span>
-                        </div>
-                        <p className="text-lg font-black tracking-tight">{b.start} — {b.end}</p>
+          <div className="p-8 rounded-[48px] bg-gradient-to-br from-orange-600 to-red-700 text-white shadow-2xl relative overflow-hidden group border-none">
+            <div className="relative z-10">
+              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-80 mb-6">Shared Gaps</h3>
+              {selectedEntityId === 'me' ? (
+                <div className="py-4 text-center">
+                  <p className="text-xs font-black uppercase opacity-60 tracking-widest">Select a connection below to compare free time.</p>
+                </div>
+              ) : commonBreaks.length === 0 ? (
+                <div className="py-4 text-center">
+                  <p className="text-xs font-black uppercase opacity-60 tracking-widest">No common gaps found for {activeDay}.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {commonBreaks.map((b, i) => (
+                    <div key={i} className="p-4 bg-white/10 rounded-2xl border border-white/10 backdrop-blur-sm">
+                      <div className="flex justify-between items-center mb-1">
+                        <p className="text-[10px] font-black uppercase tracking-widest">Nexus Sync</p>
+                        <span className="text-[8px] font-bold opacity-50">{b.duration} mins</span>
                       </div>
-                    ))}
+                      <p className="text-lg font-black tracking-tight">{b.start} — {b.end}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/10 blur-[60px] rounded-full pointer-events-none" />
+          </div>
+
+          <div className="glass-panel p-8 rounded-[48px] border border-slate-200 dark:border-white/5 bg-white dark:bg-black">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-6">Your Connections</h3>
+            <div className="space-y-4">
+              <div
+                onClick={() => setSelectedEntityId('me')}
+                className={`flex items-center justify-between p-4 rounded-2xl border cursor-pointer transition-all ${selectedEntityId === 'me' ? 'bg-orange-600/10 border-orange-600' : 'bg-white dark:bg-black border-slate-200 dark:border-white/5 hover:border-orange-500/30'}`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-orange-600 flex items-center justify-center font-black text-[10px] uppercase">{userProfile?.username?.[0] || 'M'}</div>
+                  <span className={`text-[10px] font-black uppercase ${selectedEntityId === 'me' ? 'text-orange-500' : 'text-slate-700 dark:text-white'}`}>
+                    {myTimetable?.ownerName || 'My Profile'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setRenameTargetId('me'); setNewName(myTimetable?.ownerName || ''); setShowRenameModal(true); }}
+                    className="p-1 hover:text-orange-500 text-white/20 transition-colors border-none bg-transparent"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                  </button>
+                </div>
+              </div>
+
+              {friendTimetables.map(friend => (
+                <div
+                  key={friend.ownerId}
+                  onClick={() => setSelectedEntityId(friend.ownerId)}
+                  className={`flex items-center justify-between p-4 rounded-2xl border cursor-pointer transition-all ${selectedEntityId === friend.ownerId ? 'bg-blue-600/10 border-blue-600' : 'bg-white dark:bg-black border-slate-200 dark:border-white/5 hover:border-orange-500/30'}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center font-black text-[10px] uppercase">{friend.ownerName?.[0] || 'F'}</div>
+                    <span className={`text-[10px] font-black uppercase ${selectedEntityId === friend.ownerId ? 'text-blue-500' : 'text-slate-700 dark:text-white'}`}>
+                      {friend.ownerName}
+                    </span>
                   </div>
-                )}
-              </div>
-              <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/10 blur-[60px] rounded-full pointer-events-none" />
-           </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setRenameTargetId(friend.ownerId); setNewName(friend.ownerName); setShowRenameModal(true); }}
+                      className="p-1.5 hover:text-blue-500 text-white/20 transition-colors border-none bg-transparent"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => handleRemoveFriend(friend.ownerId, e)}
+                      className="p-1.5 group/del hover:bg-red-500 transition-all border-none bg-transparent rounded-lg"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4 text-white/20 group-hover/del:text-white"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                    </button>
+                  </div>
+                </div>
+              ))}
 
-           <div className="glass-panel p-8 rounded-[48px] border border-white/5 bg-black">
-              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-6">Your Connections</h3>
-              <div className="space-y-4">
-                 <div 
-                  onClick={() => setSelectedEntityId('me')}
-                  className={`flex items-center justify-between p-4 rounded-2xl border cursor-pointer transition-all ${selectedEntityId === 'me' ? 'bg-orange-600/10 border-orange-600' : 'bg-black border-white/5 hover:border-white/10'}`}
-                 >
-                    <div className="flex items-center gap-3">
-                       <div className="w-8 h-8 rounded-full bg-orange-600 flex items-center justify-center font-black text-[10px] uppercase">{userProfile?.username?.[0] || 'M'}</div>
-                       <span className={`text-[10px] font-black uppercase ${selectedEntityId === 'me' ? 'text-orange-500' : 'text-white'}`}>
-                        {myTimetable?.ownerName || 'My Profile'}
-                       </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                       <button 
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); setRenameTargetId('me'); setNewName(myTimetable?.ownerName || ''); setShowRenameModal(true); }} 
-                        className="p-1 hover:text-orange-500 text-white/20 transition-colors border-none bg-transparent"
-                       >
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                       </button>
-                    </div>
-                 </div>
-
-                 {friendTimetables.map(friend => (
-                   <div 
-                    key={friend.ownerId}
-                    onClick={() => setSelectedEntityId(friend.ownerId)}
-                    className={`flex items-center justify-between p-4 rounded-2xl border cursor-pointer transition-all ${selectedEntityId === friend.ownerId ? 'bg-blue-600/10 border-blue-600' : 'bg-black border-white/5 hover:border-white/10'}`}
-                   >
-                    <div className="flex items-center gap-3">
-                       <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center font-black text-[10px] uppercase">{friend.ownerName?.[0] || 'F'}</div>
-                       <span className={`text-[10px] font-black uppercase ${selectedEntityId === friend.ownerId ? 'text-blue-500' : 'text-white'}`}>
-                        {friend.ownerName}
-                       </span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button 
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); setRenameTargetId(friend.ownerId); setNewName(friend.ownerName); setShowRenameModal(true); }} 
-                        className="p-1.5 hover:text-blue-500 text-white/20 transition-colors border-none bg-transparent"
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 h-3.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                      </button>
-                      <button 
-                        type="button"
-                        onClick={(e) => handleRemoveFriend(friend.ownerId, e)}
-                        className="p-1.5 group/del hover:bg-red-500 transition-all border-none bg-transparent rounded-lg"
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4 text-white/20 group-hover/del:text-white"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                      </button>
-                    </div>
-                   </div>
-                 ))}
-
-                 <button 
-                  onClick={() => { setTargetForAction('friend'); setShowPresetsModal(true); }}
-                  className="w-full py-4 border-2 border-dashed border-white/5 text-slate-500 text-[10px] font-black uppercase tracking-widest rounded-2xl hover:border-orange-500 hover:text-white transition-all bg-transparent"
-                 >
-                  + Add Connection
-                 </button>
-              </div>
-           </div>
+              <button
+                onClick={() => { setTargetForAction('friend'); setShowPresetsModal(true); }}
+                className="w-full py-4 border-2 border-dashed border-white/5 text-slate-500 text-[10px] font-black uppercase tracking-widest rounded-2xl hover:border-orange-500 hover:text-white transition-all bg-transparent"
+              >
+                + Add Connection
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
       {showRenameModal && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-fade-in overflow-hidden">
-          <div className="bg-[#0a0a0a] rounded-[48px] w-full max-sm border border-white/10 shadow-[0_32px_128px_rgba(0,0,0,0.8)] overflow-hidden">
+        <div className="modal-overlay z-[1000]">
+          <div className="bg-white dark:bg-slate-950 rounded-[48px] w-full max-sm border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden">
             <div className="p-10 text-center">
-              <h3 className="text-2xl font-black tracking-tighter uppercase mb-2 text-white">Rename Profile</h3>
-              <p className="text-white/40 text-[9px] font-black uppercase tracking-0.3em">Personalize the name</p>
+              <h3 className="text-2xl font-black tracking-tighter uppercase mb-2 text-slate-800 dark:text-white">Rename Profile</h3>
+              <p className="text-slate-500 text-[9px] font-black uppercase tracking-widest">Personalize the name</p>
               <div className="mt-8">
-                <input 
+                <input
                   autoFocus
-                  type="text" 
-                  value={newName} 
-                  onChange={e => setNewName(e.target.value)} 
+                  type="text"
+                  value={newName}
+                  onChange={e => setNewName(e.target.value)}
                   placeholder="Enter name..."
                   onKeyDown={e => e.key === 'Enter' && handleRename()}
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-sm font-black text-white outline-none focus:ring-4 focus:ring-orange-600/10 transition-all"
+                  className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl px-6 py-4 text-sm font-black text-slate-800 dark:text-white outline-none focus:ring-4 focus:ring-orange-600/10 transition-all"
                 />
               </div>
               <div className="flex gap-4 mt-8">
@@ -611,154 +611,154 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
       )}
 
       {showMetadataModal && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/95 backdrop-blur-2xl animate-fade-in overflow-hidden">
-          <div className="bg-[#050505] rounded-[56px] w-full max-md border border-white/10 shadow-[0_40px_120px_rgba(0,0,0,1)] overflow-hidden">
+        <div className="modal-overlay z-[1000]">
+          <div className="bg-white dark:bg-slate-950 rounded-[56px] w-full max-md border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden">
             <div className="p-10 text-center space-y-2">
-               <div className="w-16 h-16 bg-orange-600/10 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-orange-600/20">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-8 h-8 text-orange-600"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-               </div>
-               <h3 className="text-3xl font-black tracking-tighter uppercase text-white">{editingPresetId ? 'Edit Preset' : 'Extraction Successful'}</h3>
-               <p className="text-white/40 text-[9px] font-black uppercase tracking-[0.4em]">{editingPresetId ? 'Admin Authority: Metadata Override' : 'Finalize timetable details for the Hub'}</p>
+              <div className="w-16 h-16 bg-orange-600/10 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-orange-600/20">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-8 h-8 text-orange-600"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
+              </div>
+              <h3 className="text-3xl font-black tracking-tighter uppercase text-slate-800 dark:text-white">{editingPresetId ? 'Edit Preset' : 'Extraction Successful'}</h3>
+              <p className="text-slate-500 text-[9px] font-black uppercase tracking-widest">{editingPresetId ? 'Admin Authority: Metadata Override' : 'Finalize timetable details for the Hub'}</p>
             </div>
             <div className="p-10 pt-0 grid grid-cols-2 gap-4">
-               <div className="space-y-2">
-                  <label className="text-[8px] font-black uppercase tracking-widest text-slate-500 ml-1">Section Code</label>
-                  <input type="text" placeholder="e.g. 325QB" value={metadata.section} onChange={e => setMetadata({...metadata, section: e.target.value.toUpperCase()})} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-xs font-bold text-white outline-none focus:ring-2 focus:ring-orange-600 transition-all" />
-               </div>
-               <div className="space-y-2">
-                  <label className="text-[8px] font-black uppercase tracking-widest text-slate-500 ml-1">Branch</label>
-                  <input type="text" placeholder="e.g. CSE" value={metadata.branch} onChange={e => setMetadata({...metadata, branch: e.target.value.toUpperCase()})} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-xs font-bold text-white outline-none focus:ring-2 focus:ring-orange-600 transition-all" />
-               </div>
-               <div className="space-y-2">
-                  <label className="text-[8px] font-black uppercase tracking-widest text-slate-500 ml-1">Current Year</label>
-                  <select value={metadata.year} onChange={e => setMetadata({...metadata, year: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-xs font-bold text-white outline-none focus:ring-2 focus:ring-orange-600 transition-all appearance-none">
-                     <option value="">Select Year</option>
-                     <option value="1st">1st Year</option>
-                     <option value="2nd">2nd Year</option>
-                     <option value="3rd">3rd Year</option>
-                     <option value="4th">4th Year</option>
-                  </select>
-               </div>
-               <div className="space-y-2">
-                  <label className="text-[8px] font-black uppercase tracking-widest text-slate-500 ml-1">Semester</label>
-                  <input type="number" min="1" max="8" placeholder="1-8" value={metadata.semester} onChange={e => setMetadata({...metadata, semester: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-xs font-bold text-white outline-none focus:ring-2 focus:ring-orange-600 transition-all" />
-               </div>
-               <div className="col-span-2 pt-6">
-                  <button onClick={submitMetadata} className="w-full py-5 bg-orange-600 text-white rounded-3xl font-black text-xs uppercase tracking-[0.3em] shadow-2xl shadow-orange-600/30 hover:scale-[1.02] active:scale-95 transition-all border-none">{editingPresetId ? 'Save Admin Changes' : 'Save to Community Presets'}</button>
-                  {editingPresetId && (
-                    <button onClick={() => { setShowMetadataModal(false); setEditingPresetId(null); }} className="w-full mt-2 py-3 text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors border-none bg-transparent">Cancel Edit</button>
-                  )}
-               </div>
+              <div className="space-y-2">
+                <label className="text-[8px] font-black uppercase tracking-widest text-slate-500 ml-1">Section Code</label>
+                <input type="text" placeholder="e.g. 325QB" value={metadata.section} onChange={e => setMetadata({ ...metadata, section: e.target.value.toUpperCase() })} className="w-full bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-2xl px-5 py-4 text-xs font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-orange-600 transition-all" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[8px] font-black uppercase tracking-widest text-slate-500 ml-1">Branch</label>
+                <input type="text" placeholder="e.g. CSE" value={metadata.branch} onChange={e => setMetadata({ ...metadata, branch: e.target.value.toUpperCase() })} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-xs font-bold text-white outline-none focus:ring-2 focus:ring-orange-600 transition-all" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[8px] font-black uppercase tracking-widest text-slate-500 ml-1">Current Year</label>
+                <select value={metadata.year} onChange={e => setMetadata({ ...metadata, year: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-xs font-bold text-white outline-none focus:ring-2 focus:ring-orange-600 transition-all appearance-none">
+                  <option value="">Select Year</option>
+                  <option value="1st">1st Year</option>
+                  <option value="2nd">2nd Year</option>
+                  <option value="3rd">3rd Year</option>
+                  <option value="4th">4th Year</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[8px] font-black uppercase tracking-widest text-slate-500 ml-1">Semester</label>
+                <input type="number" min="1" max="8" placeholder="1-8" value={metadata.semester} onChange={e => setMetadata({ ...metadata, semester: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-xs font-bold text-white outline-none focus:ring-2 focus:ring-orange-600 transition-all" />
+              </div>
+              <div className="col-span-2 pt-6">
+                <button onClick={submitMetadata} className="w-full py-5 bg-orange-600 text-white rounded-3xl font-black text-xs uppercase tracking-[0.3em] shadow-2xl shadow-orange-600/30 hover:scale-[1.02] active:scale-95 transition-all border-none">{editingPresetId ? 'Save Admin Changes' : 'Save to Community Presets'}</button>
+                {editingPresetId && (
+                  <button onClick={() => { setShowMetadataModal(false); setEditingPresetId(null); }} className="w-full mt-2 py-3 text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors border-none bg-transparent">Cancel Edit</button>
+                )}
+              </div>
             </div>
           </div>
         </div>
       )}
 
       {showUploadModal && (
-        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-fade-in overflow-hidden">
-          <div className="bg-[#0a0a0a] rounded-[56px] w-full max-md border border-white/10 shadow-[0_32px_128px_rgba(0,0,0,0.8)] overflow-hidden">
-            <div className="bg-black p-10 text-center relative">
+        <div className="modal-overlay">
+          <div className="bg-white dark:bg-slate-950 rounded-[56px] w-full max-md border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden">
+            <div className="bg-slate-900 dark:bg-black p-10 text-center relative">
               <button onClick={() => setShowUploadModal(false)} className="absolute top-8 right-8 text-white/30 hover:text-white transition-colors border-none bg-transparent">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12" /></svg>
               </button>
               <div className="w-16 h-16 bg-orange-600/10 rounded-[28px] flex items-center justify-center mx-auto mb-6 border border-orange-600/20">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-8 h-8 text-orange-600"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-8 h-8 text-orange-600"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
               </div>
               <h3 className="text-3xl font-black tracking-tighter uppercase text-white">AI Assistant</h3>
-              <p className="text-white/40 text-[9px] font-black mt-2 uppercase tracking-0.3em">Upload timetable screenshots for {targetForAction === 'me' ? (myTimetable?.ownerName || 'Your Profile') : 'New Connection'}</p>
+              <p className="text-white/40 text-[9px] font-black mt-2 uppercase tracking-widest">Upload timetable screenshots for {targetForAction === 'me' ? (myTimetable?.ownerName || 'Your Profile') : 'New Connection'}</p>
             </div>
             <div className="p-10 space-y-6">
-               {isProcessingAI ? (
-                 <div className="py-10 text-center space-y-6">
-                    <div className="w-12 h-12 border-4 border-orange-600 border-t-transparent rounded-full animate-spin mx-auto" />
-                    <p className="text-[10px] font-black uppercase tracking-0.2em text-orange-600 animate-pulse">{processingStatus}</p>
-                 </div>
-               ) : (
-                 <>
-                   <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-white/10 rounded-[32px] p-12 text-center hover:border-orange-500/50 transition-all cursor-pointer bg-white/[0.02] group">
-                     <p className="text-xs font-black uppercase tracking-widest text-slate-500 group-hover:text-white transition-colors">Select Images</p>
-                     <p className="text-[8px] font-bold uppercase text-slate-600 mt-2">Upload multiple images for a full week</p>
-                   </div>
-                   <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    className="hidden" 
-                    accept="image/*" 
-                    multiple 
-                    onChange={handleFileUpload} 
+              {isProcessingAI ? (
+                <div className="py-10 text-center space-y-6">
+                  <div className="w-12 h-12 border-4 border-orange-600 border-t-transparent rounded-full animate-spin mx-auto" />
+                  <p className="text-[10px] font-black uppercase tracking-0.2em text-orange-600 animate-pulse">{processingStatus}</p>
+                </div>
+              ) : (
+                <>
+                  <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-white/10 rounded-[32px] p-12 text-center hover:border-orange-500/50 transition-all cursor-pointer bg-white/[0.02] group">
+                    <p className="text-xs font-black uppercase tracking-widest text-slate-500 group-hover:text-white transition-colors">Select Images</p>
+                    <p className="text-[8px] font-bold uppercase text-slate-600 mt-2">Upload multiple images for a full week</p>
+                  </div>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    accept="image/*"
+                    multiple
+                    onChange={handleFileUpload}
                   />
-                 </>
-               )}
+                </>
+              )}
             </div>
           </div>
         </div>
       )}
 
       {showPresetsModal && (
-        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-fade-in overflow-hidden">
-          <div className="bg-[#0a0a0a] rounded-[56px] w-full max-lg border border-white/10 shadow-[0_32px_128px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[85vh]">
-            <div className="p-10 border-b border-white/5 flex items-center justify-between bg-black flex-shrink-0">
-               <h3 className="text-2xl font-black uppercase tracking-tighter text-white">Course Presets</h3>
-               <button onClick={() => setShowPresetsModal(false)} className="text-white/30 hover:text-white transition-colors border-none bg-transparent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-            </div>
-            
-            <div className="p-8 bg-orange-600/5 border-b border-white/5 flex-shrink-0">
-                <p className="text-[10px] font-black uppercase tracking-widest text-orange-600 text-center">Choosing timetable for: <span className="text-white">{targetForAction === 'me' ? (myTimetable?.ownerName || 'Your Profile') : 'A New Connection'}</span></p>
+        <div className="modal-overlay">
+          <div className="bg-white dark:bg-slate-950 rounded-[56px] w-full max-lg border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="p-10 border-b border-slate-200 dark:border-white/5 flex items-center justify-between bg-slate-100 dark:bg-black flex-shrink-0">
+              <h3 className="text-2xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">Course Presets</h3>
+              <button onClick={() => setShowPresetsModal(false)} className="text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors border-none bg-transparent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12" /></svg></button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-10 space-y-10 no-scrollbar bg-black">
-               <section className="space-y-4">
-                  <h4 className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-500 ml-1">Standard Batches</h4>
-                  <div className="grid grid-cols-1 gap-3">
-                    {PRESET_BATCHES.map(batch => (
-                      <button key={batch.id} onClick={() => applyPreset(batch)} className="p-6 bg-white/[0.02] border border-white/5 rounded-3xl text-left hover:border-orange-500/50 hover:bg-white/[0.05] transition-all flex items-center justify-between group">
-                        <div>
-                          <p className="text-xs font-black uppercase tracking-tight text-white">{batch.name}</p>
-                          <p className="text-[8px] font-bold text-slate-500 uppercase mt-1">Full 5-Day Schedule</p>
-                        </div>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5 text-white/20 group-hover:text-orange-600 transition-colors"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                      </button>
+            <div className="p-8 bg-orange-600/5 border-b border-slate-200 dark:border-white/5 flex-shrink-0 text-center">
+              <p className="text-[10px] font-black uppercase tracking-widest text-orange-600">Choosing timetable for: <span className="text-slate-800 dark:text-white">{targetForAction === 'me' ? (myTimetable?.ownerName || 'Your Profile') : 'A New Connection'}</span></p>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-10 space-y-10 no-scrollbar bg-white dark:bg-black">
+              <section className="space-y-4">
+                <h4 className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-500 ml-1">Standard Batches</h4>
+                <div className="grid grid-cols-1 gap-3">
+                  {PRESET_BATCHES.map(batch => (
+                    <button key={batch.id} onClick={() => applyPreset(batch)} className="p-6 bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 rounded-3xl text-left hover:border-orange-500/50 hover:bg-slate-100 dark:hover:bg-white/[0.05] transition-all flex items-center justify-between group">
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-tight text-slate-800 dark:text-white">{batch.name}</p>
+                        <p className="text-[8px] font-bold text-slate-500 uppercase mt-1">Full 5-Day Schedule</p>
+                      </div>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5 text-white/20 group-hover:text-orange-600 transition-colors"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              {communityPresets.length > 0 && (
+                <section className="space-y-4">
+                  <h4 className="text-[9px] font-black uppercase tracking-[0.4em] text-orange-500 ml-1">Community Uploads</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {communityPresets.map(preset => (
+                      <div key={preset.id} className="relative group/card">
+                        <button onClick={() => applyPreset(preset)} className="w-full p-5 bg-slate-50 dark:bg-orange-600/[0.03] border border-slate-200 dark:border-orange-600/10 rounded-[32px] text-left hover:border-orange-500/50 hover:bg-slate-100 dark:hover:bg-orange-600/[0.05] transition-all flex items-center justify-between group">
+                          <div className="min-w-0">
+                            <p className="text-[11px] font-black uppercase tracking-tight text-slate-800 dark:text-white truncate pr-16">{preset.name}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-[7px] font-bold text-slate-500 uppercase tracking-widest">{preset.branch}</span>
+                              <span className="w-1 h-1 bg-white/10 rounded-full" />
+                              <span className="text-[7px] font-bold text-orange-500 uppercase tracking-widest">{preset.section}</span>
+                            </div>
+                          </div>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4 text-white/10 group-hover:text-orange-600 transition-colors flex-shrink-0"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+                        </button>
+                        {userProfile?.is_admin && (
+                          <div className="absolute top-4 right-12 flex gap-2 opacity-0 group-hover/card:opacity-100 transition-opacity">
+                            <button onClick={(e) => handleAdminEdit(preset, e)} className="p-2 bg-black border border-white/10 rounded-xl text-orange-500 hover:text-white hover:bg-orange-600 transition-all border-none shadow-xl" title="Admin Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg></button>
+                            <button onClick={(e) => handleAdminDelete(preset.id, e)} className="p-2 bg-black border border-white/10 rounded-xl text-red-500 hover:text-white hover:bg-red-600 transition-all border-none shadow-xl" title="Admin Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3"><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /></svg></button>
+                          </div>
+                        )}
+                      </div>
                     ))}
                   </div>
-               </section>
+                </section>
+              )}
 
-               {communityPresets.length > 0 && (
-                 <section className="space-y-4">
-                    <h4 className="text-[9px] font-black uppercase tracking-[0.4em] text-orange-500 ml-1">Community Uploads</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {communityPresets.map(preset => (
-                        <div key={preset.id} className="relative group/card">
-                          <button onClick={() => applyPreset(preset)} className="w-full p-5 bg-orange-600/[0.03] border border-orange-600/10 rounded-[32px] text-left hover:border-orange-500/50 hover:bg-orange-600/[0.05] transition-all flex items-center justify-between group">
-                            <div className="min-w-0">
-                              <p className="text-[11px] font-black uppercase tracking-tight text-white truncate pr-16">{preset.name}</p>
-                              <div className="flex items-center gap-2 mt-1">
-                                <span className="text-[7px] font-bold text-slate-500 uppercase tracking-widest">{preset.branch}</span>
-                                <span className="w-1 h-1 bg-white/10 rounded-full" />
-                                <span className="text-[7px] font-bold text-orange-500 uppercase tracking-widest">{preset.section}</span>
-                              </div>
-                            </div>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4 text-white/10 group-hover:text-orange-600 transition-colors flex-shrink-0"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                          </button>
-                          {userProfile?.is_admin && (
-                            <div className="absolute top-4 right-12 flex gap-2 opacity-0 group-hover/card:opacity-100 transition-opacity">
-                              <button onClick={(e) => handleAdminEdit(preset, e)} className="p-2 bg-black border border-white/10 rounded-xl text-orange-500 hover:text-white hover:bg-orange-600 transition-all border-none shadow-xl" title="Admin Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-                              <button onClick={(e) => handleAdminDelete(preset.id, e)} className="p-2 bg-black border border-white/10 rounded-xl text-red-500 hover:text-white hover:bg-red-600 transition-all border-none shadow-xl" title="Admin Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                 </section>
-               )}
-
-               <div className="pt-8 border-t border-white/5 flex-shrink-0">
-                  <button 
-                    onClick={() => { setShowPresetsModal(false); setShowUploadModal(true); }}
-                    className="w-full py-5 bg-white/5 border border-white/10 rounded-3xl text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-white hover:border-orange-500 transition-all"
-                  >
-                    Custom Upload via AI Assistant
-                  </button>
-               </div>
+              <div className="pt-8 border-t border-white/5 flex-shrink-0">
+                <button
+                  onClick={() => { setShowPresetsModal(false); setShowUploadModal(true); }}
+                  className="w-full py-5 bg-white/5 border border-white/10 rounded-3xl text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-white hover:border-orange-500 transition-all"
+                >
+                  Custom Upload via AI Assistant
+                </button>
+              </div>
             </div>
           </div>
         </div>

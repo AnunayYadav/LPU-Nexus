@@ -35,7 +35,7 @@ const HelpSection: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-fade-in pb-20">
-       <header className="mb-10">
+      <header className="mb-10">
         <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2 tracking-tighter uppercase">
           Knowledge Base
         </h2>
@@ -62,22 +62,22 @@ const HelpSection: React.FC = () => {
           </div>
         ))}
       </div>
-      
-      <div className="mt-12 p-10 bg-black border border-white/5 rounded-[40px] text-center shadow-2xl relative overflow-hidden group">
+
+      <div className="mt-12 p-10 bg-slate-900 dark:bg-black border border-slate-800 dark:border-white/5 rounded-[40px] text-center shadow-2xl relative overflow-hidden group">
         <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none transition-transform duration-1000 group-hover:scale-110">
-            <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-                <path d="M0 100 C 20 0 50 0 100 100 Z" fill="white" />
-            </svg>
+          <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <path d="M0 100 C 20 0 50 0 100 100 Z" fill="white" />
+          </svg>
         </div>
         <h3 className="text-white text-2xl font-black mb-4 relative z-10 uppercase tracking-tight">Still have questions?</h3>
         <p className="text-slate-400 mb-8 max-w-md mx-auto relative z-10 text-sm font-medium">Our student support team is ready to help you navigate through your campus journey.</p>
-        <a 
-          href="https://mail.google.com/mail/?view=cm&fs=1&to=anunayarvind@gmail.com&su=LPU-Nexus%20Support%20Request" 
+        <a
+          href="https://mail.google.com/mail/?view=cm&fs=1&to=anunayarvind@gmail.com&su=LPU-Nexus%20Support%20Request"
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center space-x-3 bg-white text-black px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-orange-500 hover:text-white hover:scale-105 active:scale-95 transition-all shadow-xl relative z-10"
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
           <span>Get Direct Help</span>
         </a>
       </div>
