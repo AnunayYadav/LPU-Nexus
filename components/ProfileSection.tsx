@@ -130,9 +130,9 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ userProfile, setUserPro
           onClick={() => fileInputRef.current?.click()}
           className="relative group cursor-pointer"
         >
-          <div className="w-36 h-36 rounded-[48px] bg-gradient-to-tr from-orange-600 to-red-600 p-[3px] shadow-[0_32px_64px_rgba(234,88,12,0.2)] transition-all duration-500 group-hover:scale-105 group-hover:rotate-3 active:scale-95">
-            <div className="w-full h-full bg-[#0a0a0a] rounded-[45px] p-[2px]">
-              <div className="w-full h-full bg-[#0a0a0a] rounded-[43px] flex items-center justify-center overflow-hidden relative">
+          <div className="w-36 h-36 rounded-full bg-gradient-to-tr from-orange-600 to-red-600 p-[3px] shadow-[0_32px_64px_rgba(234,88,12,0.2)] transition-all duration-500 group-hover:scale-105 group-hover:rotate-3 active:scale-95">
+            <div className="w-full h-full bg-[#0a0a0a] rounded-full p-[2px]">
+              <div className="w-full h-full bg-[#0a0a0a] rounded-full flex items-center justify-center overflow-hidden relative">
                 {userProfile.avatar_url ? (
                   <img src={userProfile.avatar_url} alt="Profile" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                 ) : (
@@ -151,7 +151,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ userProfile, setUserPro
               </div>
             </div>
           </div>
-          <div className="absolute -bottom-2 -right-2 bg-orange-600 w-10 h-10 rounded-2xl border-4 border-[#0a0a0a] flex items-center justify-center shadow-2xl group-hover:bg-orange-500 transition-colors z-30">
+          <div className="absolute -bottom-2 -right-2 bg-orange-600 w-10 h-10 rounded-full border-4 border-[#0a0a0a] flex items-center justify-center shadow-2xl group-hover:bg-orange-500 transition-colors z-30">
             <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" className="w-5 h-5"><path d="M12 5v14M5 12h14" /></svg>
           </div>
           <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleAvatarUpload} />
