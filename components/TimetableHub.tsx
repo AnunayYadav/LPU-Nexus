@@ -408,7 +408,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2 tracking-tighter">
-            Timetable Hub
+            Timetable <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600">Hub</span>
           </h2>
           <p className="text-slate-600 dark:text-slate-400 font-medium text-sm">Organize your classes and find time to meet with friends.</p>
         </div>
@@ -506,7 +506,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
                   {commonBreaks.map((b, i) => (
                     <div key={i} className="p-4 bg-white/10 rounded-2xl border border-white/10 backdrop-blur-sm">
                       <div className="flex justify-between items-center mb-1">
-                        <p className="text-[10px] font-black uppercase tracking-widest">Nexus Sync</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest">Common Break</p>
                         <span className="text-[8px] font-bold opacity-50">{b.duration} mins</span>
                       </div>
                       <p className="text-lg font-black tracking-tight">{b.start} — {b.end}</p>
@@ -617,8 +617,8 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
               <div className="w-16 h-16 bg-orange-600/10 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-orange-600/20">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-8 h-8 text-orange-600"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
               </div>
-              <h3 className="text-3xl font-black tracking-tighter uppercase text-slate-800 dark:text-white">{editingPresetId ? 'Edit Preset' : 'Extraction Successful'}</h3>
-              <p className="text-slate-500 text-[9px] font-black uppercase tracking-widest">{editingPresetId ? 'Admin Authority: Metadata Override' : 'Finalize timetable details for the Hub'}</p>
+              <h3 className="text-3xl font-black tracking-tighter uppercase text-slate-800 dark:text-white">{editingPresetId ? 'Edit Preset' : 'Scan Successful'}</h3>
+              <p className="text-slate-500 text-[9px] font-black uppercase tracking-widest">{editingPresetId ? 'Update details' : 'Check your timetable details'}</p>
             </div>
             <div className="p-10 pt-0 grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -664,7 +664,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
               <div className="w-16 h-16 bg-orange-600/10 rounded-[28px] flex items-center justify-center mx-auto mb-6 border border-orange-600/20">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-8 h-8 text-orange-600"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
               </div>
-              <h3 className="text-3xl font-black tracking-tighter uppercase text-white">AI Assistant</h3>
+              <h3 className="text-3xl font-black tracking-tighter uppercase text-white">Upload Timetable</h3>
               <p className="text-white/40 text-[9px] font-black mt-2 uppercase tracking-widest">Upload timetable screenshots for {targetForAction === 'me' ? (myTimetable?.ownerName || 'Your Profile') : 'New Connection'}</p>
             </div>
             <div className="p-10 space-y-6">
@@ -756,7 +756,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
                   onClick={() => { setShowPresetsModal(false); setShowUploadModal(true); }}
                   className="w-full py-5 bg-white/5 border border-white/10 rounded-3xl text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-white hover:border-orange-500 transition-all"
                 >
-                  Custom Upload via AI Assistant
+                  Upload Timetable Screenshots
                 </button>
               </div>
             </div>

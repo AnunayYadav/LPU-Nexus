@@ -73,13 +73,12 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ userProfile, setUserPro
         await NexusServer.saveRecord(userProfile.id, 'username_change', `Changed to ${form.username}`, { username: form.username });
       }
 
-      setUserProfile({ ...userProfile, ...form });
-      setMessage({ text: "Profile protocol synchronized.", type: 'success' });
+      setMessage({ text: "Profile updated.", type: 'success' });
       fetchHistory();
       setTimeout(() => setMessage(null), 3000);
     } catch (e: any) {
       console.error('Update Error:', e);
-      let errorMsg = 'Failed to synchronize identity terminal.';
+      let errorMsg = 'Failed to update profile.';
 
       if (e.message?.includes('unique_registration_number') || e.code === '23505') {
         errorMsg = 'This Registration Number is already in use by another student.';
@@ -101,7 +100,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ userProfile, setUserPro
     try {
       const url = await NexusServer.uploadAvatar(userProfile.id, file);
       setUserProfile({ ...userProfile, avatar_url: url });
-      setMessage({ text: "Identity visual updated.", type: 'success' });
+      setMessage({ text: "Profile picture updated.", type: 'success' });
     } catch (err: any) {
       setMessage({ text: "Upload failed: " + err.message, type: 'error' });
     } finally {
@@ -113,7 +112,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ userProfile, setUserPro
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
         <h2 className="text-2xl font-black dark:text-white uppercase tracking-tighter mb-2">Access Denied</h2>
-        <p className="text-slate-500 text-sm mb-8">Authenticate to manage your Verto identity.</p>
+        <p className="text-slate-500 text-sm mb-8">Sign in to manage your profile.</p>
         <button onClick={() => navigateToModule(ModuleType.DASHBOARD)} className="bg-black text-orange-600 px-10 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all shadow-xl border-none">Return Home</button>
       </div>
     );
@@ -167,7 +166,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ userProfile, setUserPro
       </header>
 
       <div className="relative group/panel">
-        <div className="absolute inset-0 bg-gradient-to-r from-orange-600/5 to-red-600/5 rounded-[48px] blur-3xl opacity-0 group-hover/panel:opacity-100 transition-opacity" />
+        <div className="absolute inset-0 bg-gradient-to-r from-orange-500/5 to-red-600/5 rounded-[48px] blur-3xl opacity-0 group-hover/panel:opacity-100 transition-opacity" />
         <div className="glass-panel p-10 rounded-[48px] border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0a0a0a] shadow-[0_32px_128px_rgba(0,0,0,0.5)] relative z-10 space-y-10 overflow-hidden">
 
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-8">
@@ -176,8 +175,8 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ userProfile, setUserPro
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-6 h-6 text-orange-600"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
               </div>
               <div>
-                <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-orange-600 mb-1 leading-none">Global Discovery</h3>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Registry Visibility Protocol</p>
+                <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-orange-600 mb-1 leading-none">Public Discovery</h3>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Profile Privacy Settings</p>
               </div>
             </div>
             <button
@@ -191,7 +190,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ userProfile, setUserPro
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-6">
               <div>
-                <label className="block text-[10px] font-black uppercase text-slate-400 mb-3 ml-1 tracking-widest opacity-60">Identity Alias</label>
+                <label className="block text-[10px] font-black uppercase text-slate-400 mb-3 ml-1 tracking-widest opacity-60">Username</label>
                 <div className="relative group/input">
                   <span className="absolute left-5 top-1/2 -translate-y-1/2 text-orange-600 font-black tracking-tighter text-lg">@</span>
                   <input
@@ -207,7 +206,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ userProfile, setUserPro
                       <div key={i} className={`w-3 h-1 rounded-full ${i <= recentChanges.length ? 'bg-red-500' : 'bg-orange-600/20'}`} />
                     ))}
                   </div>
-                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Shift Protocol {recentChanges.length}/2</p>
+                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Changes {recentChanges.length}/2</p>
                 </div>
               </div>
 
@@ -235,7 +234,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ userProfile, setUserPro
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-400 mb-3 ml-1 tracking-widest opacity-60">Cycle</label>
+                  <label className="block text-[10px] font-black uppercase text-slate-400 mb-3 ml-1 tracking-widest opacity-60">Batch</label>
                   <input
                     type="text" value={form.batch} placeholder="2024-28"
                     onChange={(e) => setForm({ ...form, batch: e.target.value })}
@@ -245,11 +244,11 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ userProfile, setUserPro
               </div>
 
               <div>
-                <label className="block text-[10px] font-black uppercase text-slate-400 mb-3 ml-1 tracking-widest opacity-60">Digital Bio</label>
+                <label className="block text-[10px] font-black uppercase text-slate-400 mb-3 ml-1 tracking-widest opacity-60">About Me</label>
                 <div className="relative">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="absolute left-5 top-5 w-4 h-4 text-slate-500"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
                   <textarea
-                    value={form.bio} placeholder="Initialize your status..."
+                    value={form.bio} placeholder="Tell us about yourself..."
                     onChange={(e) => setForm({ ...form, bio: e.target.value })}
                     className="w-full bg-slate-50 dark:bg-black/60 pl-14 pr-5 py-5 rounded-[24px] text-sm font-bold border border-transparent focus:border-orange-600/30 focus:ring-4 focus:ring-orange-600/5 outline-none dark:text-white transition-all shadow-inner h-[116px] resize-none"
                   />
@@ -269,10 +268,10 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ userProfile, setUserPro
 
           <button
             onClick={handleUpdate} disabled={isUpdating}
-            className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:scale-[1.01] text-white py-6 rounded-[30px] font-black text-xs uppercase tracking-[0.3em] shadow-[0_20px_50px_rgba(234,88,12,0.3)] active:scale-95 transition-all disabled:opacity-50 border-none group/btn relative overflow-hidden"
+            className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:scale-[1.01] text-white py-6 rounded-[30px] font-black text-xs uppercase tracking-[0.3em] shadow-[0_20px_50px_rgba(234,88,12,0.3)] active:scale-95 transition-all disabled:opacity-50 border-none group/btn relative overflow-hidden"
           >
             <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300" />
-            <span className="relative z-10">{isUpdating ? 'Transmitting Data...' : 'Synchronize Identity Terminal'}</span>
+            <span className="relative z-10">{isUpdating ? 'Saving Data...' : 'Save Profile Changes'}</span>
           </button>
         </div>
       </div>
@@ -283,7 +282,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ userProfile, setUserPro
           className="group px-8 py-4 text-red-500/40 hover:text-red-500 font-black text-[10px] uppercase tracking-[0.3em] transition-all flex items-center gap-3 border border-red-500/10 hover:border-red-500/30 rounded-full bg-transparent"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4 transition-transform group-hover:rotate-12"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
-          De-authenticate Neural Session
+          Logout
         </button>
       </div>
     </div>

@@ -232,7 +232,7 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
       <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2 tracking-tighter">
-            SGPA & CGPA Hub
+            SGPA & CGPA <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600">Hub</span>
           </h2>
           <p className="text-slate-600 dark:text-slate-400 font-medium text-sm">Precision SGPA & CGPA forecasting based on LPU standards.</p>
         </div>
@@ -523,7 +523,7 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
                 btn.innerText = "COPIED!";
                 setTimeout(() => { if (btn) btn.innerText = originalText; }, 2000);
               }}
-              className="w-full py-5 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-[24px] font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-orange-600/20 active:scale-95 transition-all border-none"
+              className="w-full py-5 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-[24px] font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-orange-600/20 active:scale-95 transition-all border-none"
             >
               Copy Link
             </button>

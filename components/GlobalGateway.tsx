@@ -39,15 +39,15 @@ const GlobalGateway: React.FC = () => {
   const handleSearch = async (overrideQuery?: string) => {
     const finalQuery = overrideQuery || query;
     if (!finalQuery.trim()) return;
-    
+
     setLoading(true);
     setError(null);
     setResponse('');
     setChunks([]);
-    setLoadingPhase('Connecting to Global Servers...');
-    
-    setTimeout(() => setLoadingPhase('Grounding with Live Web Data...'), 1500);
-    setTimeout(() => setLoadingPhase('Synthesizing Opportunities...'), 3500);
+    setLoadingPhase('Searching globally...');
+
+    setTimeout(() => setLoadingPhase('Getting latest info...'), 1500);
+    setTimeout(() => setLoadingPhase('Finding opportunities...'), 3500);
 
     try {
       const data = await searchGlobalOpportunities(finalQuery);
@@ -57,7 +57,7 @@ const GlobalGateway: React.FC = () => {
       }
     } catch (e: any) {
       console.error("Global Gateway Component Error:", e);
-      setError(e.message || "The Gateway is temporarily congested. Please try again in a few moments.");
+      setError(e.message || "The system is temporarily busy. Please try again in a few moments.");
     } finally {
       setLoading(false);
       setLoadingPhase('');
@@ -79,9 +79,9 @@ const GlobalGateway: React.FC = () => {
       <div className="space-y-4">
         <div className="glass-panel p-2 rounded-3xl flex flex-col md:flex-row shadow-2xl shadow-emerald-500/10 dark:shadow-emerald-900/40 bg-white dark:bg-black border dark:border-white/5 overflow-hidden">
           <div className="flex-1 flex items-center px-4">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5 text-emerald-500 mr-3 opacity-50"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-            <input 
-              type="text" 
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5 text-emerald-500 mr-3 opacity-50"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
+            <input
+              type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -89,12 +89,12 @@ const GlobalGateway: React.FC = () => {
               className="w-full bg-transparent border-none text-base md:text-lg py-4 md:py-5 text-slate-800 dark:text-white focus:ring-0 placeholder-slate-400 font-bold outline-none"
             />
           </div>
-          <button 
+          <button
             onClick={() => handleSearch()}
             disabled={loading || !query.trim()}
             className="bg-emerald-600 hover:bg-emerald-700 text-white px-10 py-4 md:py-0 rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-95 shadow-xl shadow-emerald-600/20 disabled:opacity-50"
           >
-            {loading ? 'SCRIBING...' : 'EXPLORE'}
+            {loading ? 'SEARCHING...' : 'EXPLORE'}
           </button>
         </div>
 
@@ -114,14 +114,14 @@ const GlobalGateway: React.FC = () => {
 
       {error && (
         <div className="p-8 bg-amber-500/5 border border-amber-500/20 rounded-[40px] text-center space-y-4 animate-fade-in max-w-2xl mx-auto shadow-xl shadow-amber-500/5">
-           <div className="w-14 h-14 bg-amber-500/10 rounded-3xl flex items-center justify-center mx-auto text-amber-500">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-7 h-7"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-           </div>
-           <div className="space-y-1">
-              <h4 className="text-xs font-black uppercase text-amber-600 tracking-[0.2em]">Transmission Delayed</h4>
-              <p className="text-sm font-medium text-slate-600 dark:text-slate-400 leading-relaxed italic">"{error}"</p>
-           </div>
-           <button onClick={() => handleSearch()} className="px-8 py-2.5 bg-amber-600 text-white rounded-xl font-black text-[9px] uppercase tracking-widest shadow-lg active:scale-95 transition-all border-none">Retry Scouting</button>
+          <div className="w-14 h-14 bg-amber-500/10 rounded-3xl flex items-center justify-center mx-auto text-amber-500">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-7 h-7"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+          </div>
+          <div className="space-y-1">
+            <h4 className="text-xs font-black uppercase text-amber-600 tracking-[0.2em]">Search Error</h4>
+            <p className="text-sm font-medium text-slate-600 dark:text-slate-400 leading-relaxed italic">"{error}"</p>
+          </div>
+          <button onClick={() => handleSearch()} className="px-8 py-2.5 bg-amber-600 text-white rounded-xl font-black text-[9px] uppercase tracking-widest shadow-lg active:scale-95 transition-all border-none">Try Search Again</button>
         </div>
       )}
 
@@ -140,36 +140,36 @@ const GlobalGateway: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-8 animate-fade-in">
-               <div className="prose dark:prose-invert max-w-none">
-                 <div className="whitespace-pre-wrap leading-relaxed text-slate-800 dark:text-slate-200 font-medium text-base md:text-lg">
-                   {response}
-                 </div>
-               </div>
+              <div className="prose dark:prose-invert max-w-none">
+                <div className="whitespace-pre-wrap leading-relaxed text-slate-800 dark:text-slate-200 font-medium text-base md:text-lg">
+                  {response}
+                </div>
+              </div>
 
-               {chunks.length > 0 && (
-                 <div className="mt-12 pt-8 border-t border-slate-100 dark:border-white/5">
-                   <header className="flex items-center justify-between mb-6">
-                     <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Verified Intelligence Sources</h4>
-                     <span className="text-[8px] bg-slate-100 dark:bg-white/5 px-2 py-1 rounded text-slate-400 font-black uppercase tracking-widest">Sync Match</span>
-                   </header>
-                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                     {chunks.map((chunk, idx) => chunk.web?.uri && (
-                       <a 
-                        key={idx} 
-                        href={chunk.web.uri} 
-                        target="_blank" 
+              {chunks.length > 0 && (
+                <div className="mt-12 pt-8 border-t border-slate-100 dark:border-white/5">
+                  <header className="flex items-center justify-between mb-6">
+                    <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Official Sources</h4>
+                    <span className="text-[8px] bg-slate-100 dark:bg-white/5 px-2 py-1 rounded text-slate-400 font-black uppercase tracking-widest">Direct Link</span>
+                  </header>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {chunks.map((chunk, idx) => chunk.web?.uri && (
+                      <a
+                        key={idx}
+                        href={chunk.web.uri}
+                        target="_blank"
                         rel="noreferrer"
                         className="flex items-center p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl hover:bg-emerald-600 hover:text-white transition-all group shadow-sm"
-                       >
-                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4 mr-3 flex-shrink-0 opacity-40 group-hover:opacity-100"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-                         <span className="text-[10px] font-black uppercase tracking-widest truncate">
-                           {chunk.web.title || chunk.web.uri}
-                         </span>
-                       </a>
-                     ))}
-                   </div>
-                 </div>
-               )}
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4 mr-3 flex-shrink-0 opacity-40 group-hover:opacity-100"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
+                        <span className="text-[10px] font-black uppercase tracking-widest truncate">
+                          {chunk.web.title || chunk.web.uri}
+                        </span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
           <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-emerald-500/5 blur-[60px] rounded-full pointer-events-none"></div>

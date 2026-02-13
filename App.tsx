@@ -55,6 +55,68 @@ const getPathFromModule = (module: ModuleType): string => {
   }
 };
 
+const DashboardHero: React.FC<{ navigate: (p: string) => void }> = ({ navigate }) => {
+  return (
+    <div className="relative overflow-hidden bg-slate-50 dark:bg-black p-8 md:p-16 mb-0 shadow-[0_40px_100px_rgba(0,0,0,0.1)] dark:shadow-[0_40px_100px_rgba(0,0,0,0.4)] group/hero transition-colors duration-500">
+      {/* Background Blobs */}
+      <div className="absolute w-[500px] h-[500px] bg-orange-600/20 blur-[100px] -top-40 -right-40 group-hover/hero:scale-110 transition-transform duration-1000 animate-blob-bounce rounded-full pointer-events-none" />
+      <div className="absolute w-[400px] h-[400px] bg-yellow-600/10 blur-[100px] bottom-0 left-0 group-hover/hero:scale-110 transition-transform duration-1000 animate-blob-bounce rounded-full pointer-events-none" />
+
+      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-12 items-center">
+        <div className="space-y-8 max-w-xl animate-fade-in">
+          <div className="space-y-6">
+            <h2 className="text-4xl sm:text-5xl lg:text-4xl xl:text-7xl font-black text-slate-900 dark:text-white tracking-tighter leading-[0.95]">
+              Your LPU <br />
+              Journey, <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600">Simplified.</span>
+            </h2>
+            <p className="text-slate-600 dark:text-slate-400 text-sm md:text-lg font-medium leading-relaxed">
+              Master your academics with AI-powered quiz generation, precision CGPA tracking, and seamless
+              schedule synchronization. LPU-Nexus is your central command for study resources,
+              placement prep, and campus intelligence—engineered for excellence.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-4 pt-6">
+            <button
+              onClick={() => navigate('/library')}
+              className="relative overflow-hidden px-10 py-5 bg-gradient-to-r from-orange-500 to-red-600 hover:scale-[1.05] active:scale-95 transition-all rounded-[28px] text-white font-black text-[11px] uppercase tracking-[0.2em] flex items-center gap-3 shadow-[0_20px_50px_rgba(234,88,12,0.4)] border-none group/btn cursor-pointer"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-shimmer" />
+              <span>Explore Library</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4 group-hover:translate-x-1 transition-transform"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Right side Visuals */}
+        <div className="hidden lg:flex relative justify-center items-center h-[400px] xl:h-[500px]">
+          {/* Laptop Image (Center) */}
+          <div className="relative z-20 w-64 xl:w-96 animate-float drop-shadow-[0_0_50px_rgba(249,115,22,0.3)]">
+            <img src="/lap.png" alt="LPU Nexus" className="w-full h-auto drop-shadow-[0_0_30px_rgba(249,115,22,0.5)]" />
+          </div>
+
+          {/* Note Image (Top Left of Laptop) */}
+          <div className="absolute top-4 -left-8 xl:top-8 xl:-left-12 w-24 xl:w-40 animate-float-delayed z-30">
+            <img src="/note.png" alt="Notes" className="w-full h-auto drop-shadow-[0_0_40px_rgba(249,115,22,0.4)]" />
+          </div>
+
+          {/* Certificate Image (Bottom Right of Laptop) */}
+          <div className="absolute bottom-12 right-4 xl:bottom-16 xl:right-8 w-28 xl:w-48 animate-float-delayed z-10">
+            <img src="/certificate.png" alt="Certificate" className="w-full h-auto drop-shadow-[0_0_50px_rgba(249,115,22,0.6)]" />
+          </div>
+
+          {/* Particles/Stars */}
+          <div className="absolute w-2 h-2 bg-yellow-400 rounded-full top-10 left-32 animate-pulse [animation-duration:3s]" />
+          <div className="absolute w-3 h-3 bg-orange-600/30 rounded-full bottom-32 left-10 animate-float" />
+          <div className="absolute w-1.5 h-1.5 bg-white rounded-full top-48 right-12 animate-pulse [animation-duration:2s]" />
+          <div className="absolute w-1 h-1 bg-white rounded-full bottom-10 left-1/2 animate-pulse [animation-duration:4s]" />
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const cards = [
@@ -133,39 +195,8 @@ const Dashboard: React.FC = () => {
   ];
 
   return (
-    <div className="max-w-6xl mx-auto animate-fade-in pb-20 px-4">
-      <div className="mb-10 text-center py-10">
-        <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-4 tracking-tighter">
-          Welcome to <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600">LPU-Nexus</span>
-        </h2>
-        <p className="text-slate-600 dark:text-slate-400 text-lg md:text-xl font-medium">Your AI-Powered Campus Assistant</p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {cards.map(card => (
-          <div
-            key={card.id}
-            onClick={() => navigate(card.path)}
-            className="group glass-panel relative p-8 rounded-[40px] border-slate-200 dark:border-white/5 transition-all cursor-pointer hover:shadow-[0_20px_50px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_20px_100px_rgba(234,88,12,0.15)] hover:border-orange-500/30 overflow-hidden flex flex-col"
-          >
-            <div className={`absolute -right-10 -bottom-10 w-40 h-40 bg-gradient-to-br ${card.color} blur-[60px] opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-            <div className="absolute -right-4 -bottom-4 w-32 h-32 text-slate-100 dark:text-white/[0.03] transform rotate-12 group-hover:rotate-6 group-hover:scale-110 transition-all duration-700 pointer-events-none">
-              {card.icon}
-            </div>
-            <div className="relative z-10">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-950 flex items-center justify-center text-slate-400 dark:text-slate-500 group-hover:text-orange-500 group-hover:bg-orange-500/10 transition-all duration-300">
-                  <div className="w-5 h-5">{card.icon}</div>
-                </div>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white tracking-tighter leading-none group-hover:text-orange-600 transition-colors">
-                  {card.title}
-                </h3>
-              </div>
-              <p className="text-slate-500 dark:text-slate-400 text-sm font-bold leading-relaxed max-w-[90%]">{card.desc}</p>
-            </div>
-          </div>
-        ))}
-      </div>
+    <div className="w-full h-full">
+      <DashboardHero navigate={navigate} />
     </div>
   );
 };
@@ -189,9 +220,9 @@ const RegistrationPrompt: React.FC<{ userProfile: UserProfile, onComplete: (prof
     } catch (e: any) {
       // Check for Supabase Unique Constraint Violation (Error Code 23505)
       if (e.message?.includes('unique_registration_number') || e.code === '23505') {
-        setError("This Registration Number is already associated with another identity.");
+        setError("This Registration Number is already in use.");
       } else {
-        setError(e.message || "Failed to establish identity registration.");
+        setError(e.message || "Failed to register profile.");
       }
     } finally {
       setLoading(false);
@@ -226,7 +257,7 @@ const RegistrationPrompt: React.FC<{ userProfile: UserProfile, onComplete: (prof
 
           <button
             type="submit" disabled={loading || regNo.length < 8}
-            className="w-full bg-gradient-to-r from-orange-600 to-red-600 text-white py-5 rounded-[24px] font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-orange-600/20 active:scale-95 transition-all disabled:opacity-50 border-none"
+            className="w-full bg-gradient-to-r from-orange-500 to-red-600 text-white py-5 rounded-[24px] font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-orange-600/20 active:scale-95 transition-all disabled:opacity-50 border-none"
           >
             {loading ? 'Synchronizing...' : 'Authorize Signature'}
           </button>
@@ -352,8 +383,8 @@ const AppContent: React.FC = () => {
             </div>
           </div>
         </div>
-        <div id="main-content-area" className="flex-1 overflow-y-auto relative scroll-smooth p-4 md:p-8 bg-white dark:bg-black">
-          <div className="relative z-0 max-w-7xl mx-auto">
+        <div id="main-content-area" className={`flex-1 overflow-y-auto relative scroll-smooth ${location.pathname === '/' ? 'p-0' : 'p-4 md:p-8'} bg-white dark:bg-black`}>
+          <div className={`relative z-0 ${location.pathname === '/' ? 'w-full' : 'max-w-7xl mx-auto'}`}>
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/placement" element={<PlacementPrefect userProfile={userProfile} />} />

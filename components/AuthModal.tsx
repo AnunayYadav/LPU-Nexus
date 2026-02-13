@@ -210,7 +210,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
 
           <button
             type="submit" disabled={loading || (!isLogin && usernameStatus === 'taken')}
-            className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:scale-[1.02] text-white py-4 md:py-5 rounded-3xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-orange-600/20 active:scale-95 transition-all disabled:opacity-50 mt-4 flex items-center justify-center gap-3 border-none"
+            className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:scale-[1.02] text-white py-4 md:py-5 rounded-3xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-orange-600/20 active:scale-95 transition-all disabled:opacity-50 mt-4 flex items-center justify-center gap-3 border-none"
           >
             {loading ? (
               <div className="w-5 h-5 border-3 border-white/50 border-t-white rounded-full animate-spin" />

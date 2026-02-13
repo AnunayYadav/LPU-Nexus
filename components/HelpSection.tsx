@@ -36,9 +36,7 @@ const HelpSection: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-fade-in pb-20">
       <header className="mb-10">
-        <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2 tracking-tighter uppercase">
-          Knowledge Base
-        </h2>
+        <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2 tracking-tighter">Knowledge <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600">Base</span></h2>
         <p className="text-slate-600 dark:text-slate-400 text-lg font-medium leading-relaxed">Master the LPU-Nexus ecosystem with verified intel.</p>
       </header>
 

@@ -20,10 +20,10 @@ const INDUSTRY_ROLES = [
 ];
 
 const CATEGORIES = [
-  { id: 'keywordAnalysis', label: 'Keyword Review' },
+  { id: 'keywordAnalysis', label: 'Skills Check' },
   { id: 'jobFit', label: 'Job Matching' },
   { id: 'achievements', label: 'Impact & Results' },
-  { id: 'formatting', label: 'ATS & Layout' },
+  { id: 'formatting', label: 'ATS Friendly' },
   { id: 'language', label: 'Tone & Phrasing' },
   { id: 'branding', label: 'Personal Summary' }
 ] as const;
@@ -59,7 +59,7 @@ const ScoreAura = ({ score, label }: { score: number; label: string }) => {
         <defs>
           <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#f97316" />
-            <stop offset="100%" stopColor="#ef4444" />
+            <stop offset="100%" stopColor="#dc2626" />
           </linearGradient>
         </defs>
       </svg>
@@ -330,7 +330,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
   return (
     <div className="max-w-4xl mx-auto space-y-12 animate-fade-in pb-20 px-4 md:px-0">
       <header className="text-center space-y-4">
-        <h2 className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none">Resume Helper</h2>
+        <h2 className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter leading-none">Placement <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600">Prefect</span></h2>
         <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-[10px]">Get AI Feedback to help your placement prep</p>
       </header>
 
@@ -340,7 +340,7 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
           </div>
           <div className="space-y-1">
-            <h4 className="text-sm font-black uppercase text-red-500 tracking-widest">Analysis Protocol Interrupted</h4>
+            <h4 className="text-sm font-black uppercase text-red-500 tracking-widest">Analysis Error</h4>
             <p className="text-sm font-medium text-slate-600 dark:text-slate-400 leading-relaxed max-w-md mx-auto">{error}</p>
           </div>
           <button onClick={() => setError(null)} className="px-6 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-600 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all border-none">Acknowledge</button>
@@ -400,13 +400,13 @@ const PlacementPrefect: React.FC<PlacementPrefectProps> = ({ userProfile }) => {
           >
             <div className={`w-3 h-3 rounded-full transition-all ${deepAnalysis ? 'bg-white' : 'bg-slate-400 group-hover:bg-red-500'}`} />
             <div className="text-left">
-              <span className={`text-[9px] font-black uppercase tracking-widest block ${deepAnalysis ? 'text-white' : 'text-slate-400 group-hover:text-red-500'}`}>Strict Review</span>
+              <span className={`text-[9px] font-black uppercase tracking-widest block ${deepAnalysis ? 'text-white' : 'text-slate-400 group-hover:text-red-500'}`}>Detailed Review</span>
             </div>
           </button>
           <button
             onClick={handleAnalyze}
             disabled={!resumeText || !jdText || loading}
-            className="w-full md:w-auto px-12 py-4 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] shadow-2xl shadow-orange-600/30 hover:scale-[1.03] active:scale-95 transition-all border-none disabled:opacity-30"
+            className="flex-1 py-4 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-[24px] font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-orange-600/20 active:scale-95 transition-all flex items-center justify-center gap-2 border-none disabled:opacity-50"
           >
             Analyze Resume
           </button>

@@ -378,7 +378,7 @@ const QuizTaker: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
   return (
     <div className="max-w-4xl mx-auto space-y-12 animate-fade-in pb-20 px-4 md:px-0">
       <header className="text-center space-y-4">
-        <h2 className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none">Quiz Taker</h2>
+        <h2 className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter leading-none">Quiz <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600">Taker</span></h2>
         <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-[10px]">AI-Generated Practice Questions from Your Syllabus</p>
       </header>
 
@@ -428,7 +428,7 @@ const QuizTaker: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
               ))}
             </div>
             <div className="pt-6 border-t border-slate-100 dark:border-white/5">
-              <button onClick={handleGenerate} disabled={!selectedSubject || selectedUnits.length === 0} className="w-full py-5 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.3em] shadow-2xl shadow-orange-600/30 hover:scale-[1.02] active:scale-95 disabled:opacity-30 transition-all border-none">Generate My Quiz</button>
+              <button onClick={handleGenerate} disabled={!selectedSubject || selectedUnits.length === 0} className="flex-[2] py-4 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-[24px] font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-orange-600/20 active:scale-95 transition-all flex items-center justify-center gap-3 border-none disabled:opacity-50">Generate My Quiz</button>
             </div>
           </div>
         </div>

@@ -124,7 +124,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </div>
                 <div>
                   <h3 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none mb-2">Success!</h3>
-                  <p className="text-slate-500 font-bold text-[10px] uppercase tracking-widest">Your feedback is now in the Nexus vault.</p>
+                  <p className="text-slate-500 font-bold text-[10px] uppercase tracking-widest">Your feedback has been received.</p>
                 </div>
               </div>
             ) : (
@@ -157,14 +157,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                   <button
                     onClick={submitFeedback}
                     disabled={isSubmitting || !feedbackText.trim()}
-                    className="flex-[2] py-4 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-[24px] font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-orange-600/20 active:scale-95 transition-all flex items-center justify-center gap-3 border-none disabled:opacity-50"
+                    className="flex-[2] py-4 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-[24px] font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-orange-600/20 active:scale-95 transition-all flex items-center justify-center gap-3 border-none disabled:opacity-50"
                   >
                     {isSubmitting ? (
                       <div className="w-4 h-4 border-3 border-white border-t-transparent rounded-full animate-spin" />
                     ) : (
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><line x1="22" y1="2" x2="11" y2="13" /><polyline points="22 2 15 22 11 13 2 9 22 2" /></svg>
                     )}
-                    <span>{isSubmitting ? 'Transmitting...' : 'Submit Intel'}</span>
+                    <span>{isSubmitting ? 'Sending...' : 'Submit Feedback'}</span>
                   </button>
                 </div>
               </>

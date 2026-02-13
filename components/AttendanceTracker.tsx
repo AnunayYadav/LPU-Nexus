@@ -222,8 +222,8 @@ const AttendanceTracker: React.FC = () => {
     <div className="max-w-5xl mx-auto space-y-6 md:space-y-8 animate-fade-in pb-24 px-4 md:px-0">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6">
         <div>
-          <h2 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white mb-2 tracking-tighter uppercase">Attendance Tracker</h2>
-          <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm font-medium tracking-tight">Precision monitoring for campus compliance.</p>
+          <h2 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white mb-2 tracking-tighter">Attendance <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600">Tracker</span></h2>
+          <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm font-medium tracking-tight">Keep track of your classes and attendance.</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 md:gap-3">
@@ -250,7 +250,7 @@ const AttendanceTracker: React.FC = () => {
                   className="flex items-center space-x-2 px-4 md:px-6 py-2.5 md:py-3 bg-slate-100 dark:bg-black rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm"
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 md:w-4 h-3.5 md:h-4"><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
-                  <span>Wipe Registry</span>
+                  <span>Clear All</span>
                 </button>
               )}
             </div>
@@ -261,7 +261,7 @@ const AttendanceTracker: React.FC = () => {
             className={`flex items-center space-x-2 px-4 md:px-6 py-2.5 md:py-3 rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all shadow-sm ${showArchived ? 'bg-orange-600 text-white' : 'bg-slate-100 dark:bg-black text-slate-600 dark:text-slate-400'}`}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 md:w-4 h-3.5 md:h-4"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg>
-            <span>{showArchived ? 'Active Hub' : 'Archive Hub'}</span>
+            <span>{showArchived ? 'Active Subjects' : 'Archived'}</span>
           </button>
         </div>
       </header>
@@ -427,7 +427,7 @@ const AttendanceTracker: React.FC = () => {
                         )}
                         <button
                           onClick={(e) => handleEdit(sub, e)}
-                          title="Edit Metadata"
+                          title="Edit Subject"
                           className="p-1.5 md:p-2 text-slate-400 hover:text-orange-500 transition-colors"
                         >
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3.5 md:w-4 h-3.5 md:h-4"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
@@ -464,7 +464,7 @@ const AttendanceTracker: React.FC = () => {
         <div className="text-center py-20 md:py-24 bg-slate-50 dark:bg-white/5 rounded-[32px] md:rounded-[48px] border-4 border-dashed border-slate-200 dark:border-white/5">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="w-16 h-16 md:w-20 md:h-20 mx-auto mb-6 text-slate-200 dark:text-slate-800"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></svg>
           <p className="font-black text-slate-400 uppercase tracking-[0.3em] text-[10px] md:text-xs">
-            {showArchived ? 'Archive hub empty' : 'Nexus initialized... awaiting registry'}
+            {showArchived ? 'Archive is empty' : 'No subjects added yet.'}
           </p>
         </div>
       )}
@@ -477,7 +477,7 @@ const AttendanceTracker: React.FC = () => {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><path d="M18 6L6 18M6 6l12 12" /></svg>
               </button>
               <h3 className="text-lg md:text-xl font-black tracking-tighter uppercase leading-none mb-1">Modify Entry</h3>
-              <p className="text-white/60 text-[9px] md:text-[10px] font-black uppercase tracking-widest">Adjust registry parameters</p>
+              <p className="text-white/60 text-[9px] md:text-[10px] font-black uppercase tracking-widest">Update subject details</p>
             </div>
 
             <div className="p-6 md:p-8 space-y-4 md:space-y-6">

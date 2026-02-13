@@ -88,7 +88,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
       setFolders(folderList);
       setAllFiles(filesFromDb);
     } catch (e: any) {
-      console.error("Registry load error:", e);
+      console.error("Library load error:", e);
     } finally {
       setIsLoading(false);
     }
@@ -197,11 +197,11 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
     <div className="max-w-6xl mx-auto space-y-6 animate-fade-in pb-20 px-4 md:px-0">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-slate-800 dark:text-white tracking-tighter uppercase leading-none mb-1">
-            Library Hub
+          <h2 className="text-3xl font-bold text-slate-800 dark:text-white tracking-tighter leading-none mb-1">
+            Content <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600">Library</span> Hub
           </h2>
           {!isAdminView && !searchQuery && viewMode === 'browse' && (
-            <nav className="mt-2 flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+            <nav className="mt-2 flex flex-wrap items-center gap-2 text-[10px] font-black tracking-widest text-slate-400">
               <button onClick={() => navigateTo(null, null, null)} className="hover:text-orange-500 transition-colors border-none bg-transparent">Root</button>
               {activeSemester && <><span className="opacity-30">/</span><button onClick={() => navigateTo(activeSemester, null, null)} className={`border-none bg-transparent ${!activeSubject ? 'text-orange-600' : 'hover:text-orange-500'}`}>{activeSemester.name}</button></>}
               {activeSubject && <><span className="opacity-30">/</span><button onClick={() => navigateTo(activeSemester, activeSubject, null)} className={`border-none bg-transparent ${!activeCategory ? 'text-orange-600' : 'hover:text-orange-500'}`}>{activeSubject.name}</button></>}
@@ -224,9 +224,9 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
       <div className="flex gap-2 w-full">
         <div className="relative flex-1">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
-          <input type="text" placeholder="Filter registry..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full pl-11 pr-4 py-3 bg-white dark:bg-black border border-slate-200 dark:border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest outline-none focus:ring-2 focus:ring-orange-500 transition-all dark:text-white" />
+          <input type="text" placeholder="Filter files..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full pl-11 pr-4 py-3 bg-white dark:bg-black border border-slate-200 dark:border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest outline-none focus:ring-2 focus:ring-orange-500 transition-all dark:text-white" />
         </div>
-        <button onClick={() => fetchFromSource(true)} className="w-12 h-12 flex items-center justify-center bg-slate-100 dark:bg-black rounded-xl text-slate-400 hover:text-orange-600 transition-colors shadow-sm border-none" title="Refresh Registry"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`}><path d="M23 4v6h-6" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" /></svg></button>
+        <button onClick={() => fetchFromSource(true)} className="w-12 h-12 flex items-center justify-center bg-slate-100 dark:bg-black rounded-xl text-slate-400 hover:text-orange-600 transition-colors shadow-sm border-none" title="Refresh List"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`}><path d="M23 4v6h-6" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" /></svg></button>
       </div>
 
       {isLoading ? (
@@ -257,12 +257,12 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
               onReject={() => { if (confirm("Reject and remove this file?")) { setIsProcessing(true); NexusServer.rejectFile(file.id).then(() => fetchFromSource(false)).finally(() => setIsProcessing(false)); } }}
               onDemote={() => { if (confirm("Send this file back to pending review?")) { setIsProcessing(true); NexusServer.demoteFile(file.id).then(() => fetchFromSource(false)).finally(() => setIsProcessing(false)); } }}
               onEdit={() => { setSelectedFile(file); setMetaForm({ name: file.name, description: file.description || '', semester: file.semester, subject: file.subject, type: file.type }); setShowEditModal(true); }}
-              onDelete={() => { if (confirm("Permanently delete this file from registry?")) { setIsProcessing(true); NexusServer.deleteFile(file.id, file.storage_path).then(() => fetchFromSource(false)).finally(() => setIsProcessing(false)); } }}
+              onDelete={() => { if (confirm("Permanently delete this file?")) { setIsProcessing(true); NexusServer.deleteFile(file.id, file.storage_path).then(() => fetchFromSource(false)).finally(() => setIsProcessing(false)); } }}
               onAccess={() => NexusServer.getFileUrl(file.storage_path).then(url => window.open(url, '_blank'))}
               onShowDetails={() => { setSelectedFile(file); setShowDetailsModal(true); }}
             />
           ))}
-          {displayFiles.length === 0 && currentFolders.length === 0 && !isLoading && <div className="col-span-full py-20 text-center text-slate-400 font-black uppercase text-[10px] tracking-[0.2em] opacity-40">Empty Protocol.</div>}
+          {displayFiles.length === 0 && currentFolders.length === 0 && !isLoading && <div className="col-span-full py-20 text-center text-slate-400 font-black uppercase text-[10px] tracking-[0.2em] opacity-40">No files found.</div>}
         </div>
       )}
 
@@ -303,7 +303,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
               <div className="space-y-4">
                 <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Description</h4>
                 <p className="text-sm font-medium text-slate-300 leading-relaxed italic bg-white/5 p-6 rounded-3xl border border-white/5">
-                  {selectedFile.description || "No manual summary provided by uploader. Authenticity verified by Nexus registry protocols."}
+                  {selectedFile.description || "No description provided."}
                 </p>
               </div>
 
@@ -318,7 +318,6 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Synced</p>
                   <p className="text-xs font-black uppercase text-white">{new Date(selectedFile.uploadDate).toLocaleDateString()}</p>
                 </div>
               </div>
@@ -327,7 +326,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
             <footer className="p-8 md:p-12 bg-black border-t border-white/5 flex gap-4">
               <button onClick={() => setShowDetailsModal(false)} className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors">Discard</button>
               {selectedFile.status === 'approved' && (
-                <button onClick={() => { NexusServer.getFileUrl(selectedFile.storage_path).then(url => window.open(url, '_blank')); }} className="flex-[2] py-4 bg-orange-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition-all border-none">Access Protocol ↗</button>
+                <button onClick={() => { NexusServer.getFileUrl(selectedFile.storage_path).then(url => window.open(url, '_blank')); }} className="flex-[2] py-4 bg-orange-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition-all border-none">View Document ↗</button>
               )}
             </footer>
           </div>
@@ -340,7 +339,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
             <div className="bg-black p-6 text-white flex justify-between items-center"><h3 className="text-lg font-black uppercase tracking-widest">New Node</h3><button onClick={() => setShowFolderModal(false)} className="opacity-50 hover:opacity-100 transition-opacity border-none bg-transparent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12" /></svg></button></div>
             <div className="p-6 space-y-4">
               <input autoFocus placeholder="Name..." value={newFolderName} onChange={e => setNewFolderName(e.target.value)} className="w-full bg-slate-100 dark:bg-black/60 p-4 rounded-xl font-bold border dark:border-white/10 text-sm dark:text-white outline-none focus:ring-2 focus:ring-orange-500" />
-              <button onClick={handleCreateFolder} disabled={isProcessing} className="w-full bg-orange-600 text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 disabled:opacity-50 transition-all border-none">{isProcessing ? 'Deploying...' : 'Create Folder'}</button>
+              <button onClick={handleCreateFolder} disabled={isProcessing} className="w-full bg-orange-600 text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 disabled:opacity-50 transition-all border-none">{isProcessing ? 'Saving...' : 'Create Folder'}</button>
             </div>
           </div>
         </div>

@@ -87,10 +87,10 @@ const AboutUs: React.FC = () => {
     <div className="max-w-4xl mx-auto space-y-12 animate-fade-in pb-24 px-4 md:px-0">
       {/* About Us - Hero Header */}
       <section className="text-center space-y-4 pt-8">
-        <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none">
+        <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tighter leading-none">
           About <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600">Us</span>
         </h2>
-        <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm font-bold uppercase tracking-[0.4em]">The AI-Powered Verto Ecosystem</p>
+        <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm font-bold uppercase tracking-[0.4em]">The AI-Powered Student Community</p>
       </section>
 
       <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -124,7 +124,8 @@ const AboutUs: React.FC = () => {
             <div>
               <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-orange-500 mb-6">Architect & Heritage</h3>
               <p className="text-3xl md:text-5xl font-black tracking-tighter mb-4 leading-tight text-slate-800 dark:text-white">
-                Built by a <span className="text-orange-500 underline decoration-slate-200 dark:decoration-white/10 underline-offset-8">Verto</span><br />For the <span className="text-orange-500">Vertos</span>.
+                <span className="whitespace-nowrap">Made with <span className="text-orange-500 underline decoration-slate-200 dark:decoration-white/10 underline-offset-8">Purpose</span>.</span><br />
+                <span className="whitespace-nowrap">For the <span className="text-orange-500">Future</span>.</span>
               </p>
             </div>
 
@@ -183,7 +184,7 @@ const AboutUs: React.FC = () => {
               <>
                 <StatCounter
                   target={stats?.registered || 0}
-                  label="Verified Community"
+                  label="LPU Students"
                   subLabel="Registered Website Users"
                   accentColor="text-orange-500"
                   isVisible={isSectionVisible}
