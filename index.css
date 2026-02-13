@@ -110,8 +110,8 @@ h4,
 
 .modal-overlay {
   @apply fixed inset-0 z-[999] flex items-center justify-center p-4 backdrop-blur-2xl animate-fade-in overflow-hidden;
-  background: rgba(241, 245, 249, 0.7);
-  /* Light blue-white effect */
+  background: rgba(255, 255, 255, 0.75);
+  /* Neutral off-white blur */
 }
 
 .dark .modal-overlay {

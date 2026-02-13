@@ -112,31 +112,59 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       {showFeedbackModal && (
         <div className="modal-overlay">
-          <div ref={feedbackModalRef} className="bg-white dark:bg-slate-950 rounded-3xl p-8 w-full max-md shadow-2xl animate-fade-in border border-white/5 relative overflow-hidden">
+          <div ref={feedbackModalRef} className="bg-white dark:bg-[#0a0a0a] rounded-[48px] p-10 w-full max-w-lg shadow-[0_32px_128px_rgba(0,0,0,0.5)] animate-fade-in border border-slate-200 dark:border-white/10 relative overflow-hidden">
+            <button onClick={() => setShowFeedbackModal(false)} className="absolute top-8 right-8 p-2 text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors border-none bg-transparent">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><path d="M18 6L6 18M6 6l12 12" /></svg>
+            </button>
+
             {submitSuccess ? (
-              <div className="text-center py-10 space-y-4 animate-fade-in">
-                <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto text-green-500">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="w-8 h-8"><polyline points="20 6 9 17 4 12" /></svg>
+              <div className="text-center py-12 space-y-6 animate-fade-in">
+                <div className="w-20 h-20 bg-green-500/10 rounded-[32px] flex items-center justify-center mx-auto text-green-500 border border-green-500/20">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="w-10 h-10"><polyline points="20 6 9 17 4 12" /></svg>
                 </div>
-                <h3 className="text-xl font-bold dark:text-white uppercase tracking-tighter">Thanks for sharing!</h3>
-                <p className="text-sm text-slate-500">Your feedback helps us make the app better.</p>
+                <div>
+                  <h3 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none mb-2">Success!</h3>
+                  <p className="text-slate-500 font-bold text-[10px] uppercase tracking-widest">Your feedback is now in the Nexus vault.</p>
+                </div>
               </div>
             ) : (
               <>
-                <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-2 tracking-tight">Feedback</h3>
-                <p className="text-sm text-slate-500 mb-6">Found a bug or have a suggestion?</p>
-                <textarea
-                  value={feedbackText}
-                  onChange={(e) => setFeedbackText(e.target.value)}
-                  disabled={isSubmitting}
-                  className="w-full h-32 p-4 rounded-2xl bg-slate-100 dark:bg-black border border-transparent dark:border-white/5 focus:ring-2 focus:ring-orange-500 text-slate-800 dark:text-slate-200 resize-none transition-all outline-none"
-                  placeholder="Tell us what's on your mind..."
-                />
-                <div className="flex justify-end space-x-3 mt-6">
-                  <button onClick={() => setShowFeedbackModal(false)} disabled={isSubmitting} className="px-4 py-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-bold text-sm border-none bg-transparent">Cancel</button>
-                  <button onClick={submitFeedback} disabled={isSubmitting || !feedbackText.trim()} className="px-8 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-bold text-sm shadow-lg shadow-orange-600/20 disabled:opacity-50 transition-all flex items-center gap-2 border-none">
-                    {isSubmitting && <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
-                    <span>{isSubmitting ? 'Sending...' : 'Submit'}</span>
+                <div className="w-20 h-20 bg-orange-600/10 rounded-[32px] flex items-center justify-center mb-8 border border-orange-600/20">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-10 h-10 text-orange-600"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                </div>
+
+                <h3 className="text-3xl font-black text-slate-900 dark:text-white mb-2 tracking-tighter uppercase leading-none">Feedback</h3>
+                <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mb-8">Found a bug or have a suggestion? Let us know.</p>
+
+                <div className="relative group">
+                  <textarea
+                    value={feedbackText}
+                    onChange={(e) => setFeedbackText(e.target.value)}
+                    disabled={isSubmitting}
+                    className="w-full h-40 p-6 rounded-[32px] bg-slate-50 dark:bg-black border border-slate-200 dark:border-white/10 focus:ring-4 focus:ring-orange-600/10 text-slate-800 dark:text-slate-200 resize-none transition-all outline-none font-medium text-sm leading-relaxed shadow-inner"
+                    placeholder="Tell us what's on your mind... we're all ears."
+                  />
+                </div>
+
+                <div className="flex gap-4 mt-8">
+                  <button
+                    onClick={() => setShowFeedbackModal(false)}
+                    disabled={isSubmitting}
+                    className="flex-1 py-4 text-slate-500 hover:text-slate-800 dark:hover:text-white font-black text-xs uppercase tracking-widest border-none bg-transparent transition-colors"
+                  >
+                    Dismiss
+                  </button>
+                  <button
+                    onClick={submitFeedback}
+                    disabled={isSubmitting || !feedbackText.trim()}
+                    className="flex-[2] py-4 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-[24px] font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-orange-600/20 active:scale-95 transition-all flex items-center justify-center gap-3 border-none disabled:opacity-50"
+                  >
+                    {isSubmitting ? (
+                      <div className="w-4 h-4 border-3 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><line x1="22" y1="2" x2="11" y2="13" /><polyline points="22 2 15 22 11 13 2 9 22 2" /></svg>
+                    )}
+                    <span>{isSubmitting ? 'Transmitting...' : 'Submit Intel'}</span>
                   </button>
                 </div>
               </>

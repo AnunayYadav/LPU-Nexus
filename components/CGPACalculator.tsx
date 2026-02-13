@@ -498,23 +498,32 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ userProfile }) => {
 
       {isShareModalOpen && (
         <div className="modal-overlay">
-          <div className="bg-white dark:bg-slate-950 rounded-[40px] w-full max-w-sm shadow-2xl border border-slate-200 dark:border-white/10 p-8 relative animate-fade-in">
-            <button onClick={() => setIsShareModalOpen(false)} className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors border-none bg-transparent">
+          <div className="bg-white dark:bg-[#0a0a0a] rounded-[48px] w-full max-w-sm shadow-[0_32px_128px_rgba(0,0,0,0.5)] border border-slate-200 dark:border-white/10 p-10 relative animate-fade-in">
+            <button onClick={() => setIsShareModalOpen(false)} className="absolute top-8 right-8 p-2 text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors border-none bg-transparent">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5"><path d="M18 6L6 18M6 6l12 12" /></svg>
             </button>
-            <div className="w-16 h-16 bg-orange-600/10 rounded-3xl flex items-center justify-center mb-6 border border-orange-600/20">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-8 h-8 text-orange-600"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
-            </div>
-            <h3 className="text-2xl font-black tracking-tighter uppercase mb-2 dark:text-white">Share Nexus Report</h3>
-            <p className="text-slate-500 text-[9px] font-black uppercase tracking-widest mb-6">Encrypted link generated for your academic snapshot.</p>
 
-            <div className="bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-2xl p-4 mb-6 select-all break-all text-[10px] font-mono text-slate-600 dark:text-slate-400">
+            <div className="w-20 h-20 bg-orange-600/10 rounded-[32px] flex items-center justify-center mb-8 border border-orange-600/20 relative group/icon">
+              <div className="absolute inset-0 bg-orange-600/20 blur-2xl rounded-full opacity-0 group-hover/icon:opacity-100 transition-opacity" />
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-10 h-10 text-orange-600 relative z-10"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
+            </div>
+
+            <h3 className="text-3xl font-black tracking-tighter uppercase mb-2 text-slate-900 dark:text-white leading-none">Share Report</h3>
+            <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mb-8">Encrypted link generated for your academic snapshot.</p>
+
+            <div className="bg-slate-50 dark:bg-black/50 border border-slate-200 dark:border-white/10 rounded-3xl p-6 mb-8 select-all break-all text-[11px] font-mono text-slate-600 dark:text-slate-400 leading-relaxed shadow-inner">
               {shareUrl}
             </div>
 
             <button
-              onClick={() => { navigator.clipboard.writeText(shareUrl); alert("Report link copied to clipboard."); }}
-              className="w-full py-4 bg-orange-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-orange-600/20 active:scale-95 transition-all border-none"
+              onClick={() => {
+                navigator.clipboard.writeText(shareUrl);
+                const btn = document.activeElement as HTMLButtonElement;
+                const originalText = btn.innerText;
+                btn.innerText = "COPIED!";
+                setTimeout(() => { if (btn) btn.innerText = originalText; }, 2000);
+              }}
+              className="w-full py-5 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-[24px] font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-orange-600/20 active:scale-95 transition-all border-none"
             >
               Copy Link
             </button>

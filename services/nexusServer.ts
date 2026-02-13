@@ -151,14 +151,14 @@ class NexusServer {
     return await client.auth.signInWithPassword({ email, password: pass });
   }
 
-  static async signUp(email: string, pass: string, username: string) {
+  static async signUp(email: string, pass: string, username: string, regNo: string) {
     const client = getSupabase();
     if (!client) throw new Error("Registry is offline.");
     const cleanUsername = username.toLowerCase().trim();
     return await client.auth.signUp({
       email: email.trim(),
       password: pass,
-      options: { data: { username: cleanUsername }, emailRedirectTo: window.location.origin }
+      options: { data: { username: cleanUsername, registration_number: regNo }, emailRedirectTo: window.location.origin }
     });
   }
 

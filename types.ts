@@ -20,6 +20,7 @@ export interface UserProfile {
   email: string;
   is_admin: boolean;
   username?: string;
+  registration_number?: string;
   program?: string;
   batch?: string;
   bio?: string;

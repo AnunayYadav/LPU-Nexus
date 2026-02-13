@@ -14,10 +14,11 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ userProfile, setUserPro
     username: userProfile?.username || '',
     program: userProfile?.program || '',
     batch: userProfile?.batch || '',
+    registration_number: userProfile?.registration_number || '',
     bio: userProfile?.bio || '',
     is_public: userProfile?.is_public || false
   });
-  
+
   const [isUpdating, setIsUpdating] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
@@ -30,6 +31,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ userProfile, setUserPro
         username: userProfile.username || '',
         program: userProfile.program || '',
         batch: userProfile.batch || '',
+        registration_number: userProfile.registration_number || '',
         bio: userProfile.bio || '',
         is_public: userProfile.is_public || false
       });
@@ -62,6 +64,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ userProfile, setUserPro
         username: form.username.trim().toLowerCase(),
         program: form.program.trim(),
         batch: form.batch.trim(),
+        registration_number: form.registration_number.trim(),
         bio: form.bio.trim(),
         is_public: form.is_public
       });
@@ -84,7 +87,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ userProfile, setUserPro
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !userProfile) return;
-    
+
     setIsUploading(true);
     try {
       const url = await NexusServer.uploadAvatar(userProfile.id, file);
@@ -110,7 +113,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ userProfile, setUserPro
   return (
     <div className="max-w-2xl mx-auto space-y-8 animate-fade-in pb-20 px-4 md:px-0">
       <header className="flex flex-col items-center text-center">
-        <div 
+        <div
           onClick={() => fileInputRef.current?.click()}
           className="relative group cursor-pointer"
         >
@@ -131,11 +134,11 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ userProfile, setUserPro
             </div>
           </div>
           <div className="absolute bottom-0 right-0 bg-orange-600 w-8 h-8 rounded-full border-4 border-black flex items-center justify-center shadow-lg group-hover:bg-orange-500 transition-colors">
-            <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" className="w-4 h-4"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" className="w-4 h-4"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>
           </div>
           <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleAvatarUpload} />
         </div>
-        
+
         <div className="mt-6">
           <h2 className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter uppercase leading-none">{userProfile.username || 'Citizen Verto'}</h2>
           <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em] mt-3">{userProfile.email}</p>
@@ -148,8 +151,8 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ userProfile, setUserPro
             <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-600 mb-1">Public Discovery</h3>
             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Visibility in Verto Directory</p>
           </div>
-          <button 
-            onClick={() => setForm({...form, is_public: !form.is_public})}
+          <button
+            onClick={() => setForm({ ...form, is_public: !form.is_public })}
             className={`relative w-14 h-7 rounded-full transition-all border-none outline-none ${form.is_public ? 'bg-orange-600' : 'bg-slate-200 dark:bg-white/5'}`}
           >
             <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all shadow-md ${form.is_public ? 'left-8' : 'left-1'}`} />
@@ -160,36 +163,44 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ userProfile, setUserPro
           <div className="space-y-4">
             <div>
               <label className="block text-[9px] font-black uppercase text-slate-400 mb-2 ml-1 tracking-widest">Username</label>
-              <input 
+              <input
                 type="text" value={form.username}
-                onChange={(e) => setForm({...form, username: e.target.value})}
+                onChange={(e) => setForm({ ...form, username: e.target.value })}
                 className="w-full bg-slate-100 dark:bg-black p-4 rounded-2xl text-sm font-bold border-none outline-none focus:ring-2 focus:ring-orange-600 dark:text-white shadow-inner"
               />
               <p className="text-[8px] text-slate-400 mt-2 font-bold uppercase">{recentChanges.length}/2 Identity shifts used</p>
             </div>
             <div>
               <label className="block text-[9px] font-black uppercase text-slate-400 mb-2 ml-1 tracking-widest">Academic Program</label>
-              <input 
+              <input
                 type="text" value={form.program} placeholder="e.g. B.Tech CSE"
-                onChange={(e) => setForm({...form, program: e.target.value})}
+                onChange={(e) => setForm({ ...form, program: e.target.value })}
                 className="w-full bg-slate-100 dark:bg-black p-4 rounded-2xl text-sm font-bold border-none outline-none focus:ring-2 focus:ring-orange-600 dark:text-white shadow-inner"
               />
             </div>
           </div>
           <div className="space-y-4">
             <div>
+              <label className="block text-[9px] font-black uppercase text-slate-400 mb-2 ml-1 tracking-widest">Registration No</label>
+              <input
+                type="text" value={form.registration_number} placeholder="e.g. 12415309"
+                onChange={(e) => setForm({ ...form, registration_number: e.target.value.replace(/[^0-9]/g, '').slice(0, 8) })}
+                className="w-full bg-slate-100 dark:bg-black p-4 rounded-2xl text-sm font-bold border-none outline-none focus:ring-2 focus:ring-orange-600 dark:text-white shadow-inner"
+              />
+            </div>
+            <div>
               <label className="block text-[9px] font-black uppercase text-slate-400 mb-2 ml-1 tracking-widest">Batch Year</label>
-              <input 
+              <input
                 type="text" value={form.batch} placeholder="e.g. 2021-25"
-                onChange={(e) => setForm({...form, batch: e.target.value})}
+                onChange={(e) => setForm({ ...form, batch: e.target.value })}
                 className="w-full bg-slate-100 dark:bg-black p-4 rounded-2xl text-sm font-bold border-none outline-none focus:ring-2 focus:ring-orange-600 dark:text-white shadow-inner"
               />
             </div>
             <div>
               <label className="block text-[9px] font-black uppercase text-slate-400 mb-2 ml-1 tracking-widest">About / Bio</label>
-              <textarea 
+              <textarea
                 value={form.bio} placeholder="Tech enthusiast, Verto since '21..."
-                onChange={(e) => setForm({...form, bio: e.target.value})}
+                onChange={(e) => setForm({ ...form, bio: e.target.value })}
                 className="w-full bg-slate-100 dark:bg-black p-4 rounded-2xl text-sm font-bold border-none outline-none focus:ring-2 focus:ring-orange-600 dark:text-white shadow-inner h-[54px] resize-none"
               />
             </div>
@@ -202,7 +213,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ userProfile, setUserPro
           </div>
         )}
 
-        <button 
+        <button
           onClick={handleUpdate} disabled={isUpdating}
           className="w-full bg-black text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-orange-600 transition-all shadow-xl active:scale-95 disabled:opacity-50 border-none"
         >
@@ -211,11 +222,11 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ userProfile, setUserPro
       </div>
 
       <div className="text-center">
-        <button 
+        <button
           onClick={async () => { await NexusServer.signOut(); navigateToModule(ModuleType.DASHBOARD); }}
           className="text-red-500 font-black text-[10px] uppercase tracking-widest hover:opacity-70 transition-opacity flex items-center gap-2 mx-auto border-none bg-transparent"
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
           De-authenticate Session
         </button>
       </div>
