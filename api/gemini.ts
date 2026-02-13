@@ -12,18 +12,18 @@ export default async function handler(req: Request) {
 
   const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return new Response(JSON.stringify({ 
-      error: "Gateway configuration missing. The server is unable to process intelligence requests at this time." 
+    return new Response(JSON.stringify({
+      error: "Gateway configuration missing. The server is unable to process intelligence requests at this time."
     }), { status: 500 });
   }
 
   try {
     const { action, payload } = await req.json();
     const ai = new GoogleGenAI({ apiKey });
-    
+
     let modelId = "gemini-3-flash-preview";
     if (action === "ANALYZE_RESUME" && payload.deep) {
-        modelId = "gemini-3-pro-preview";
+      modelId = "gemini-3-pro-preview";
     }
 
     let responseText = "";
@@ -32,7 +32,7 @@ export default async function handler(req: Request) {
     switch (action) {
       case "ANALYZE_RESUME": {
         const response = await ai.models.generateContent({
-          model: modelId,
+          model: payload.deep ? "gemini-1.5-pro" : "gemini-1.5-flash",
           contents: payload.prompt,
           config: {
             responseMimeType: "application/json",
@@ -46,7 +46,7 @@ export default async function handler(req: Request) {
 
       case "GENERATE_QUIZ": {
         const response = await ai.models.generateContent({
-          model: "gemini-3-flash-preview",
+          model: "gemini-1.5-flash",
           contents: payload.prompt,
           config: {
             responseMimeType: "application/json",
@@ -60,7 +60,7 @@ export default async function handler(req: Request) {
 
       case "EXTRACT_TIMETABLE": {
         const response = await ai.models.generateContent({
-          model: "gemini-3-flash-preview",
+          model: "gemini-1.5-flash",
           contents: {
             parts: [
               { text: payload.prompt },
@@ -77,39 +77,24 @@ export default async function handler(req: Request) {
         break;
       }
 
-      case "CAMPUS_NEWS":
-      case "GLOBAL_SEARCH": {
-        const response = await ai.models.generateContent({
-          model: "gemini-3-flash-preview",
-          contents: payload.prompt,
-          config: {
-            systemInstruction: payload.systemInstruction,
-            tools: [{ googleSearch: {} }],
-            temperature: 0.2,
-          },
-        });
-        responseText = response.text || "";
-        groundingData = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
-        break;
-      }
 
       default:
         return new Response(JSON.stringify({ error: "Invalid protocol action requested." }), { status: 400 });
     }
 
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       text: responseText,
-      groundingChunks: groundingData 
+      groundingChunks: groundingData
     }), { status: 200 });
 
   } catch (error: any) {
     console.error("Backend Gemini Error:", error);
-    
+
     const errorMsg = error.message || "";
-    
+
     // Detect Rate Limits (Quota)
     if (errorMsg.includes("429") || errorMsg.toLowerCase().includes("quota") || errorMsg.toLowerCase().includes("rate limit")) {
-      return new Response(JSON.stringify({ 
+      return new Response(JSON.stringify({
         error: "System Cool-down Required: The AI is currently processing a high volume of requests. Please wait about 60 seconds and try again.",
         type: "RATE_LIMIT"
       }), { status: 429 });
@@ -117,13 +102,13 @@ export default async function handler(req: Request) {
 
     // Detect Overload/Server Issues
     if (errorMsg.includes("500") || errorMsg.includes("503") || errorMsg.toLowerCase().includes("overloaded")) {
-      return new Response(JSON.stringify({ 
+      return new Response(JSON.stringify({
         error: "Server Congestion: Nexus Intelligence servers are temporarily overloaded. Please try again in a few minutes.",
         type: "SERVER_OVERLOAD"
       }), { status: 503 });
     }
 
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       error: "Interface Error: A communication failure occurred between the client and the AI core. Ensure your connection is stable.",
       details: errorMsg
     }), { status: 500 });

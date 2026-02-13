@@ -15,11 +15,11 @@ const callGeminiProxy = async (action: string, payload: any) => {
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      
+
       if (res.status === 429) {
         throw new Error(errData.error || "The AI is currently busy. Please wait a minute before trying again.");
       }
-      
+
       if (res.status === 503 || res.status === 504) {
         throw new Error("Nexus Intelligence is temporarily overloaded. Please try again shortly.");
       }
@@ -83,7 +83,7 @@ export const generateQuizFromSyllabus = async (subjectName: string, syllabusText
  * Module: Placement Prefect
  */
 export const analyzeResume = async (resumeText: string, jdText: string, deepAnalysis: boolean = false): Promise<ResumeAnalysisResult> => {
-  const depthInstruction = deepAnalysis 
+  const depthInstruction = deepAnalysis
     ? "Act as a ruthless, hyper-critical technical recruiter. Point out exactly where the candidate is failing."
     : "Perform a professional resume audit against modern tech standards.";
 
@@ -177,7 +177,7 @@ export const analyzeResume = async (resumeText: string, jdText: string, deepAnal
 
   const data = await callGeminiProxy("ANALYZE_RESUME", { prompt, schema, deep: deepAnalysis });
   const parsed = JSON.parse(data.text);
-  
+
   const normalizeCategory = (cat: any) => ({
     score: cat?.score ?? 0,
     description: cat?.description || 'Analytical module completed.',
@@ -238,30 +238,12 @@ export const extractTimetableFromImage = async (base64Image: string): Promise<Da
     }
   };
 
-  const data = await callGeminiProxy("EXTRACT_TIMETABLE", { 
-    prompt, 
-    schema, 
-    imageData: base64Image.split(',')[1] || base64Image 
+  const data = await callGeminiProxy("EXTRACT_TIMETABLE", {
+    prompt,
+    schema,
+    imageData: base64Image.split(',')[1] || base64Image
   });
   return JSON.parse(data.text) as DaySchedule[];
 };
 
-/**
- * Module: LPU Pulse News
- */
-export const fetchCampusNews = async (query: string) => {
-  return await callGeminiProxy("CAMPUS_NEWS", {
-    prompt: query,
-    systemInstruction: `You are "LPU Pulse", a campus news scout for LPU. Find 2025 events and notices.`
-  });
-};
 
-/**
- * Module: Global Gateway
- */
-export const searchGlobalOpportunities = async (query: string) => {
-  return await callGeminiProxy("GLOBAL_SEARCH", {
-    prompt: query,
-    systemInstruction: `You are "Global Gateway", a study-abroad expert. Find 2025 masters details and scholarships.`
-  });
-};
