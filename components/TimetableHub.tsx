@@ -6,14 +6,12 @@ import { extractTimetableFromImage } from '../services/geminiService.ts';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-// Helper to convert HH:mm (24h or 12h) to minutes for comparison
 const timeToMinutes = (time: string) => {
   if (!time) return 0;
   let [hours, minutes] = time.split(':').map(Number);
   return hours * 60 + minutes;
 };
 
-// Helper to convert minutes back to HH:mm
 const minutesToTime = (mins: number) => {
   const h = Math.floor(mins / 60);
   const m = mins % 60;
@@ -219,16 +217,38 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Persistence logic
+  useEffect(() => {
+    const savedFriends = localStorage.getItem('nexus_timetable_friends');
+    if (savedFriends) {
+      try { setFriendTimetables(JSON.parse(savedFriends)); } catch(e) {}
+    }
+    const savedMe = localStorage.getItem('nexus_timetable_me');
+    if (savedMe) {
+      try { setMyTimetable(JSON.parse(savedMe)); } catch(e) {}
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('nexus_timetable_friends', JSON.stringify(friendTimetables));
+  }, [friendTimetables]);
+
+  useEffect(() => {
+    if (myTimetable) {
+      localStorage.setItem('nexus_timetable_me', JSON.stringify(myTimetable));
+    }
+  }, [myTimetable]);
+
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 30000);
     return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
-    if (userProfile) loadMyTimetable();
+    if (userProfile && !myTimetable) loadMyTimetableFromServer();
   }, [userProfile]);
 
-  const loadMyTimetable = async () => {
+  const loadMyTimetableFromServer = async () => {
     if (!userProfile) return;
     const records = await NexusServer.fetchRecords(userProfile.id, 'timetable_main');
     if (records && records.length > 0) {
@@ -259,9 +279,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
   const handleRemoveFriend = (friendId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    
-    // Using a simple confirm check that doesn't block the UI thread in strange ways
-    if (window.confirm("Disconnect this profile permanently?")) {
+    if (window.confirm("Remove this profile from your connections?")) {
       setFriendTimetables(prev => prev.filter(f => f.ownerId !== friendId));
       if (selectedEntityId === friendId) {
         setSelectedEntityId('me');
@@ -287,7 +305,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
     
     try {
       for (let i = 0; i < files.length; i++) {
-        setProcessingStatus(`Reading Day ${i + 1}/${files.length}...`);
+        setProcessingStatus(`Scanning Day ${i + 1}/${files.length}...`);
         const base64 = await readFileAsDataURL(files[i]);
         const daySchedule = await extractTimetableFromImage(base64);
         
@@ -303,8 +321,8 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
 
       const newId = `friend-${Math.random().toString(36).substr(2, 9)}`;
       const data: TimetableData = { 
-        ownerId: targetForAction === 'me' ? (userProfile?.id || 'anon') : newId, 
-        ownerName: targetForAction === 'me' ? (myTimetable?.ownerName || userProfile?.username || 'My Profile') : 'New Friend', 
+        ownerId: targetForAction === 'me' ? (userProfile?.id || 'local-me') : newId, 
+        ownerName: targetForAction === 'me' ? (myTimetable?.ownerName || userProfile?.username || 'My Profile') : 'New Connection', 
         schedule: combinedSchedules 
       };
 
@@ -321,7 +339,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
       
       setShowUploadModal(false);
     } catch (err) {
-      alert("Failed to process images. Ensure you use clear screenshots.");
+      alert("AI was unable to process those images. Please ensure they are clear screenshots from LPU Touch.");
     } finally {
       setIsProcessingAI(false);
       setProcessingStatus('');
@@ -359,7 +377,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
         if (nextStart > currentEnd) {
           result.push({
             id: `break-${i}`,
-            subject: 'Break',
+            subject: 'Free Window',
             room: 'N/A',
             startTime: sorted[i].endTime,
             endTime: sorted[i + 1].startTime,
@@ -371,7 +389,6 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
     return result;
   }, [activeTimetable, activeDay]);
 
-  // Comparison logic for common breaks (Always compares selected friend with user's profile)
   const commonBreaks = useMemo(() => {
     if (selectedEntityId === 'me' || !myTimetable || !activeTimetable || !myTimetable.schedule || !activeTimetable.schedule) return [];
     
@@ -413,8 +430,8 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
   const applyPreset = async (batch: typeof PRESET_BATCHES[0]) => {
     const newId = `friend-${Math.random().toString(36).substr(2, 9)}`;
     const data: TimetableData = { 
-      ownerId: targetForAction === 'me' ? (userProfile?.id || 'anon') : newId, 
-      ownerName: targetForAction === 'me' ? (myTimetable?.ownerName || userProfile?.username || 'My Profile') : 'New Friend', 
+      ownerId: targetForAction === 'me' ? (userProfile?.id || 'local-me') : newId, 
+      ownerName: targetForAction === 'me' ? (myTimetable?.ownerName || userProfile?.username || 'My Profile') : 'New Profile', 
       schedule: batch.schedule 
     };
 
@@ -436,13 +453,13 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
           <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2 tracking-tighter">
             Timetable Hub
           </h2>
-          <p className="text-slate-600 dark:text-slate-400 font-medium text-sm">Daily schedule & synchronized break windows.</p>
+          <p className="text-slate-600 dark:text-slate-400 font-medium text-sm">Organize your classes and find time to meet with friends.</p>
         </div>
         <div className="flex gap-3">
-          <button onClick={() => { setTargetForAction('me'); setShowPresetsModal(true); }} className="px-6 py-3 bg-black border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all shadow-xl">Presets</button>
+          <button onClick={() => { setTargetForAction('me'); setShowPresetsModal(true); }} className="px-6 py-3 bg-black border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all shadow-xl">Batch Presets</button>
           <button onClick={() => { setTargetForAction('me'); setShowUploadModal(true); }} className="px-8 py-3 bg-orange-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-orange-600/20 active:scale-95 transition-all flex items-center gap-2 border-none">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            Upload
+            Upload Screenshots
           </button>
         </div>
       </header>
@@ -458,14 +475,14 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
           {(!activeTimetable || !activeTimetable.schedule || activeTimetable.schedule.length === 0) ? (
             <div className="glass-panel p-16 rounded-[48px] border-4 border-dashed border-white/5 flex flex-col items-center justify-center text-center opacity-40 bg-black">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="w-20 h-20 mb-6"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-              <h3 className="text-xl font-black uppercase tracking-tighter">Empty Schedule</h3>
-              <p className="text-xs font-bold mt-2">Pick a Preset or Upload from LPU Touch for {activeTimetable?.ownerName || (selectedEntityId === 'me' ? 'yourself' : 'friend')}.</p>
+              <h3 className="text-xl font-black uppercase tracking-tighter">No Schedule Data</h3>
+              <p className="text-xs font-bold mt-2">Use a Batch Preset or Upload screenshots for {activeTimetable?.ownerName || (selectedEntityId === 'me' ? 'your profile' : 'this friend')}.</p>
             </div>
           ) : (
             <div className="space-y-4">
               <div className="flex items-center justify-between px-4">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-600">{activeDay} List ({activeTimetable.ownerName})</h3>
-                <span className="text-[8px] font-bold text-slate-500 uppercase">{daySlotsWithBreaks.filter(s => s.type !== 'break').length} Classes Today</span>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-600">{activeDay} Schedule ({activeTimetable.ownerName})</h3>
+                <span className="text-[8px] font-bold text-slate-500 uppercase">{daySlotsWithBreaks.filter(s => s.type !== 'break').length} Activities Today</span>
               </div>
               <div className="space-y-3">
                 {daySlotsWithBreaks.length === 0 ? (
@@ -480,11 +497,11 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
                     const isUpcoming = isCurrentDay && currentMinutes < startMin;
                     const isBreak = slot.type === 'break';
                     
-                    let statusLabel = 'Scheduled';
+                    let statusLabel = 'Plan';
                     if (isCurrentDay) {
-                      if (isActive) statusLabel = 'Current';
-                      else if (isFinished) statusLabel = 'Finished';
-                      else if (isUpcoming) statusLabel = 'Upcoming';
+                      if (isActive) statusLabel = 'Now';
+                      else if (isFinished) statusLabel = 'Done';
+                      else if (isUpcoming) statusLabel = 'Next';
                     }
 
                     return (
@@ -497,14 +514,14 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
                           </div>
                           <div>
                             <h4 className={`text-lg font-black uppercase tracking-tight transition-colors ${isActive ? 'text-orange-500' : isFinished ? 'text-slate-600' : isBreak ? 'text-slate-400' : 'text-white group-hover:text-orange-500'}`}>{slot.subject}</h4>
-                            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">{isBreak ? 'Break Window' : `Room ${slot.room} • ${slot.type === 'lab' ? 'Practical' : 'Lecture'}`}</p>
+                            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">{isBreak ? 'Free Window' : `Room ${slot.room} • ${slot.type === 'lab' ? 'Practical' : 'Lecture'}`}</p>
                           </div>
                         </div>
                         <div className="flex flex-col items-end">
                           <div className={`px-3 py-1 rounded-full text-[7px] font-black uppercase tracking-[0.2em] transition-all ${isActive ? 'bg-orange-600 text-white animate-pulse' : isFinished ? 'bg-white/5 text-slate-600' : 'bg-white/5 text-slate-500'}`}>
                             {statusLabel}
                           </div>
-                          {isActive && <p className="text-[8px] font-bold text-orange-600 mt-2">Active now</p>}
+                          {isActive && <p className="text-[8px] font-bold text-orange-600 mt-2">Active</p>}
                         </div>
                       </div>
                     );
@@ -518,14 +535,14 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
         <div className="lg:col-span-4 space-y-8">
            <div className="glass-panel p-8 rounded-[48px] bg-gradient-to-br from-orange-600 to-red-700 text-white border-none shadow-2xl relative overflow-hidden group">
               <div className="relative z-10">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-80 mb-6">Common Breaks</h3>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-80 mb-6">Shared Gaps</h3>
                 {selectedEntityId === 'me' ? (
                    <div className="py-4 text-center">
-                    <p className="text-xs font-black uppercase opacity-60 tracking-widest">Select a friend below to compare gaps.</p>
+                    <p className="text-xs font-black uppercase opacity-60 tracking-widest">Select a connection below to compare free time.</p>
                   </div>
                 ) : commonBreaks.length === 0 ? (
                   <div className="py-4 text-center">
-                    <p className="text-xs font-black uppercase opacity-60 tracking-widest">No common gaps today.</p>
+                    <p className="text-xs font-black uppercase opacity-60 tracking-widest">No common gaps found for {activeDay}.</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -545,14 +562,14 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
            </div>
 
            <div className="glass-panel p-8 rounded-[48px] border border-white/5 bg-black">
-              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-6">Connections</h3>
+              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-6">Your Connections</h3>
               <div className="space-y-4">
                  <div 
                   onClick={() => setSelectedEntityId('me')}
                   className={`flex items-center justify-between p-4 rounded-2xl border cursor-pointer transition-all ${selectedEntityId === 'me' ? 'bg-orange-600/10 border-orange-600' : 'bg-black border-white/5 hover:border-white/10'}`}
                  >
                     <div className="flex items-center gap-3">
-                       <div className="w-8 h-8 rounded-full bg-orange-600 flex items-center justify-center font-black text-[10px]">{userProfile?.username?.[0] || 'M'}</div>
+                       <div className="w-8 h-8 rounded-full bg-orange-600 flex items-center justify-center font-black text-[10px] uppercase">{userProfile?.username?.[0] || 'M'}</div>
                        <span className={`text-[10px] font-black uppercase ${selectedEntityId === 'me' ? 'text-orange-500' : 'text-white'}`}>
                         {myTimetable?.ownerName || 'My Profile'}
                        </span>
@@ -565,7 +582,6 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
                        >
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                        </button>
-                       <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
                     </div>
                  </div>
 
@@ -576,7 +592,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
                     className={`flex items-center justify-between p-4 rounded-2xl border cursor-pointer transition-all ${selectedEntityId === friend.ownerId ? 'bg-blue-600/10 border-blue-600' : 'bg-black border-white/5 hover:border-white/10'}`}
                    >
                     <div className="flex items-center gap-3">
-                       <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center font-black text-[10px]">{friend.ownerName?.[0] || 'F'}</div>
+                       <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center font-black text-[10px] uppercase">{friend.ownerName?.[0] || 'F'}</div>
                        <span className={`text-[10px] font-black uppercase ${selectedEntityId === friend.ownerId ? 'text-blue-500' : 'text-white'}`}>
                         {friend.ownerName}
                        </span>
@@ -604,7 +620,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
                   onClick={() => { setTargetForAction('friend'); setShowPresetsModal(true); }}
                   className="w-full py-4 border-2 border-dashed border-white/5 text-slate-500 text-[10px] font-black uppercase tracking-widest rounded-2xl hover:border-orange-500 hover:text-white transition-all bg-transparent"
                  >
-                  + Add Friend
+                  + Add Connection
                  </button>
               </div>
            </div>
@@ -615,8 +631,8 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-fade-in overflow-hidden">
           <div className="bg-[#0a0a0a] rounded-[48px] w-full max-sm border border-white/10 shadow-[0_32px_128px_rgba(0,0,0,0.8)] overflow-hidden">
             <div className="p-10 text-center">
-              <h3 className="text-2xl font-black tracking-tighter uppercase mb-2">Rename Profile</h3>
-              <p className="text-white/40 text-[9px] font-black uppercase tracking-[0.3em]">Personalize the identity</p>
+              <h3 className="text-2xl font-black tracking-tighter uppercase mb-2 text-white">Rename Profile</h3>
+              <p className="text-white/40 text-[9px] font-black uppercase tracking-[0.3em]">Personalize the name</p>
               <div className="mt-8">
                 <input 
                   autoFocus
@@ -647,8 +663,8 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
               <div className="w-16 h-16 bg-orange-600/10 rounded-[28px] flex items-center justify-center mx-auto mb-6 border border-orange-600/20">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-8 h-8 text-orange-600"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
               </div>
-              <h3 className="text-3xl font-black tracking-tighter uppercase">AI Scanner</h3>
-              <p className="text-white/40 text-[9px] font-black mt-2 uppercase tracking-[0.3em]">Select screenshots for {targetForAction === 'me' ? (myTimetable?.ownerName || 'Yourself') : 'New Friend'}</p>
+              <h3 className="text-3xl font-black tracking-tighter uppercase text-white">AI Assistant</h3>
+              <p className="text-white/40 text-[9px] font-black mt-2 uppercase tracking-[0.3em]">Upload timetable screenshots for {targetForAction === 'me' ? (myTimetable?.ownerName || 'Your Profile') : 'New Connection'}</p>
             </div>
             <div className="p-10 space-y-6">
                {isProcessingAI ? (
@@ -659,8 +675,8 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
                ) : (
                  <>
                    <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-white/10 rounded-[32px] p-12 text-center hover:border-orange-500/50 transition-all cursor-pointer bg-white/[0.02] group">
-                     <p className="text-xs font-black uppercase tracking-widest text-slate-500 group-hover:text-white transition-colors">Select 5 Images</p>
-                     <p className="text-[8px] font-bold uppercase text-slate-600 mt-2">Hold Shift/Ctrl to select multiple</p>
+                     <p className="text-xs font-black uppercase tracking-widest text-slate-500 group-hover:text-white transition-colors">Select Images</p>
+                     <p className="text-[8px] font-bold uppercase text-slate-600 mt-2">Upload multiple images for a full week</p>
                    </div>
                    <input 
                     type="file" 
@@ -681,17 +697,17 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
         <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-fade-in overflow-hidden">
           <div className="bg-[#0a0a0a] rounded-[56px] w-full max-lg border border-white/10 shadow-[0_32px_128px_rgba(0,0,0,0.8)] overflow-hidden">
             <div className="p-10 border-b border-white/5 flex items-center justify-between bg-black">
-               <h3 className="text-2xl font-black uppercase tracking-tighter">Course Presets</h3>
+               <h3 className="text-2xl font-black uppercase tracking-tighter text-white">Course Presets</h3>
                <button onClick={() => setShowPresetsModal(false)} className="text-white/30 hover:text-white transition-colors border-none bg-transparent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-6 h-6"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             </div>
             <div className="p-8 bg-orange-600/5 border-b border-white/5">
-                <p className="text-[10px] font-black uppercase tracking-widest text-orange-600 text-center">Selecting timetable for: <span className="text-white">{targetForAction === 'me' ? (myTimetable?.ownerName || 'Your Profile') : 'A New Friend'}</span></p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-orange-600 text-center">Choosing timetable for: <span className="text-white">{targetForAction === 'me' ? (myTimetable?.ownerName || 'Your Profile') : 'A New Connection'}</span></p>
             </div>
             <div className="p-10 grid grid-cols-1 gap-4 max-h-[400px] overflow-y-auto no-scrollbar bg-black">
                {PRESET_BATCHES.map(batch => (
                  <button key={batch.id} onClick={() => applyPreset(batch)} className="p-6 bg-white/[0.02] border border-white/5 rounded-3xl text-left hover:border-orange-500/50 hover:bg-white/[0.05] transition-all flex items-center justify-between group">
                    <div>
-                     <p className="text-xs font-black uppercase tracking-tight">{batch.name}</p>
+                     <p className="text-xs font-black uppercase tracking-tight text-white">{batch.name}</p>
                      <p className="text-[8px] font-bold text-slate-500 uppercase mt-1">Full 5-Day Schedule</p>
                    </div>
                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-5 h-5 text-white/20 group-hover:text-orange-600 transition-colors"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
@@ -702,7 +718,7 @@ const TimetableHub: React.FC<{ userProfile: UserProfile | null }> = ({ userProfi
                     onClick={() => { setShowPresetsModal(false); setShowUploadModal(true); }}
                     className="w-full py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors border-none bg-transparent"
                   >
-                    Don't see your section? Upload Manually
+                    Not your section? Upload Manually
                   </button>
                </div>
             </div>
