@@ -290,18 +290,18 @@ const AppContent: React.FC = () => {
             <span className="md:hidden font-bold text-orange-500 cursor-pointer" onClick={() => navigate('/')}>LPU-Nexus</span>
           </div>
           <div className="flex items-center space-x-3 ml-auto">
-            <button onClick={toggleTheme} className="p-2 rounded-full bg-slate-100 dark:bg-slate-950 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-all border-none">
+            <button onClick={toggleTheme} className="p-2.5 rounded-2xl bg-slate-100 dark:bg-[#0a0a0a] text-slate-600 dark:text-slate-400 hover:text-orange-600 dark:hover:text-white transition-all border border-transparent dark:border-white/5 shadow-sm active:scale-90">
               {theme === 'dark' ? (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5"><circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" /></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" /></svg>
               ) : (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
               )}
             </button>
             <div className="relative">
               {userProfile ? (
                 <>
-                  <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="w-10 h-10 rounded-full bg-insta-gradient p-[1.5px] border-none shadow-lg hover:scale-110 transition-all overflow-hidden cursor-pointer group">
-                    <div className="w-full h-full bg-slate-100 dark:bg-black rounded-full overflow-hidden flex items-center justify-center text-slate-900 dark:text-white font-black">
+                  <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="w-11 h-11 rounded-[14px] bg-gradient-to-tr from-orange-600 to-red-600 p-[1.5px] border-none shadow-[0_8px_20px_rgba(234,88,12,0.2)] hover:scale-105 active:scale-95 transition-all overflow-hidden cursor-pointer group">
+                    <div className="w-full h-full bg-white dark:bg-[#0a0a0a] rounded-[13px] overflow-hidden flex items-center justify-center text-slate-900 dark:text-orange-600 font-black text-sm">
                       {userProfile.avatar_url ? (
                         <img src={userProfile.avatar_url} className="w-full h-full object-cover" alt="" />
                       ) : (
@@ -312,20 +312,28 @@ const AppContent: React.FC = () => {
                   {isProfileMenuOpen && (
                     <>
                       <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setIsProfileMenuOpen(false)} />
-                      <div className="absolute right-0 mt-3 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden py-2 z-50 animate-fade-in">
+                      <div className="absolute right-0 mt-3 w-56 bg-[#0a0a0a] border border-white/10 rounded-[32px] shadow-[0_32px_64px_rgba(0,0,0,0.8)] overflow-hidden py-3 z-50 animate-fade-in backdrop-blur-xl">
+                        <div className="px-5 py-3 border-b border-white/5 mb-2">
+                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-600">Identity Active</p>
+                          <p className="text-[11px] font-bold text-white/40 truncate">{userProfile.email}</p>
+                        </div>
                         <button
                           onClick={() => { navigate('/profile'); setIsProfileMenuOpen(false); }}
-                          className="w-full text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:text-orange-600 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 border-none bg-transparent flex items-center gap-3 transition-all"
+                          className="w-full text-left px-5 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-white/70 hover:text-white hover:bg-white/5 border-none bg-transparent flex items-center gap-3 transition-all"
                         >
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
-                          View Profile
+                          <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-orange-600/20 transition-colors">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                          </div>
+                          View Terminal
                         </button>
                         <button
                           onClick={async () => { await NexusServer.signOut(); navigate('/'); setIsProfileMenuOpen(false); }}
-                          className="w-full text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-500/10 border-none bg-transparent flex items-center gap-3 transition-all"
+                          className="w-full text-left px-5 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-red-500 hover:bg-red-500/10 border-none bg-transparent flex items-center gap-3 transition-all"
                         >
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
-                          Sign Out
+                          <div className="w-8 h-8 rounded-full bg-red-500/5 flex items-center justify-center">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
+                          </div>
+                          De-authenticate
                         </button>
                       </div>
                     </>
