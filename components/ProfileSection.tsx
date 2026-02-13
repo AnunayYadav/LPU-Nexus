@@ -78,7 +78,16 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ userProfile, setUserPro
       fetchHistory();
       setTimeout(() => setMessage(null), 3000);
     } catch (e: any) {
-      setMessage({ text: e.message || "Failed to update profile.", type: 'error' });
+      console.error('Update Error:', e);
+      let errorMsg = 'Failed to synchronize identity terminal.';
+
+      if (e.message?.includes('unique_registration_number') || e.code === '23505') {
+        errorMsg = 'This Registration Number is already in use by another student.';
+      } else if (e.message) {
+        errorMsg = e.message;
+      }
+
+      setMessage({ type: 'error', text: errorMsg });
     } finally {
       setIsUpdating(false);
     }

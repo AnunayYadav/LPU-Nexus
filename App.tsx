@@ -187,7 +187,12 @@ const RegistrationPrompt: React.FC<{ userProfile: UserProfile, onComplete: (prof
       await NexusServer.updateProfile(userProfile.id, { registration_number: regNo });
       onComplete({ ...userProfile, registration_number: regNo });
     } catch (e: any) {
-      setError(e.message || "Failed to establish identity registration.");
+      // Check for Supabase Unique Constraint Violation (Error Code 23505)
+      if (e.message?.includes('unique_registration_number') || e.code === '23505') {
+        setError("This Registration Number is already associated with another identity.");
+      } else {
+        setError(e.message || "Failed to establish identity registration.");
+      }
     } finally {
       setLoading(false);
     }
