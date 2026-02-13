@@ -32,7 +32,7 @@ export default async function handler(req: Request) {
     switch (action) {
       case "ANALYZE_RESUME": {
         const response = await ai.models.generateContent({
-          model: payload.deep ? "gemini-1.5-pro" : "gemini-1.5-flash",
+          model: payload.deep ? "gemini-2.5-pro" : "gemini-2.5-flash",
           contents: payload.prompt,
           config: {
             responseMimeType: "application/json",
@@ -46,7 +46,7 @@ export default async function handler(req: Request) {
 
       case "GENERATE_QUIZ": {
         const response = await ai.models.generateContent({
-          model: "gemini-1.5-flash",
+          model: "gemini-2.5-flash",
           contents: payload.prompt,
           config: {
             responseMimeType: "application/json",
@@ -60,7 +60,7 @@ export default async function handler(req: Request) {
 
       case "EXTRACT_TIMETABLE": {
         const response = await ai.models.generateContent({
-          model: "gemini-1.5-flash",
+          model: "gemini-2.5-flash",
           contents: {
             parts: [
               { text: payload.prompt },
