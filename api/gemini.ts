@@ -21,19 +21,14 @@ export default async function handler(req: Request) {
     const { action, payload } = await req.json();
     const ai = new GoogleGenAI({ apiKey });
 
-    let modelId = "gemini-3-flash-preview";
-    if (action === "ANALYZE_RESUME" && payload.deep) {
-      modelId = "gemini-3-pro-preview";
-    }
-
     let responseText = "";
     let groundingData = null;
 
     switch (action) {
       case "ANALYZE_RESUME": {
         const response = await ai.models.generateContent({
-          model: payload.deep ? "gemini-2.5-pro" : "gemini-2.5-flash",
-          contents: payload.prompt,
+          model: payload.deep ? "gemini-1.5-pro" : "gemini-2.0-flash",
+          contents: [{ role: 'user', parts: [{ text: payload.prompt.substring(0, 30000) }] }],
           config: {
             responseMimeType: "application/json",
             responseSchema: payload.schema,
@@ -46,8 +41,8 @@ export default async function handler(req: Request) {
 
       case "GENERATE_QUIZ": {
         const response = await ai.models.generateContent({
-          model: "gemini-2.5-flash",
-          contents: payload.prompt,
+          model: "gemini-2.0-flash",
+          contents: [{ role: 'user', parts: [{ text: payload.prompt.substring(0, 30000) }] }],
           config: {
             responseMimeType: "application/json",
             responseSchema: payload.schema,
@@ -60,13 +55,14 @@ export default async function handler(req: Request) {
 
       case "EXTRACT_TIMETABLE": {
         const response = await ai.models.generateContent({
-          model: "gemini-2.5-flash",
-          contents: {
+          model: "gemini-2.0-flash",
+          contents: [{
+            role: 'user',
             parts: [
               { text: payload.prompt },
               { inlineData: { mimeType: "image/png", data: payload.imageData } }
             ]
-          },
+          }],
           config: {
             responseMimeType: "application/json",
             responseSchema: payload.schema,
