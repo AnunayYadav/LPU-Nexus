@@ -428,7 +428,13 @@ const QuizTaker: React.FC<{ userProfile: UserProfile | null }> = ({ userProfile 
               ))}
             </div>
             <div className="pt-6 border-t border-slate-100 dark:border-white/5">
-              <button onClick={handleGenerate} disabled={!selectedSubject || selectedUnits.length === 0} className="flex-[2] py-4 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-[24px] font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-orange-600/20 active:scale-95 transition-all flex items-center justify-center gap-3 border-none disabled:opacity-50">Generate My Quiz</button>
+              <button
+                onClick={handleGenerate}
+                disabled={!selectedSubject || selectedUnits.length === 0}
+                className="w-full py-5 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-[32px] font-black text-[11px] uppercase tracking-[0.15em] shadow-2xl shadow-orange-600/30 active:scale-[0.98] transition-all flex items-center justify-center gap-3 border-none disabled:opacity-50 cursor-pointer"
+              >
+                Generate My Quiz
+              </button>
             </div>
           </div>
         </div>

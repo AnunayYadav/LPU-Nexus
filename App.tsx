@@ -55,6 +55,74 @@ const getPathFromModule = (module: ModuleType): string => {
   }
 };
 
+const TypingText: React.FC = () => {
+  const words = ["Simplified.", "Smarter.", "Seamless.", "Sorted.", "Secured."];
+  const [index, setIndex] = useState(0);
+  const [subIndex, setSubIndex] = useState(1);
+  const [reverse, setReverse] = useState(false);
+
+  useEffect(() => {
+    if (subIndex === words[index].length + 1 && !reverse) {
+      const timeout = setTimeout(() => setReverse(true), 2500);
+      return () => clearTimeout(timeout);
+    }
+
+    if (subIndex === 1 && reverse) {
+      const timeout = setTimeout(() => {
+        setReverse(false);
+        setIndex((prev) => (prev + 1) % words.length);
+      }, 400); // Wait a bit at the 'S' before typing next word
+      return () => clearTimeout(timeout);
+    }
+
+    const timeout = setTimeout(() => {
+      setSubIndex((prev) => prev + (reverse ? -1 : 1));
+    }, reverse ? 40 : (Math.random() * 40 + 80)); // Organic typing speed
+
+    return () => clearTimeout(timeout);
+  }, [subIndex, index, reverse]);
+
+  return (
+    <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600 inline-block min-h-[1.2em] relative transition-all duration-300 ease-out">
+      {words[index].substring(0, subIndex)}
+      <span className="inline-block w-[4px] h-[0.9em] ml-1 bg-gradient-to-b from-orange-500 to-red-600 animate-cursor-blink align-middle translate-y-[-2px] shadow-[0_0_15px_rgba(234,88,12,0.6)] rounded-full transition-all duration-200"></span>
+    </span>
+  );
+};
+
+const BackgroundEffects: React.FC = () => {
+  return (
+    <div className="fixed inset-0 overflow-hidden pointer-events-none">
+      {/* Dynamic Blobs */}
+      <div className="absolute w-[800px] h-[800px] bg-orange-600/10 dark:bg-orange-600/20 blur-[150px] -top-20 -right-20 animate-blob-bounce rounded-full" />
+      <div className="absolute w-[600px] h-[600px] bg-yellow-600/5 dark:bg-yellow-600/10 blur-[120px] bottom-20 -left-20 animate-blob-bounce rounded-full" />
+
+      {/* Seamless Merger - Massive radial gradient starting from top-left */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_0%_0%,rgba(248,250,252,1)_0%,rgba(248,250,252,0)_80%)] dark:bg-[radial-gradient(ellipse_at_0%_0%,rgba(0,0,0,1)_0%,rgba(0,0,0,0)_85%)] z-10" />
+
+      {/* Animated Particles */}
+      <div className="absolute inset-0">
+        {[...Array(30)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute w-1 h-1 bg-orange-500/30 dark:bg-orange-500/20 rounded-full animate-float"
+            style={{
+              top: `${Math.random() * 100}%`,
+              left: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 5}s`,
+              animationDuration: `${Math.random() * 10 + 15}s`,
+              opacity: Math.random() * 0.5 + 0.2
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Soft Grid Overlay */}
+      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] dark:opacity-[0.05] contrast-150" />
+    </div>
+  );
+};
+
 const DashboardHero: React.FC<{ navigate: (p: string) => void }> = ({ navigate }) => {
   return (
     <div className="relative overflow-hidden bg-slate-50 dark:bg-black p-8 md:p-16 mb-0 shadow-[0_40px_100px_rgba(0,0,0,0.1)] dark:shadow-[0_40px_100px_rgba(0,0,0,0.4)] group/hero transition-colors duration-500 min-h-[calc(100vh-80px)] flex flex-col justify-center">
@@ -66,10 +134,10 @@ const DashboardHero: React.FC<{ navigate: (p: string) => void }> = ({ navigate }
         <div className="animate-fade-in flex flex-col space-y-4 md:space-y-12">
           {/* Header row: Title + Image on Mobile */}
           <div className="grid grid-cols-[1fr_210px] sm:grid-cols-[1fr_250px] lg:block gap-1 items-center">
-            <h2 className="text-5xl sm:text-7xl lg:text-6xl xl:text-7xl font-black text-slate-900 dark:text-white tracking-tighter leading-[0.85] lg:leading-[0.9] drop-shadow-sm">
+            <h2 className="text-5xl sm:text-7xl lg:text-6xl xl:text-7xl font-black text-slate-900 dark:text-white tracking-tighter leading-[0.85] lg:leading-[0.9] drop-shadow-sm min-h-[3em] sm:min-h-[2.7em]">
               Your LPU <br />
               Journey, <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600">Simplified.</span>
+              <TypingText />
             </h2>
 
             {/* Mobile Only visual Suite */}
@@ -252,6 +320,8 @@ const AppContent: React.FC = () => {
         userProfile={userProfile}
       />
       <main className="flex-1 flex flex-col h-screen overflow-hidden relative bg-slate-50 dark:bg-black transition-colors duration-500">
+        <BackgroundEffects />
+
         <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-white/5 bg-white/80 dark:bg-black/80 backdrop-blur-md z-10 transition-colors duration-500">
           <div className="flex items-center">
             <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden p-2 text-slate-600 dark:text-slate-400 mr-4 border-none bg-transparent">
@@ -317,7 +387,7 @@ const AppContent: React.FC = () => {
             </div>
           </div>
         </div>
-        <div id="main-content-area" className={`flex-1 overflow-y-auto relative scroll-smooth ${location.pathname === '/' ? 'p-0' : 'p-4 md:p-8'} bg-white dark:bg-black`}>
+        <div id="main-content-area" className={`flex-1 overflow-y-auto relative scroll-smooth ${location.pathname === '/' ? 'p-0' : 'p-4 md:p-8'} bg-transparent`}>
           <div className={`relative z-0 ${location.pathname === '/' ? 'w-full' : 'max-w-7xl mx-auto'}`}>
             <Routes>
               <Route path="/" element={<Dashboard />} />

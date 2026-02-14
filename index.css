@@ -87,6 +87,37 @@
       border-radius: 30% 60% 70% 40% / 50% 60% 30% 40%;
     }
   }
+
+  @keyframes blink {
+
+    0%,
+    100% {
+      opacity: 1;
+      transform: scaleY(1);
+    }
+
+    50% {
+      opacity: 0;
+      transform: scaleY(0.8);
+    }
+  }
+
+  @keyframes char-reveal {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+      filter: blur(4px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+      filter: blur(0);
+    }
+  }
+
+  --animate-cursor-blink: blink 0.8s ease-in-out infinite;
+  --animate-char-reveal: char-reveal 0.2s ease-out forwards;
 }
 
 :root {
