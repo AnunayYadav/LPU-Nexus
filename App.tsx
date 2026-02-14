@@ -97,8 +97,10 @@ const BackgroundEffects: React.FC = () => {
       <div className="absolute w-[800px] h-[800px] bg-orange-600/10 dark:bg-orange-600/20 blur-[150px] -top-20 -right-20 animate-blob-bounce rounded-full" />
       <div className="absolute w-[600px] h-[600px] bg-yellow-600/5 dark:bg-yellow-600/10 blur-[120px] bottom-20 -left-20 animate-blob-bounce rounded-full" />
 
-      {/* Seamless Merger - Massive radial gradient starting from top-left */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_0%_0%,rgba(248,250,252,1)_0%,rgba(248,250,252,0)_80%)] dark:bg-[radial-gradient(ellipse_at_0%_0%,rgba(0,0,0,1)_0%,rgba(0,0,0,0)_85%)] z-10" />
+      {/* Seamless Merger - Refined edge gradients for sidebar/navbar blending */}
+      <div className="absolute inset-0 bg-gradient-to-b from-slate-50 dark:from-black via-slate-50/40 dark:via-black/40 to-transparent h-96 z-10 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-r from-slate-50 dark:from-black via-slate-50/40 dark:via-black/40 to-transparent w-96 z-10 pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_0%_0%,rgba(248,250,252,1)_0%,rgba(248,250,252,0)_80%)] dark:bg-[radial-gradient(ellipse_at_0%_0%,rgba(0,0,0,1)_0%,rgba(0,0,0,0)_80%)] z-10 pointer-events-none" />
 
       {/* Animated Particles */}
       <div className="absolute inset-0">
@@ -322,7 +324,7 @@ const AppContent: React.FC = () => {
       <main className="flex-1 flex flex-col h-screen overflow-hidden relative bg-slate-50 dark:bg-black transition-colors duration-500">
         <BackgroundEffects />
 
-        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-white/5 bg-white/80 dark:bg-black/80 backdrop-blur-md z-10 transition-colors duration-500">
+        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-white/5 bg-white/90 dark:bg-black z-10 transition-colors duration-500">
           <div className="flex items-center">
             <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden p-2 text-slate-600 dark:text-slate-400 mr-4 border-none bg-transparent">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6"><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
