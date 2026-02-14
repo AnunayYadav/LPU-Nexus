@@ -94,7 +94,7 @@ const AboutUs: React.FC = () => {
       </section>
 
       <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="glass-panel p-8 rounded-[40px] border border-slate-200 dark:border-white/5 bg-white dark:bg-black space-y-4">
+        <div className="glass-panel p-8 rounded-[40px] border border-slate-200 dark:border-white/5 space-y-4">
           <h3 className="text-[10px] font-black text-orange-600 uppercase tracking-widest border-b border-slate-100 dark:border-white/5 pb-4">The Mission</h3>
           <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
             LPU-Nexus was born from a simple observation: campus life is complex. Between tracking attendance, calculating CGPA, and preparing for placements, students are often overwhelmed.
@@ -103,7 +103,7 @@ const AboutUs: React.FC = () => {
           </p>
         </div>
 
-        <div className="glass-panel p-8 rounded-[40px] border border-slate-200 dark:border-white/5 bg-white dark:bg-black space-y-4">
+        <div className="glass-panel p-8 rounded-[40px] border border-slate-200 dark:border-white/5 space-y-4">
           <h3 className="text-[10px] font-black text-orange-600 uppercase tracking-widest border-b border-slate-100 dark:border-white/5 pb-4">Key Innovation</h3>
           <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
             By integrating <strong>Google's Gemini AI</strong>, we provide tools that don't just calculate numbers but offer strategic insights.
@@ -113,7 +113,8 @@ const AboutUs: React.FC = () => {
       </section>
 
       {/* Credit & Heritage Section */}
-      <section className="p-10 md:p-16 rounded-[60px] bg-slate-50 dark:bg-black text-slate-800 dark:text-white shadow-2xl border border-slate-200 dark:border-white/5 relative overflow-hidden">
+      <section className="p-10 md:p-16 rounded-[60px] bg-white/[0.03] dark:bg-black/20 backdrop-blur-3xl text-slate-800 dark:text-white shadow-[0_32px_128px_rgba(0,0,0,0.5)] border border-white/10 relative overflow-hidden transition-all duration-700 group">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(249,115,22,0.05)_0%,transparent_70%)] pointer-events-none" />
         {/* Abstract Background Decor */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-orange-600/10 blur-[120px] rounded-full -mr-32 -mt-32"></div>
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-600/5 blur-[100px] rounded-full -ml-32 -mb-32"></div>
@@ -159,10 +160,10 @@ const AboutUs: React.FC = () => {
                   href={link.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center space-x-3 bg-slate-100 dark:bg-white/5 transition-all group px-4 py-2 rounded-xl"
+                  className="flex items-center space-x-3 bg-white/5 dark:bg-white/[0.05] border border-white/5 hover:border-orange-500/50 transition-all group px-4 py-2 rounded-xl backdrop-blur-md"
                 >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4 text-orange-500 group-hover:text-white transition-colors">{link.icon}</svg>
-                  <span className="text-[10px] font-black uppercase tracking-widest">{link.label}</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4 text-orange-500 group-hover:scale-110 transition-transform">{link.icon}</svg>
+                  <span className="text-[10px] font-black uppercase tracking-widest opacity-70 group-hover:opacity-100 transition-opacity">{link.label}</span>
                 </a>
               ))}
             </div>
