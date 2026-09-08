@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ExamPaper, ExamCategory } from '../../types.ts';
+import { ExamPaper, ExamCategory, QuizQuestion } from '../../types.ts';
 import CustomDropdown, { DropdownOption } from './CustomDropdown.tsx';
 import EmptyExamState from './EmptyExamState.tsx';
 import { getSubjectCurriculum } from '../../data/subjectCatalog.ts';
@@ -17,8 +17,13 @@ interface OfficialExamPapersExplorerProps {
   selectedSubject: SubjectWithSyllabus | null;
   onSelectSubject: (subject: SubjectWithSyllabus) => void;
   examPapers: ExamPaper[];
+  subjectQuestions?: QuizQuestion[];
   isLoading: boolean;
-  onStartExamPaper: (paper: ExamPaper, isPractice: boolean) => void;
+  onStartExamPaper: (
+    paper: ExamPaper,
+    isPractice?: boolean,
+    options?: { includeMCQ?: boolean; includeSubjective?: boolean }
+  ) => void;
   onSwitchToCustomBuilder: () => void;
   onBackToDashboard?: () => void;
 }
@@ -28,6 +33,7 @@ export const OfficialExamPapersExplorer: React.FC<OfficialExamPapersExplorerProp
   selectedSubject,
   onSelectSubject,
   examPapers,
+  subjectQuestions = [],
   isLoading,
   onStartExamPaper,
   onSwitchToCustomBuilder,
@@ -37,6 +43,10 @@ export const OfficialExamPapersExplorer: React.FC<OfficialExamPapersExplorerProp
   const [selectedYear, setSelectedYear] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [activePaperModal, setActivePaperModal] = useState<ExamPaper | null>(null);
+
+  // Question type selection for Practice Papers modal
+  const [includeMCQ, setIncludeMCQ] = useState(true);
+  const [includeSubjective, setIncludeSubjective] = useState(true);
 
   // Available years from papers or defaults
   const availableYears = useMemo(() => {
@@ -56,10 +66,12 @@ export const OfficialExamPapersExplorer: React.FC<OfficialExamPapersExplorerProp
     return list.length > 0 ? list : ['2026', '2025', '2024', '2023', '2022', 'NA'];
   }, [examPapers]);
 
-  // Filtered papers
+  // Filtered papers with natural collation sorting
   const filteredPapers = useMemo(() => {
-    return examPapers.filter(paper => {
-      const matchCat = selectedCategory === 'all' || paper.exam_type === selectedCategory;
+    const list = examPapers.filter(paper => {
+      const matchCat = selectedCategory === 'all' || 
+        (selectedCategory === 'practice' && paper.exam_type === 'practice') ||
+        paper.exam_type === selectedCategory;
       const paperYearStr = paper.year && paper.year > 0 ? String(paper.year) : 'NA';
       const matchYear = selectedYear === 'all' || paperYearStr === selectedYear;
       const matchSearch = !searchQuery || 
@@ -68,6 +80,10 @@ export const OfficialExamPapersExplorer: React.FC<OfficialExamPapersExplorerProp
         (paper.term && paper.term.toLowerCase().includes(searchQuery.toLowerCase()));
       return matchCat && matchYear && matchSearch;
     });
+
+    return list.sort((a, b) => {
+      return (a.title || '').localeCompare(b.title || '', undefined, { numeric: true, sensitivity: 'base' });
+    });
   }, [examPapers, selectedCategory, selectedYear, searchQuery]);
 
   // Helper to format date / term display
@@ -75,17 +91,97 @@ export const OfficialExamPapersExplorer: React.FC<OfficialExamPapersExplorerProp
     const mainTitle = paper.title || `${paper.subject_code} ${paper.exam_type.toUpperCase()}`;
     const yearStr = paper.year && paper.year > 0 ? String(paper.year) : '';
     const dateSub = paper.term && yearStr ? `${paper.term} • ${yearStr}` : (paper.term || yearStr || 'Practice Paper');
+    const typeLabel = paper.exam_type.toUpperCase();
 
     return {
       paperTag: paper.subject_code || 'Official Paper',
       mainTitle,
       dateSub,
-      typeLabel: paper.exam_type.toUpperCase(),
+      typeLabel,
       duration: paper.duration_minutes || (paper.exam_type === 'endterm' ? 120 : paper.exam_type === 'midterm' ? 60 : 45),
       marks: paper.total_marks || (paper.exam_type === 'endterm' ? 50 : 30),
       questionsCount: paper.total_questions || 20,
     };
   };
+
+  // Determine MCQ / Subjective availability for active practice paper
+  const activePaperStats = useMemo(() => {
+    if (!activePaperModal || activePaperModal.exam_type !== 'practice') return null;
+
+    const unitMatch = activePaperModal.term?.match(/(\d+)/) || activePaperModal.title.match(/Unit\s*(\d+)/i);
+    const unitNum = unitMatch ? parseInt(unitMatch[1]) : undefined;
+
+    const matchingQuestions = subjectQuestions?.filter(q => {
+      if (unitNum) return Number(q.unit) === unitNum;
+      return (q as any).paper_id === activePaperModal.id;
+    }) || [];
+
+    const mcqs = matchingQuestions.filter(q => q.type === 'mcq' || q.questionType === 'MCQ');
+    const subjs = matchingQuestions.filter(q => q.type === 'subjective' || q.questionType === 'Subjective');
+
+    const mcqCount = mcqs.length;
+    const subjCount = subjs.length;
+
+    return {
+      mcqCount,
+      subjCount,
+      totalCount: mcqCount + subjCount,
+      mcqMarks: mcqs.reduce((s, q) => s + (q.marks || 1), 0) || mcqCount * 1,
+      subjMarks: subjs.reduce((s, q) => s + (q.marks || 10), 0) || subjCount * 10,
+    };
+  }, [activePaperModal, subjectQuestions]);
+
+  // Sync selection when modal opens
+  useEffect(() => {
+    if (activePaperModal && activePaperModal.exam_type === 'practice') {
+      if (activePaperStats) {
+        if (activePaperStats.mcqCount > 0 && activePaperStats.subjCount === 0) {
+          setIncludeMCQ(true);
+          setIncludeSubjective(false);
+        } else if (activePaperStats.mcqCount === 0 && activePaperStats.subjCount > 0) {
+          setIncludeMCQ(false);
+          setIncludeSubjective(true);
+        } else {
+          setIncludeMCQ(true);
+          setIncludeSubjective(true);
+        }
+      } else {
+        setIncludeMCQ(true);
+        setIncludeSubjective(true);
+      }
+    }
+  }, [activePaperModal, activePaperStats]);
+
+  const modalDuration = useMemo(() => {
+    if (!activePaperModal) return 45;
+    if (activePaperModal.exam_type !== 'practice') {
+      return activePaperModal.duration_minutes || (activePaperModal.exam_type === 'endterm' ? 120 : 60);
+    }
+    if (includeMCQ && includeSubjective) return 60;
+    return 45;
+  }, [activePaperModal, includeMCQ, includeSubjective]);
+
+  const modalQuestionsCount = useMemo(() => {
+    if (!activePaperModal) return 0;
+    if (activePaperModal.exam_type !== 'practice' || !activePaperStats) {
+      return activePaperModal.total_questions || 20;
+    }
+    let c = 0;
+    if (includeMCQ) c += activePaperStats.mcqCount;
+    if (includeSubjective) c += activePaperStats.subjCount;
+    return c || activePaperModal.total_questions || 0;
+  }, [activePaperModal, activePaperStats, includeMCQ, includeSubjective]);
+
+  const modalTotalMarks = useMemo(() => {
+    if (!activePaperModal) return 0;
+    if (activePaperModal.exam_type !== 'practice' || !activePaperStats) {
+      return activePaperModal.total_marks || 30;
+    }
+    let m = 0;
+    if (includeMCQ) m += activePaperStats.mcqMarks;
+    if (includeSubjective) m += activePaperStats.subjMarks;
+    return m || activePaperModal.total_marks || 0;
+  }, [activePaperModal, activePaperStats, includeMCQ, includeSubjective]);
 
   const subjectOptions: DropdownOption[] = useMemo(() => {
     return subjects.map(s => {
@@ -240,7 +336,11 @@ export const OfficialExamPapersExplorer: React.FC<OfficialExamPapersExplorerProp
                       {details.paperTag}
                     </span>
                   </div>
-                  <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg bg-zinc-200/60 dark:bg-white/10 text-zinc-600 dark:text-zinc-300">
+                  <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg ${
+                    paper.exam_type === 'practice'
+                      ? 'bg-orange-500/10 text-orange-500 dark:text-orange-400 border border-orange-500/20'
+                      : 'bg-zinc-200/60 dark:bg-white/10 text-zinc-600 dark:text-zinc-300'
+                  }`}>
                     {details.typeLabel}
                   </span>
                 </div>
@@ -325,7 +425,7 @@ export const OfficialExamPapersExplorer: React.FC<OfficialExamPapersExplorerProp
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-2">
                       <span className="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-orange-500/10 text-orange-500">
-                        {activePaperModal.exam_type.toUpperCase()} • {activePaperModal.year && activePaperModal.year > 0 ? activePaperModal.year : 'NA'}
+                        {activePaperModal.exam_type.toUpperCase()} • {activePaperModal.year && activePaperModal.year > 0 ? activePaperModal.year : (activePaperModal.term || 'Practice Paper')}
                       </span>
                       {activePaperModal.difficulty && (
                         <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-zinc-100 dark:bg-white/5 text-zinc-500">
@@ -353,24 +453,102 @@ export const OfficialExamPapersExplorer: React.FC<OfficialExamPapersExplorerProp
                   </button>
                 </div>
 
+                {/* Practice Paper Question Type Selector (Select / Deselect MCQ & Subjective) */}
+                {activePaperModal.exam_type === 'practice' && (
+                  <div className="space-y-2 p-3 rounded-2xl bg-zinc-50 dark:bg-[#1a1a1e] border border-zinc-200/60 dark:border-white/5">
+                    <div className="flex items-center justify-between px-1">
+                      <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                        Question Types
+                      </span>
+                      <span className="text-[10px] text-zinc-400 font-medium">
+                        {includeMCQ && includeSubjective ? 'All types selected' : includeMCQ ? 'Only MCQs' : 'Only Subjective'}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      {/* MCQ Option */}
+                      <button
+                        type="button"
+                        disabled={activePaperStats ? activePaperStats.mcqCount === 0 : false}
+                        onClick={() => {
+                          if (includeMCQ && !includeSubjective) return; // Must keep at least one selected
+                          setIncludeMCQ(!includeMCQ);
+                        }}
+                        className={`p-2.5 rounded-xl border text-left transition-all flex items-center justify-between cursor-pointer ${
+                          includeMCQ
+                            ? 'bg-blue-500/10 border-blue-500/40 text-blue-600 dark:text-blue-400'
+                            : 'bg-zinc-100/60 dark:bg-white/[0.03] border-transparent text-zinc-400 opacity-60 hover:opacity-100'
+                        } ${activePaperStats && activePaperStats.mcqCount === 0 ? 'opacity-30 cursor-not-allowed' : ''}`}
+                      >
+                        <div className="space-y-0.5">
+                          <span className="font-bold text-xs block">MCQ Practice</span>
+                          <span className="text-[10px] opacity-75 block">
+                            {activePaperStats ? `${activePaperStats.mcqCount} Questions` : 'MCQs'}
+                          </span>
+                        </div>
+                        <div className={`w-4 h-4 rounded-md flex items-center justify-center transition-colors flex-shrink-0 ml-1 ${
+                          includeMCQ ? 'bg-blue-500 text-white' : 'border border-zinc-400 dark:border-zinc-600'
+                        }`}>
+                          {includeMCQ && (
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-2.5 h-2.5">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          )}
+                        </div>
+                      </button>
+
+                      {/* Subjective Option */}
+                      <button
+                        type="button"
+                        disabled={activePaperStats ? activePaperStats.subjCount === 0 : false}
+                        onClick={() => {
+                          if (includeSubjective && !includeMCQ) return; // Must keep at least one selected
+                          setIncludeSubjective(!includeSubjective);
+                        }}
+                        className={`p-2.5 rounded-xl border text-left transition-all flex items-center justify-between cursor-pointer ${
+                          includeSubjective
+                            ? 'bg-purple-500/10 border-purple-500/40 text-purple-600 dark:text-purple-400'
+                            : 'bg-zinc-100/60 dark:bg-white/[0.03] border-transparent text-zinc-400 opacity-60 hover:opacity-100'
+                        } ${activePaperStats && activePaperStats.subjCount === 0 ? 'opacity-30 cursor-not-allowed' : ''}`}
+                      >
+                        <div className="space-y-0.5">
+                          <span className="font-bold text-xs block">Subjective</span>
+                          <span className="text-[10px] opacity-75 block">
+                            {activePaperStats ? `${activePaperStats.subjCount} Questions` : 'Theory'}
+                          </span>
+                        </div>
+                        <div className={`w-4 h-4 rounded-md flex items-center justify-center transition-colors flex-shrink-0 ml-1 ${
+                          includeSubjective ? 'bg-purple-500 text-white' : 'border border-zinc-400 dark:border-zinc-600'
+                        }`}>
+                          {includeSubjective && (
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-2.5 h-2.5">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          )}
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* Specs Grid */}
                 <div className="grid grid-cols-3 gap-2.5 p-3 rounded-2xl bg-zinc-50 dark:bg-[#1a1a1e] text-center">
                   <div className="space-y-0.5">
                     <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Duration</span>
                     <p className="text-sm font-black text-zinc-900 dark:text-white">
-                      {activePaperModal.duration_minutes || (activePaperModal.exam_type === 'endterm' ? 120 : 60)} mins
+                      {modalDuration} mins
                     </p>
                   </div>
                   <div className="space-y-0.5 border-x border-zinc-200/50 dark:border-white/5">
                     <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Questions</span>
                     <p className="text-sm font-black text-zinc-900 dark:text-white">
-                      {activePaperModal.total_questions || 40}
+                      {modalQuestionsCount}
                     </p>
                   </div>
                   <div className="space-y-0.5">
                     <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Total Marks</span>
                     <p className="text-sm font-black text-emerald-500">
-                      {activePaperModal.total_marks || (activePaperModal.exam_type === 'endterm' ? 50 : 30)}.00
+                      {modalTotalMarks}.00
                     </p>
                   </div>
                 </div>
@@ -394,12 +572,16 @@ export const OfficialExamPapersExplorer: React.FC<OfficialExamPapersExplorerProp
                 {/* Single Start Action Button */}
                 <button
                   type="button"
+                  disabled={activePaperModal.exam_type === 'practice' && !includeMCQ && !includeSubjective}
                   onClick={() => {
                     const paper = activePaperModal;
                     setActivePaperModal(null);
-                    onStartExamPaper(paper, false);
+                    onStartExamPaper(paper, false, {
+                      includeMCQ,
+                      includeSubjective
+                    });
                   }}
-                  className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold text-sm shadow-lg shadow-orange-500/25 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 disabled:opacity-50 text-white font-bold text-sm shadow-lg shadow-orange-500/25 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <span>Start Test</span>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4">

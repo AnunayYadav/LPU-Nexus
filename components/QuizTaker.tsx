@@ -815,16 +815,29 @@ builtins.input = lambda p="": _inputs.pop(0) if _inputs else ""
     fetchSubjectData();
   }, [selectedSubject]);
 
-  const handleStartExamPaper = async (paper: ExamPaper, isPractice: boolean = false) => {
+  const handleStartExamPaper = async (
+    paper: ExamPaper,
+    isPractice: boolean = false,
+    options?: { includeMCQ?: boolean; includeSubjective?: boolean }
+  ) => {
     setLoading(true);
     setStatus(`Preparing ${paper.title}...`);
     try {
-      const questions = await NexusServer.fetchExamQuestions({
+      let questions = await NexusServer.fetchExamQuestions({
         paperId: paper.id,
         subjectCode: paper.subject_code,
         year: paper.year,
         examType: paper.exam_type,
       });
+
+      // Filter by question type if customized in practice paper modal
+      if (options && paper.exam_type === 'practice') {
+        if (options.includeMCQ === false) {
+          questions = questions.filter(q => q.type === 'subjective' || q.questionType === 'Subjective');
+        } else if (options.includeSubjective === false) {
+          questions = questions.filter(q => q.type === 'mcq' || q.questionType === 'MCQ');
+        }
+      }
 
       if (!questions || questions.length === 0) {
         showToast(`No questions found in database for ${paper.title}.`, 'info');
@@ -3097,6 +3110,7 @@ builtins.input = lambda p="": _inputs.pop(0) if _inputs else ""
           setSelectedUnits([]);
         }}
         examPapers={examPapers}
+        subjectQuestions={subjectQuestions}
         isLoading={isFetchingExamPapers || loading}
         onStartExamPaper={handleStartExamPaper}
         onSwitchToCustomBuilder={() => {
