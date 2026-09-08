@@ -8,7 +8,7 @@ import {
   Terminal, Globe, Book, Video, FlaskConical, ClipboardList, Scroll, Folder, MessageCircle, Pin,
   Languages, Bell, BellOff, MoreHorizontal, Cpu, Monitor, Sigma, ChevronDown, ChevronRight, Compass, Landmark,
   Link, Image, Smile, Bold, Italic, Strikethrough, List, ListOrdered, AlertTriangle, Quote, BarChart2,
-  Share2, ArrowBigUp, ArrowBigDown, Pencil, Trash2
+  Share2, ArrowBigUp, ArrowBigDown, Pencil, Trash2, Info
 } from 'lucide-react';
 import { Folder as FolderType, LibraryFile, UserProfile } from '../types';
 import {
@@ -938,6 +938,12 @@ const SubjectCommunity: React.FC<SubjectCommunityProps> = ({
 
   // Curriculum Term (Current Year 2026 Batch vs Earlier Batches / Reappear)
   const [curriculumTerm, setCurriculumTerm] = useState<'current' | 'reappear'>('current');
+  const [expandedCAIndices, setExpandedCAIndices] = useState<number[]>([0]);
+  const toggleCAIndex = (idx: number) => {
+    setExpandedCAIndices(prev => 
+      prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx]
+    );
+  };
 
   const curriculumEntry = useMemo(() => {
     return getSubjectCurriculumEntry(activeSubject.name);
@@ -6174,7 +6180,7 @@ const SubjectCommunity: React.FC<SubjectCommunityProps> = ({
 
           {/* Modal Container */}
           <div 
-            className="relative w-full max-w-xl bg-white dark:bg-[#0d0d10] border border-zinc-200/80 dark:border-white/10 rounded-[32px] p-6 sm:p-7 shadow-2xl space-y-4 z-10 my-6 overflow-hidden max-h-[85vh] flex flex-col animate-fade-in"
+            className="relative w-full max-w-2xl bg-white dark:bg-[#0d0d10] border border-zinc-200/80 dark:border-white/10 rounded-[32px] p-6 sm:p-7 shadow-2xl space-y-4 z-10 my-6 overflow-hidden max-h-[85vh] flex flex-col animate-fade-in"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -6297,24 +6303,75 @@ const SubjectCommunity: React.FC<SubjectCommunityProps> = ({
               {activeCurriculum?.continuousAssessment && (
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">Continuous Assessment (CA)</h4>
+                    <h4 className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+                      Continuous Assessment (CA)
+                    </h4>
                     {activeCurriculum.continuousAssessment.evaluationRule && (
-                      <span className="text-[10px] text-zinc-400 font-medium italic">
+                      <span className="text-[10px] text-zinc-400 italic">
                         {activeCurriculum.continuousAssessment.evaluationRule}
                       </span>
                     )}
                   </div>
+
                   {activeCurriculum.continuousAssessment.components && activeCurriculum.continuousAssessment.components.length > 0 && (
                     <div className="space-y-1.5">
-                      {activeCurriculum.continuousAssessment.components.map((comp, idx) => (
-                        <div key={idx} className="flex items-center justify-between p-2.5 rounded-xl bg-zinc-50 dark:bg-white/[0.02] border border-zinc-100 dark:border-white/5 text-xs">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="font-semibold text-zinc-800 dark:text-zinc-200 truncate">{comp.name}</span>
-                            {comp.timing && <span className="text-[10px] text-zinc-400">• {comp.timing}</span>}
+                      {activeCurriculum.continuousAssessment.components.map((comp, idx) => {
+                        const isOpen = expandedCAIndices.includes(idx);
+                        const timingClean = comp.timing && comp.timing !== 'Wk' && comp.timing !== 'Wk NA' ? comp.timing : null;
+                        const rubricText = comp.format ? comp.format.replace(/^Rubric\s*/i, '').trim() : null;
+
+                        return (
+                          <div
+                            key={idx}
+                            className="rounded-xl border border-zinc-100 dark:border-white/5 bg-zinc-50/50 dark:bg-white/[0.02] overflow-hidden transition-colors"
+                          >
+                            <button
+                              type="button"
+                              onClick={() => toggleCAIndex(idx)}
+                              className="w-full px-3 py-2.5 flex items-center justify-between text-left hover:bg-zinc-100/50 dark:hover:bg-white/[0.03] transition-colors cursor-pointer border-none bg-transparent outline-none"
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="font-semibold text-xs text-zinc-800 dark:text-zinc-200 truncate">
+                                  {comp.name}
+                                </span>
+                                {timingClean && (
+                                  <span className="text-[10px] text-zinc-400 font-medium">
+                                    • {timingClean}
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-2 shrink-0 ml-2">
+                                <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300">
+                                  {comp.weightage}
+                                </span>
+                                <ChevronDown className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                              </div>
+                            </button>
+
+                            {isOpen && (
+                              <div className="px-3 pb-3 pt-1 space-y-2 border-t border-zinc-100 dark:border-white/5 text-xs">
+                                {comp.syllabus && comp.syllabus !== 'NA' && (
+                                  <p className="text-[11px] text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                                    {comp.syllabus}
+                                  </p>
+                                )}
+
+                                {rubricText && rubricText !== '' && (
+                                  <div className="pt-1.5 border-t border-zinc-100/80 dark:border-white/[0.04]">
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block mb-0.5">
+                                      Rubric
+                                    </span>
+                                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                                      {rubricText}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
-                          <span className="font-bold text-zinc-700 dark:text-zinc-300 shrink-0 ml-2">{comp.weightage}</span>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>
