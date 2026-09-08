@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import CustomDropdown, { DropdownOption } from './CustomDropdown.tsx';
+import { getSubjectCurriculum } from '../../data/subjectCatalog.ts';
 
 interface SubjectWithSyllabus {
   id: string;
@@ -85,10 +86,23 @@ export const CompactCustomQuizBuilder: React.FC<CompactCustomQuizBuilderProps> =
   const allUnitsSelected = availableUnits.length > 0 && availableUnits.every(u => selectedUnits.includes(u));
   const totalSelectedQuestions = (hasMCQs ? numMCQ : 0) + (hasSubjective ? numSubjective : 0) + (hasCoding ? numCoding : 0);
 
-  const subjectOptions: DropdownOption[] = subjects.map(s => ({
-    value: s.id,
-    label: s.name,
-  }));
+  const subjectOptions: DropdownOption[] = React.useMemo(() => {
+    return subjects.map(s => {
+      let label = s.name;
+      if (!label.includes(':') && !label.includes('—')) {
+        const cat = getSubjectCurriculum(label);
+        if (cat?.name) {
+          const match = label.match(/^[A-Za-z]+[\s-]*\d+/);
+          const code = match ? match[0].replace(/[\s-]+/g, '').toUpperCase() : label.trim().toUpperCase();
+          label = `${code}: ${cat.name}`;
+        }
+      }
+      return {
+        value: s.id,
+        label,
+      };
+    });
+  }, [subjects]);
 
   return (
     <div className="w-full max-w-3xl mx-auto space-y-6 animate-fade-in pb-12">

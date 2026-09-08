@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ExamPaper, ExamCategory } from '../../types.ts';
 import CustomDropdown, { DropdownOption } from './CustomDropdown.tsx';
 import EmptyExamState from './EmptyExamState.tsx';
+import { getSubjectCurriculum } from '../../data/subjectCatalog.ts';
 
 interface SubjectWithSyllabus {
   id: string;
@@ -72,12 +73,13 @@ export const OfficialExamPapersExplorer: React.FC<OfficialExamPapersExplorerProp
   // Helper to format date / term display
   const getPaperDisplayDetails = (paper: ExamPaper, index: number) => {
     const mainTitle = paper.title || `${paper.subject_code} ${paper.exam_type.toUpperCase()}`;
-    const yearStr = paper.year && paper.year > 0 ? String(paper.year) : 'NA';
+    const yearStr = paper.year && paper.year > 0 ? String(paper.year) : '';
+    const dateSub = paper.term && yearStr ? `${paper.term} • ${yearStr}` : (paper.term || yearStr || 'Practice Paper');
 
     return {
       paperTag: paper.subject_code || 'Official Paper',
       mainTitle,
-      dateSub: `${paper.term ? `${paper.term} • ` : ''}${yearStr}`,
+      dateSub,
       typeLabel: paper.exam_type.toUpperCase(),
       duration: paper.duration_minutes || (paper.exam_type === 'endterm' ? 120 : paper.exam_type === 'midterm' ? 60 : 45),
       marks: paper.total_marks || (paper.exam_type === 'endterm' ? 50 : 30),
@@ -85,10 +87,23 @@ export const OfficialExamPapersExplorer: React.FC<OfficialExamPapersExplorerProp
     };
   };
 
-  const subjectOptions: DropdownOption[] = subjects.map(s => ({
-    value: s.id,
-    label: s.name,
-  }));
+  const subjectOptions: DropdownOption[] = useMemo(() => {
+    return subjects.map(s => {
+      let label = s.name;
+      if (!label.includes(':') && !label.includes('—')) {
+        const cat = getSubjectCurriculum(label);
+        if (cat?.name) {
+          const match = label.match(/^[A-Za-z]+[\s-]*\d+/);
+          const code = match ? match[0].replace(/[\s-]+/g, '').toUpperCase() : label.trim().toUpperCase();
+          label = `${code}: ${cat.name}`;
+        }
+      }
+      return {
+        value: s.id,
+        label,
+      };
+    });
+  }, [subjects]);
 
   const categoryOptions: DropdownOption[] = [
     { value: 'all', label: 'All Exam Types' },

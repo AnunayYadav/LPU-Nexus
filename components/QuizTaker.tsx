@@ -17,6 +17,7 @@ import { AnimatePresence, motion, useMotionValue, useTransform } from 'framer-mo
 
 import { SYLLABUS_DATA } from '../data/syllabusData.ts';
 import { findSubjectMetadata } from '../data/curriculumData.ts';
+import { getSubjectCurriculum } from '../data/subjectCatalog.ts';
 // Removed QUIZTAKER_DATA import to resolve lag - fetching on demand from Supabase instead.
 
 // Dashboard components
@@ -1023,23 +1024,38 @@ builtins.input = lambda p="": _inputs.pop(0) if _inputs else ""
 
       filteredSubjectNames.forEach((rawSubject, index) => {
         // Normalize code by removing spaces: "MTH 401" -> "MTH401"
-        const subjectMatch = rawSubject.match(/[A-Za-z]+[0-9]+/);
-        const normalizedCode = subjectMatch ? subjectMatch[0].toUpperCase() : rawSubject.split(':')[0].trim().replace(/\s+/g, '').toUpperCase();
+        const subjectMatch = rawSubject.match(/^[A-Za-z]+[\s-]*[0-9]+/);
+        const normalizedCode = subjectMatch ? subjectMatch[0].replace(/[\s-]+/g, '').toUpperCase() : rawSubject.split(':')[0].trim().replace(/\s+/g, '').toUpperCase();
         
-        // 1. Try finding in SYLLABUS_DATA
+        // 1. Try finding in comprehensive subject catalog (scraped from curriculum)
+        const catalogItem = getSubjectCurriculum(normalizedCode);
+
+        // 2. Try finding in SYLLABUS_DATA
         const syllabusKey = Object.keys(SYLLABUS_DATA).find(key => {
-          const keyMatch = key.match(/[A-Za-z]+[0-9]+/);
-          const keyCode = keyMatch ? keyMatch[0].toUpperCase() : key.split(':')[0].trim().replace(/\s+/g, '').toUpperCase();
+          const keyMatch = key.match(/^[A-Za-z]+[\s-]*[0-9]+/);
+          const keyCode = keyMatch ? keyMatch[0].replace(/[\s-]+/g, '').toUpperCase() : key.split(':')[0].trim().replace(/\s+/g, '').toUpperCase();
           return keyCode === normalizedCode;
         });
 
-        // 2. Try finding in curriculum data registry
+        // 3. Try finding in curriculum data registry
         const meta = findSubjectMetadata('btech-cse', normalizedCode) || findSubjectMetadata('bs-data-science', normalizedCode);
 
-        let displayName = syllabusKey || (meta ? `${meta.code}: ${meta.title}` : rawSubject);
-        if (displayName === 'MTH401' || normalizedCode === 'MTH401') {
-          displayName = 'MTH401: Discrete Mathematics';
+        let subjectTitle = '';
+        if (catalogItem?.name) {
+          subjectTitle = catalogItem.name;
+        } else if (meta?.title) {
+          subjectTitle = meta.title;
+        } else if (syllabusKey && syllabusKey.includes(':')) {
+          subjectTitle = syllabusKey.split(':').slice(1).join(':').trim();
+        } else if (rawSubject.includes(':')) {
+          subjectTitle = rawSubject.split(':').slice(1).join(':').trim();
         }
+
+        if (normalizedCode === 'MTH401' && (!subjectTitle || subjectTitle === 'MTH401')) {
+          subjectTitle = 'Discrete Mathematics';
+        }
+
+        const displayName = subjectTitle ? `${normalizedCode}: ${subjectTitle}` : (rawSubject.includes(':') ? rawSubject : normalizedCode);
 
         subjectsMap.set(normalizedCode, {
           id: `QUIZ_SUB_${index}`,
@@ -1075,7 +1091,13 @@ builtins.input = lambda p="": _inputs.pop(0) if _inputs else ""
   // Sync selectedSubject with URL param
   useEffect(() => {
     if (subjectsWithSyllabi.length > 0 && subjectName) {
-      const sub = subjectsWithSyllabi.find(s => slugify(s.name) === subjectName);
+      const sub = subjectsWithSyllabi.find(s => {
+        const sSlug = slugify(s.name);
+        if (sSlug === subjectName) return true;
+        const match = s.name.match(/^[A-Za-z]+[\s-]*[0-9]+/);
+        if (match && slugify(match[0]) === subjectName.toLowerCase()) return true;
+        return false;
+      });
       if (sub && (!selectedSubject || selectedSubject.name !== sub.name)) {
         setSelectedSubject(sub);
       }

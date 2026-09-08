@@ -260,7 +260,7 @@ class NexusServer {
 
     let query = client.from('questions').select('*');
     if (subFolder) {
-      query = query.eq('subject_id', subFolder.id);
+      query = query.or(`subject_id.eq.${subFolder.id},subject.eq.${subjectCode}`);
     } else {
       query = query.eq('subject', subjectCode); // fallback
     }
@@ -360,7 +360,7 @@ class NexusServer {
       query = query.eq('exam_type', examType);
     }
 
-    query = query.order('year', { ascending: false }).order('created_at', { ascending: false });
+    query = query.order('term', { ascending: true }).order('created_at', { ascending: false });
 
     const { data, error } = await query;
     if (error || !data) {
@@ -581,9 +581,10 @@ class NexusServer {
     if (!client) return [];
 
     try {
-      const [questionsRes, papersRes] = await Promise.all([
+      const [questionsRes, papersRes, libraryRes] = await Promise.all([
         client.from('questions').select('subject').limit(10000),
-        client.from('exam_papers').select('subject_code').limit(1000)
+        client.from('exam_papers').select('subject_code, subject_name').limit(5000),
+        client.from('library_items').select('name').eq('type', 'subject').limit(1000)
       ]);
 
       const set = new Set<string>();
@@ -597,7 +598,19 @@ class NexusServer {
 
       if (papersRes.data) {
         papersRes.data.forEach((item: any) => {
-          const s = String(item.subject_code || '').trim();
+          const name = String(item.subject_name || '').trim();
+          const code = String(item.subject_code || '').trim();
+          if (name && name.includes(':')) {
+            set.add(name);
+          } else if (code) {
+            set.add(code);
+          }
+        });
+      }
+
+      if (libraryRes.data) {
+        libraryRes.data.forEach((item: any) => {
+          const s = String(item.name || '').trim();
           if (s) set.add(s);
         });
       }

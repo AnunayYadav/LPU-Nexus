@@ -33,7 +33,7 @@ export interface SubjectCurriculumRecord {
     endTerm: { title: string; description: string; weightage: string; type: string } | null;
   } | null;
   totalUnits: number;
-  units: Array<{ unitNumber: number; unit: string; title: string; }>;
+  units: Array<{ unitNumber: number; unit: string; title: string }>;
 }
 
 export const ALL_SUBJECTS_CATALOG: Record<string, { current: SubjectCurriculumRecord | null; reappear: SubjectCurriculumRecord | null }> = {
@@ -5137,8 +5137,8 @@ export const ALL_SUBJECTS_CATALOG: Record<string, { current: SubjectCurriculumRe
   "cse273": {
     "current": {
       "code": "CSE273",
-      "name": "CSE273",
-      "fullTitle": "CSE273",
+      "name": "Foundations of Machine Learning (ML)",
+      "fullTitle": "CSE273 — Foundations of Machine Learning (ML)",
       "semester": "Sem4",
       "termType": "current",
       "termId": "current",
@@ -13975,14 +13975,15 @@ export const ALL_SUBJECTS_CATALOG: Record<string, { current: SubjectCurriculumRe
 };
 
 export function getSubjectCurriculum(code: string, termType: 'current' | 'reappear' = 'current'): SubjectCurriculumRecord | null {
-  const cleanCode = code.match(/[A-Za-z]+\d{3}/)?.[0]?.toLowerCase() || code.toLowerCase().trim();
+  const match = code.match(/^[A-Za-z]+[\s-]*\d+/);
+  const cleanCode = (match ? match[0].replace(/[\s-]+/g, '') : code.trim()).toLowerCase();
   const entry = ALL_SUBJECTS_CATALOG[cleanCode];
   if (!entry) return null;
   return entry[termType] || entry.current || entry.reappear || null;
 }
 
 export function getSubjectCurriculumEntry(code: string): { current: SubjectCurriculumRecord | null; reappear: SubjectCurriculumRecord | null } | null {
-  const cleanCode = code.match(/[A-Za-z]+\d{3}/)?.[0]?.toLowerCase() || code.toLowerCase().trim();
+  const match = code.match(/^[A-Za-z]+[\s-]*\d+/);
+  const cleanCode = (match ? match[0].replace(/[\s-]+/g, '') : code.trim()).toLowerCase();
   return ALL_SUBJECTS_CATALOG[cleanCode] || null;
 }
-
