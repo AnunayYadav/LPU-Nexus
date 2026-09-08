@@ -1444,16 +1444,39 @@ class NexusServer {
   static async fetchFolders(program: string): Promise<Folder[]> {
     const client = getSupabase();
     if (!client) return [];
-    let query = client.from('library_items').select('*').neq('type', 'file');
-    if (program && program !== 'All') query = query.eq('program', program);
-    
-    // Primary sort: display_order, Secondary sort: name
-    const { data } = await query
-      .range(0, 9999)
-      .order('display_order', { ascending: true, nullsFirst: false })
-      .order('name', { ascending: true });
-      
-    return data || [];
+
+    let allFolders: Folder[] = [];
+    let page = 0;
+    const pageSize = 1000;
+    let hasMore = true;
+
+    while (hasMore) {
+      let query = client.from('library_items').select('*').neq('type', 'file');
+      if (program && program !== 'All') query = query.eq('program', program);
+
+      const { data, error } = await query
+        .range(page * pageSize, (page + 1) * pageSize - 1)
+        .order('display_order', { ascending: true, nullsFirst: false })
+        .order('name', { ascending: true });
+
+      if (error) {
+        console.error("fetchFolders error:", error);
+        break;
+      }
+
+      if (!data || data.length === 0) {
+        break;
+      }
+
+      allFolders = allFolders.concat(data as Folder[]);
+      if (data.length < pageSize) {
+        hasMore = false;
+      } else {
+        page++;
+      }
+    }
+
+    return allFolders;
   }
 
   static async reorderFolders(folderOrders: { id: string, order: number }[]) {

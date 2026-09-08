@@ -23,6 +23,7 @@ import ModernPDFViewer from './pdf/ModernPDFViewer.tsx';
 import { FileIcon } from './FileIcon';
 import { showToast } from './Toast';
 import { findSubjectMetadata, getProgramCurriculum } from '../data/curriculumData';
+import { getSubjectCurriculum, getSubjectCurriculumEntry, SubjectCurriculumRecord } from '../data/subjectCatalog';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/github-dark.css';
 
@@ -935,8 +936,43 @@ const SubjectCommunity: React.FC<SubjectCommunityProps> = ({
     return findSubjectMetadata(selectedProgram, activeSubject.name);
   }, [selectedProgram, activeSubject.name]);
 
-  const creditsText = subjectMetadata ? `${subjectMetadata.credits} Credits` : "4 Credits";
-  const ltpText = subjectMetadata ? `L-T-P: ${subjectMetadata.l}-${subjectMetadata.t}-${subjectMetadata.p}` : "L-T-P: 3-0-2";
+  // Curriculum Term (Current Year 2026 Batch vs Earlier Batches / Reappear)
+  const [curriculumTerm, setCurriculumTerm] = useState<'current' | 'reappear'>('current');
+
+  const curriculumEntry = useMemo(() => {
+    return getSubjectCurriculumEntry(activeSubject.name);
+  }, [activeSubject.name]);
+
+  const currentCurriculum = curriculumEntry?.current || null;
+  const reappearCurriculum = curriculumEntry?.reappear || null;
+
+  const hasReappearVersion = Boolean(
+    reappearCurriculum &&
+    currentCurriculum &&
+    (
+      reappearCurriculum.credits !== currentCurriculum.credits ||
+      reappearCurriculum.l !== currentCurriculum.l ||
+      reappearCurriculum.t !== currentCurriculum.t ||
+      reappearCurriculum.p !== currentCurriculum.p ||
+      JSON.stringify(reappearCurriculum.gradingScheme) !== JSON.stringify(currentCurriculum.gradingScheme) ||
+      reappearCurriculum.syllabusPdf !== currentCurriculum.syllabusPdf
+    )
+  );
+
+  const activeCurriculum = useMemo(() => {
+    if (curriculumTerm === 'reappear' && reappearCurriculum) {
+      return reappearCurriculum;
+    }
+    return currentCurriculum || reappearCurriculum || null;
+  }, [curriculumTerm, currentCurriculum, reappearCurriculum]);
+
+  const creditsText = activeCurriculum 
+    ? `${activeCurriculum.credits} Credits` 
+    : (subjectMetadata ? `${subjectMetadata.credits} Credits` : "4 Credits");
+
+  const ltpText = activeCurriculum 
+    ? `L-T-P: ${activeCurriculum.l}-${activeCurriculum.t}-${activeCurriculum.p}` 
+    : (subjectMetadata ? `L-T-P: ${subjectMetadata.l}-${subjectMetadata.t}-${subjectMetadata.p}` : "L-T-P: 3-0-2");
 
   const sectionName = useMemo(() => {
     if (activeSubject.description) {
@@ -944,7 +980,9 @@ const SubjectCommunity: React.FC<SubjectCommunityProps> = ({
         const parsed = JSON.parse(activeSubject.description);
         if (parsed && parsed.section) return parsed.section as string;
       } catch (e) {
-        if (!activeSubject.description.startsWith('{')) return activeSubject.description;
+        if (!activeSubject.description.startsWith('{') && !activeSubject.description.startsWith('#') && activeSubject.description.length < 50 && !activeSubject.description.includes('\n')) {
+          return activeSubject.description;
+        }
       }
     }
     const meta = findSubjectMetadata(selectedProgram, activeSubject.name);
@@ -955,6 +993,17 @@ const SubjectCommunity: React.FC<SubjectCommunityProps> = ({
       if (term) {
         const basket = term.electiveBaskets.find(b => b.subjects.some(s => s.code === meta.code));
         if (basket) return basket.name;
+      }
+    }
+    const catCurr = getSubjectCurriculum(activeSubject.name);
+    if (catCurr) {
+      const cat = catCurr.category?.toLowerCase() || '';
+      if (cat === 'core') return 'Core Courses';
+      if (catCurr.categoryDetail && catCurr.categoryDetail !== 'Core') {
+        return catCurr.categoryDetail;
+      }
+      if (catCurr.category) {
+        return `${catCurr.category} Courses`;
       }
     }
     return 'Other / Custom Courses';
@@ -6111,7 +6160,7 @@ const SubjectCommunity: React.FC<SubjectCommunityProps> = ({
         document.body
       )}
 
-      {/* 4.5 About Subject Modal */}
+      {/* 4.5 About Subject & Curriculum Modal */}
       {showAboutSubjectModal && createPortal(
         <div 
           className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-y-auto"
@@ -6125,48 +6174,227 @@ const SubjectCommunity: React.FC<SubjectCommunityProps> = ({
 
           {/* Modal Container */}
           <div 
-            className="relative w-full max-w-xl bg-white dark:bg-[#0a0a0c] border border-zinc-150 dark:border-white/10 rounded-[36px] p-6 sm:p-8 shadow-2xl space-y-5 z-10 my-8 overflow-hidden max-h-[85vh] flex flex-col animate-fade-in"
+            className="relative w-full max-w-xl bg-white dark:bg-[#0d0d10] border border-zinc-200/80 dark:border-white/10 rounded-[32px] p-6 sm:p-7 shadow-2xl space-y-4 z-10 my-6 overflow-hidden max-h-[85vh] flex flex-col animate-fade-in"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex justify-between items-center border-b border-zinc-100 dark:border-white/5 pb-4 shrink-0">
-              <h3 className="text-sm font-bold text-zinc-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                <BookOpen size={18} style={{ color: theme.rawColor }} /> About {activeSubject.name}
-              </h3>
-              <button 
-                onClick={() => setShowAboutSubjectModal(false)} 
-                className="text-zinc-400 hover:text-zinc-655 dark:hover:text-white bg-transparent border-none text-xl cursor-pointer font-semibold transition-colors outline-none"
-              >
-                ×
-              </button>
-            </div>
-
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto no-scrollbar pr-1 text-left space-y-4">
-              {aboutSubjectLoading ? (
-                <div className="flex flex-col items-center justify-center py-16 space-y-4">
-                  <div className="relative w-12 h-12 flex items-center justify-center">
-                    <div className="w-10 h-10 border-4 border-zinc-200 dark:border-white/5 rounded-full absolute" />
-                    <div className="w-10 h-10 border-4 border-t-transparent rounded-full animate-spin absolute" style={{ borderTopColor: theme.rawColor, borderRightColor: theme.rawColor, borderBottomColor: theme.rawColor }} />
-                  </div>
-                  <div className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider animate-pulse">
-                    Generating Course Overview...
+            <div className="flex justify-between items-start border-b border-zinc-100 dark:border-white/5 pb-3.5 shrink-0 gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-xs" style={{ backgroundColor: theme.rawColor }}>
+                  <BookOpen className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-base font-bold text-zinc-900 dark:text-white truncate">
+                    {subjectName}
+                  </h3>
+                  <div className="flex items-center gap-1.5 text-[11px] font-medium text-zinc-400 dark:text-zinc-500 mt-0.5 flex-wrap">
+                    <span className="font-bold text-zinc-700 dark:text-zinc-300">{subjectCode}</span>
+                    <span>•</span>
+                    <span>{creditsText}</span>
+                    <span>•</span>
+                    <span>{ltpText}</span>
+                    <span>•</span>
+                    <span>{activeCurriculum?.category || 'Core'}</span>
                   </div>
                 </div>
-              ) : (
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {activeCurriculum?.syllabusPdf && (
+                  <a
+                    href={activeCurriculum.syllabusPdf}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="h-8 px-2.5 rounded-xl bg-zinc-100 dark:bg-white/5 hover:bg-zinc-200 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-300 text-xs font-semibold flex items-center gap-1.5 transition-colors no-underline shrink-0"
+                    title="View Official Syllabus PDF"
+                  >
+                    <Download className="w-3.5 h-3.5 text-orange-500" />
+                    <span>Syllabus</span>
+                  </a>
+                )}
+                <button 
+                  onClick={() => setShowAboutSubjectModal(false)} 
+                  className="w-8 h-8 rounded-xl flex items-center justify-center text-zinc-400 hover:text-zinc-700 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/10 bg-transparent border-none text-lg cursor-pointer font-semibold transition-colors outline-none"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            {/* Batch Switcher (Only shown if curriculum differs across batches) */}
+            {reappearCurriculum && (
+              <div className="inline-flex p-1 bg-zinc-100 dark:bg-white/5 rounded-xl self-start border border-zinc-200/60 dark:border-white/5 text-xs shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setCurriculumTerm('current')}
+                  className={`px-3 py-1 rounded-lg transition-all border-none cursor-pointer font-semibold ${
+                    curriculumTerm === 'current'
+                      ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-xs'
+                      : 'bg-transparent text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'
+                  }`}
+                >
+                  2026 Batch
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurriculumTerm('reappear')}
+                  className={`px-3 py-1 rounded-lg transition-all border-none cursor-pointer font-semibold ${
+                    curriculumTerm === 'reappear'
+                      ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-xs'
+                      : 'bg-transparent text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'
+                  }`}
+                >
+                  Prev Year
+                </button>
+              </div>
+            )}
+
+            {/* Scrollable Content Body */}
+            <div className="flex-1 overflow-y-auto no-scrollbar pr-1 text-left space-y-4">
+              {/* Course Description */}
+              {activeCurriculum?.courseDescription && (
+                <div className="space-y-1.5">
+                  <h4 className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">Course Overview</h4>
+                  <p className="text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed bg-zinc-50 dark:bg-white/[0.02] p-3.5 rounded-2xl border border-zinc-100 dark:border-white/5">
+                    {activeCurriculum.courseDescription}
+                  </p>
+                </div>
+              )}
+
+              {/* Grading Scheme */}
+              {activeCurriculum?.gradingScheme && (
+                <div className="space-y-1.5">
+                  <h4 className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">Grading Scheme</h4>
+                  <div className="grid grid-cols-4 gap-2 bg-zinc-50 dark:bg-white/[0.02] p-3 rounded-2xl border border-zinc-100 dark:border-white/5 text-center">
+                    <div>
+                      <div className="text-[10px] text-zinc-400 uppercase font-medium">Attendance</div>
+                      <div className="text-sm font-bold text-zinc-900 dark:text-white mt-0.5">
+                        {activeCurriculum.gradingScheme.attendance === 'NA' ? 'N/A' : `${activeCurriculum.gradingScheme.attendance}%`}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] text-zinc-400 uppercase font-medium">CA</div>
+                      <div className="text-sm font-bold text-zinc-900 dark:text-white mt-0.5">
+                        {activeCurriculum.gradingScheme.continuous_assessment === 'NA' ? 'N/A' : `${activeCurriculum.gradingScheme.continuous_assessment}%`}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] text-zinc-400 uppercase font-medium">Mid Term</div>
+                      <div className="text-sm font-bold text-zinc-900 dark:text-white mt-0.5">
+                        {activeCurriculum.gradingScheme.mid_term_examination === 'NA' ? 'N/A' : `${activeCurriculum.gradingScheme.mid_term_examination}%`}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] text-zinc-400 uppercase font-medium">End Term</div>
+                      <div className="text-sm font-bold text-zinc-900 dark:text-white mt-0.5">
+                        {activeCurriculum.gradingScheme.end_term === 'NA' ? 'N/A' : `${activeCurriculum.gradingScheme.end_term}%`}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Continuous Assessment (CA) Components */}
+              {activeCurriculum?.continuousAssessment && (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">Continuous Assessment (CA)</h4>
+                    {activeCurriculum.continuousAssessment.evaluationRule && (
+                      <span className="text-[10px] text-zinc-400 font-medium italic">
+                        {activeCurriculum.continuousAssessment.evaluationRule}
+                      </span>
+                    )}
+                  </div>
+                  {activeCurriculum.continuousAssessment.components && activeCurriculum.continuousAssessment.components.length > 0 && (
+                    <div className="space-y-1.5">
+                      {activeCurriculum.continuousAssessment.components.map((comp, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-2.5 rounded-xl bg-zinc-50 dark:bg-white/[0.02] border border-zinc-100 dark:border-white/5 text-xs">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="font-semibold text-zinc-800 dark:text-zinc-200 truncate">{comp.name}</span>
+                            {comp.timing && <span className="text-[10px] text-zinc-400">• {comp.timing}</span>}
+                          </div>
+                          <span className="font-bold text-zinc-700 dark:text-zinc-300 shrink-0 ml-2">{comp.weightage}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Exam Blueprint */}
+              {activeCurriculum?.examPatterns && (activeCurriculum.examPatterns.midTerm || activeCurriculum.examPatterns.endTerm) && (
+                <div className="space-y-1.5">
+                  <h4 className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">Exam Blueprint</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {activeCurriculum.examPatterns.midTerm && (
+                      <div className="p-3 rounded-xl bg-zinc-50 dark:bg-white/[0.02] border border-zinc-100 dark:border-white/5 text-xs space-y-1">
+                        <div className="flex items-center justify-between font-semibold text-zinc-800 dark:text-zinc-200">
+                          <span>Mid Term</span>
+                          <span className="font-bold">{activeCurriculum.examPatterns.midTerm.weightage}</span>
+                        </div>
+                        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                          {activeCurriculum.examPatterns.midTerm.description || activeCurriculum.examPatterns.midTerm.title}
+                        </p>
+                      </div>
+                    )}
+                    {activeCurriculum.examPatterns.endTerm && (
+                      <div className="p-3 rounded-xl bg-zinc-50 dark:bg-white/[0.02] border border-zinc-100 dark:border-white/5 text-xs space-y-1">
+                        <div className="flex items-center justify-between font-semibold text-zinc-800 dark:text-zinc-200">
+                          <span>End Term</span>
+                          <span className="font-bold">{activeCurriculum.examPatterns.endTerm.weightage}</span>
+                        </div>
+                        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                          {activeCurriculum.examPatterns.endTerm.description || activeCurriculum.examPatterns.endTerm.title}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Units Overview */}
+              {activeCurriculum?.units && activeCurriculum.units.length > 0 && (
+                <div className="space-y-1.5">
+                  <h4 className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">Syllabus Outline ({activeCurriculum.units.length} Units)</h4>
+                  <div className="space-y-1">
+                    {activeCurriculum.units.map((unit, idx) => (
+                      <div key={idx} className="flex items-center gap-2.5 p-2 rounded-xl bg-zinc-50 dark:bg-white/[0.02] border border-zinc-100 dark:border-white/5 text-xs">
+                        <span className="w-5 h-5 rounded-md bg-zinc-200 dark:bg-white/10 text-[10px] font-bold text-zinc-600 dark:text-zinc-300 flex items-center justify-center shrink-0">
+                          {unit.unitNumber || idx + 1}
+                        </span>
+                        <span className="text-zinc-700 dark:text-zinc-300 truncate font-medium">{unit.title}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Fallback to simple markdown if catalog has no entry */}
+              {!activeCurriculum && (
                 <div className="space-y-3.5 pr-2">
-                  {parseSimpleMarkdown(aboutSubjectContent)}
+                  {aboutSubjectLoading ? (
+                    <div className="flex flex-col items-center justify-center py-16 space-y-4">
+                      <div className="relative w-12 h-12 flex items-center justify-center">
+                        <div className="w-10 h-10 border-4 border-zinc-200 dark:border-white/5 rounded-full absolute" />
+                        <div className="w-10 h-10 border-4 border-t-transparent rounded-full animate-spin absolute" style={{ borderTopColor: theme.rawColor, borderRightColor: theme.rawColor, borderBottomColor: theme.rawColor }} />
+                      </div>
+                      <div className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider animate-pulse">
+                        Generating Course Overview...
+                      </div>
+                    </div>
+                  ) : (
+                    parseSimpleMarkdown(aboutSubjectContent)
+                  )}
                 </div>
               )}
             </div>
 
             {/* Actions */}
-            <div className="flex justify-end pt-4 border-t border-zinc-100 dark:border-white/5 shrink-0">
+            <div className="flex justify-end pt-3 border-t border-zinc-100 dark:border-white/5 shrink-0">
               <button
                 type="button"
                 onClick={() => setShowAboutSubjectModal(false)}
                 style={{ backgroundColor: theme.rawColor }}
-                className="px-6 py-2.5 text-white rounded-xl text-xs font-bold border-none cursor-pointer hover:opacity-90 active:scale-95 transition-all outline-none"
+                className="px-6 py-2 text-white rounded-xl text-xs font-bold border-none cursor-pointer hover:opacity-90 active:scale-95 transition-all outline-none shadow-xs"
               >
                 Close
               </button>

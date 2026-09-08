@@ -38,6 +38,7 @@ import { CSS } from '@dnd-kit/utilities';
 import VerifiedBadge from './VerifiedBadge.tsx';
 import { Code, Database, Compass, Terminal, Globe, Languages, MessageSquare, Landmark, BookOpen, FileText, Cpu, Monitor, Sigma, Folder as FolderIconLucide, HelpCircle, Video, MoreHorizontal, Star, ArrowLeft, Plus, ArrowUp, ArrowDown, Pencil, Trash2, Archive, Layers, Loader2, Image as ImageIcon, FileImage, Download } from 'lucide-react';
 import { getProgramCurriculum, findSubjectMetadata } from '../data/curriculumData.ts';
+import { getSubjectCurriculum } from '../data/subjectCatalog.ts';
 import { SYLLABUS_DATA } from '../data/syllabusData.ts';
 import { mergePDFFiles, convertImagesToPdf, isImageFile } from '../utils/pdfMerger.ts';
 import { convertPptToPdf } from '../utils/pptConverter.ts';
@@ -829,7 +830,9 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
         const parsed = JSON.parse(f.description);
         if (parsed && parsed.section) return parsed.section as string;
       } catch (e) {
-        if (!f.description.startsWith('{')) return f.description;
+        if (!f.description.startsWith('{') && !f.description.startsWith('#') && f.description.length < 50 && !f.description.includes('\n')) {
+          return f.description;
+        }
       }
     }
     const meta = findSubjectMetadata(selectedProgram, f.name);
@@ -842,6 +845,19 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
         if (basket) return basket.name;
       }
     }
+
+    const catCurr = getSubjectCurriculum(f.name);
+    if (catCurr) {
+      const cat = catCurr.category?.toLowerCase() || '';
+      if (cat === 'core') return 'Core Courses';
+      if (catCurr.categoryDetail && catCurr.categoryDetail !== 'Core') {
+        return catCurr.categoryDetail;
+      }
+      if (catCurr.category) {
+        return `${catCurr.category} Courses`;
+      }
+    }
+
     return 'Other / Custom Courses';
   }, [selectedProgram, activeSemester]);
 
@@ -2333,19 +2349,36 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ userProfile, initialVie
                             const visibleGroups = groups.filter(g => g.items.length > 0);
 
                             visibleGroups.sort((a, b) => {
+                              // 1. "Core Courses" ALWAYS comes first
+                              if (a.name === 'Core Courses') return -1;
+                              if (b.name === 'Core Courses') return 1;
+
+                              // 2. "Other / Custom Courses" ALWAYS comes last
+                              if (a.name === 'Other / Custom Courses') return 1;
+                              if (b.name === 'Other / Custom Courses') return -1;
+
+                              // 3. User-defined custom order from sectionOrders (if explicitly set for other sections)
                               const orderA = sectionOrders[a.name];
                               const orderB = sectionOrders[b.name];
                               if (orderA !== undefined && orderB !== undefined) return orderA - orderB;
                               if (orderA !== undefined) return -1;
                               if (orderB !== undefined) return 1;
 
-                              if (a.name === 'Core Courses') return -1;
-                              if (b.name === 'Core Courses') return 1;
+                              // 4. Core Electives next
                               if (a.name.includes('Core Elective')) {
                                 if (b.name.includes('Core Elective')) return a.name.localeCompare(b.name);
                                 return -1;
                               }
                               if (b.name.includes('Core Elective')) return 1;
+
+                              // 5. Specialization baskets
+                              if (a.name.includes('Specialization')) {
+                                if (b.name.includes('Specialization')) return a.name.localeCompare(b.name);
+                                return -1;
+                              }
+                              if (b.name.includes('Specialization')) return 1;
+
+                              // 6. Alphabetical for the rest
                               return a.name.localeCompare(b.name);
                             });
 
@@ -3936,8 +3969,9 @@ const FolderCard: React.FC<{
       )
     };
     const metadata = findSubjectMetadata(selectedProgram, folder.name);
-    const creditsText = metadata ? `${metadata.credits} Credits` : "4 Credits";
-    const ltpText = metadata ? `L-T-P: ${metadata.l}-${metadata.t}-${metadata.p}` : "L-T-P: 3-0-2";
+    const catalogCurriculum = getSubjectCurriculum(folder.name);
+    const creditsText = catalogCurriculum ? `${catalogCurriculum.credits} Credits` : (metadata ? `${metadata.credits} Credits` : "4 Credits");
+    const ltpText = catalogCurriculum ? `L-T-P: ${catalogCurriculum.l}-${catalogCurriculum.t}-${catalogCurriculum.p}` : (metadata ? `L-T-P: ${metadata.l}-${metadata.t}-${metadata.p}` : "L-T-P: 3-0-2");
 
     return (
       <Link
@@ -4029,12 +4063,13 @@ const StaticFolderCard: React.FC<{
   const subjectCodeMatch = folder.name.match(/^([A-Za-z]+\d{3})/);
   const subjectCode = subjectCodeMatch ? subjectCodeMatch[1].toUpperCase() : folder.name.split(':')[0].trim();
   const metadata = findSubjectMetadata(selectedProgram, folder.name);
+  const catalogCurriculum = getSubjectCurriculum(folder.name);
   let subjectName = folder.name.split(':')[1]?.trim();
   if (!subjectName || subjectName.toLowerCase() === subjectCode.toLowerCase()) {
-    subjectName = metadata?.title || folder.name;
+    subjectName = catalogCurriculum?.name || metadata?.title || folder.name;
   }
-  const creditsText = metadata ? `${metadata.credits} Credits` : "4 Credits";
-  const ltpText = metadata ? `L-T-P: ${metadata.l}-${metadata.t}-${metadata.p}` : "L-T-P: 3-0-2";
+  const creditsText = catalogCurriculum ? `${catalogCurriculum.credits} Credits` : (metadata ? `${metadata.credits} Credits` : "4 Credits");
+  const ltpText = catalogCurriculum ? `L-T-P: ${catalogCurriculum.l}-${catalogCurriculum.t}-${catalogCurriculum.p}` : (metadata ? `L-T-P: ${metadata.l}-${metadata.t}-${metadata.p}` : "L-T-P: 3-0-2");
 
   return (
     <div className="p-3 sm:p-3.5 rounded-2xl border-none bg-white dark:bg-[#111113] flex items-center justify-between min-h-[70px] relative overflow-hidden">

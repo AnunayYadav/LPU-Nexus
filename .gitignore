@@ -66,3 +66,10 @@ scripts/*.sql
 # Markdown files
 *.md
 !README.md
+
+# Scraper & Curriculum Sync Scripts & Data
+scraped_data/
+scripts/scrape*
+scripts/sync_subjects*
+scripts/generate_subject_catalog*
+
